@@ -3,389 +3,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phone Controller Racing Game</title>
+    <title>Local WiFi Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
         body {
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            overflow: hidden;
-        }
-        
-        #setupScreen, #gameScreen, #controllerScreen {
-            display: none;
-            position: absolute;
-            width: 100%;
-            height: 100vh;
+            display: flex;
             justify-content: center;
             align-items: center;
-            flex-direction: column;
-        }
-        
-        #setupScreen.active, #gameScreen.active, #controllerScreen.active {
-            display: flex;
-        }
-        
-        .card {
-            background: white;
-            padding: 3rem;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            text-align: center;
-            max-width: 500px;
-        }
-        
-        h1 {
-            color: #667eea;
-            margin-bottom: 1rem;
-            font-size: 2.5rem;
-        }
-        
-        p {
-            color: #666;
-            margin-bottom: 2rem;
-            font-size: 1.1rem;
-        }
-        
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+        }
+        .setup {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        button {
+            padding: 15px 40px;
+            font-size: 18px;
             border: none;
-            padding: 1rem 3rem;
-            font-size: 1.2rem;
-            border-radius: 50px;
+            border-radius: 10px;
             cursor: pointer;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            font-weight: bold;
             transition: transform 0.2s;
         }
-        
         button:hover {
             transform: scale(1.05);
         }
-        
-        #qrcode {
-            margin: 2rem 0;
-            padding: 1rem;
-            background: white;
-            display: inline-block;
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #gameId {
+            font-size: 32px;
+            letter-spacing: 8px;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
-        }
-        
-        #gameCanvas {
-            display: block;
-            margin: 0 auto;
-            background: #222;
-            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
-        }
-        
-        #score {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255,255,255,0.9);
-            padding: 1rem 2rem;
-            border-radius: 50px;
-            font-size: 1.5rem;
             font-weight: bold;
-            color: #667eea;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
         }
-        
-        .controller-pad {
+        input {
+            padding: 15px;
+            font-size: 24px;
+            border: none;
+            border-radius: 10px;
+            text-align: center;
+            letter-spacing: 4px;
             width: 300px;
-            height: 300px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
-            position: relative;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            margin: 2rem auto;
+            margin: 20px 0;
         }
-        
-        .controller-center {
-            position: absolute;
-            width: 100px;
-            height: 100px;
-            background: white;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: inset 0 5px 15px rgba(0,0,0,0.2);
+        #gameCanvas {
+            border: 4px solid white;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            display: none;
         }
-        
-        .tilt-indicator {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background: #ff4757;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            transition: all 0.1s;
-            box-shadow: 0 3px 10px rgba(255,71,87,0.5);
+        .controller {
+            display: none;
+            width: 100%;
+            max-width: 500px;
         }
-        
+        .dpad {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin: 20px auto;
+            max-width: 300px;
+        }
+        .dpad-btn {
+            width: 80px;
+            height: 80px;
+            font-size: 24px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dpad-btn:active {
+            transform: scale(0.95);
+        }
         .status {
-            color: white;
-            font-size: 1.2rem;
-            margin-top: 2rem;
-            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            font-size: 18px;
+        }
+        .score {
+            font-size: 36px;
+            margin: 20px 0;
         }
     </style>
 </head>
 <body>
-    <!-- Setup Screen (Laptop) -->
-    <div id="setupScreen" class="active">
-        <div class="card">
-            <h1>🏎️ Phone Racing</h1>
-            <p>Choose your device type:</p>
-            <button onclick="initLaptop()">I'm on Laptop/PC</button>
-            <br><br>
-            <button onclick="initController()">I'm on Phone</button>
-        </div>
-    </div>
-
-    <!-- Game Screen (Laptop) -->
-    <div id="gameScreen">
-        <div id="score">Distance: 0m | Speed: 0</div>
-        <canvas id="gameCanvas"></canvas>
-    </div>
-
-    <!-- Controller Screen (Phone) -->
-    <div id="controllerScreen">
-        <div class="card">
-            <h1>🎮 Controller</h1>
-            <p class="status">Tilt your phone left/right to steer!</p>
-            <div class="controller-pad">
-                <div class="controller-center"></div>
-                <div class="tilt-indicator" id="tiltIndicator"></div>
+    <div class="container">
+        <div class="setup" id="setup">
+            <h1>🎮 Local WiFi Game</h1>
+            <div class="buttons">
+                <button onclick="startAsPC()">💻 PC/Display</button>
+                <button onclick="startAsPhone()">📱 Phone/Controller</button>
             </div>
-            <p id="connectionStatus" style="color: #4CAF50; font-weight: bold;">Connected!</p>
+            <div id="pcSetup" style="display: none;">
+                <p>Your Game ID:</p>
+                <div id="gameId">Generating...</div>
+                <p style="margin-top: 20px; font-size: 14px;">Share this ID with your phone</p>
+                <div class="status" id="pcStatus">Waiting for controller...</div>
+            </div>
+            <div id="phoneSetup" style="display: none;">
+                <p>Enter Game ID:</p>
+                <input type="text" id="connectId" placeholder="Enter ID" maxlength="6">
+                <br>
+                <button onclick="connectToPC()">Connect</button>
+                <div class="status" id="phoneStatus">Enter the game ID</div>
+            </div>
+        </div>
+        
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="controller" id="controller">
+            <div class="score" id="score">Score: 0</div>
+            <div class="dpad">
+                <div></div>
+                <button class="dpad-btn" onmousedown="sendControl('up')" ontouchstart="sendControl('up')">▲</button>
+                <div></div>
+                <button class="dpad-btn" onmousedown="sendControl('left')" ontouchstart="sendControl('left')">◀</button>
+                <div></div>
+                <button class="dpad-btn" onmousedown="sendControl('right')" ontouchstart="sendControl('right')">▶</button>
+                <div></div>
+                <button class="dpad-btn" onmousedown="sendControl('down')" ontouchstart="sendControl('down')">▼</button>
+                <div></div>
+            </div>
+            <div class="status">Connected! Control the paddle</div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
-        const ROOM_KEY = 'phone_racing_' + Math.random().toString(36).substr(2, 9);
-        let isLaptop = false;
+        let peer;
+        let connection;
+        let isPC = false;
         let gameLoop;
         
-        // Game variables
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas ? canvas.getContext('2d') : null;
-        let carX = 0;
-        let carTilt = 0;
-        let obstacles = [];
-        let distance = 0;
-        let speed = 3;
-        let gameRunning = false;
+        // Game state
+        const game = {
+            paddle: { x: 350, y: 550, width: 100, height: 20, speed: 15 },
+            ball: { x: 400, y: 300, vx: 4, vy: 4, radius: 10 },
+            score: 0
+        };
 
-        function initLaptop() {
-            isLaptop = true;
-            document.getElementById('setupScreen').classList.remove('active');
+        function generateId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function startAsPC() {
+            isPC = true;
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('gameCanvas').style.display = 'block';
             
-            // Show instructions with QR code
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.style.position = 'fixed';
-            card.style.top = '50%';
-            card.style.left = '50%';
-            card.style.transform = 'translate(-50%, -50%)';
-            card.style.zIndex = '1000';
-            card.innerHTML = `
-                <h1>📱 Connect Your Phone</h1>
-                <p>Open this page on your phone and click "I'm on Phone"</p>
-                <div id="qrcode"></div>
-                <p style="font-size: 0.9rem; color: #999;">Or manually enter the URL</p>
-                <button onclick="startGame()">Skip & Start Game</button>
-            `;
-            document.body.appendChild(card);
+            const id = generateId();
+            peer = new Peer(id);
             
-            // Generate QR code
-            new QRCode(document.getElementById('qrcode'), {
-                text: window.location.href,
-                width: 200,
-                height: 200
+            peer.on('open', () => {
+                console.log('PC ready with ID:', id);
             });
             
-            // Listen for controller input
-            window.addEventListener('storage', handleControllerInput);
+            peer.on('connection', (conn) => {
+                connection = conn;
+                connection.on('data', (data) => {
+                    handleControl(data);
+                });
+                connection.on('open', () => {
+                    console.log('Controller connected!');
+                    startGame();
+                });
+            });
         }
 
-        function initController() {
-            document.getElementById('setupScreen').classList.remove('active');
-            document.getElementById('controllerScreen').classList.add('active');
-            
-            // Request device orientation permission for iOS
-            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            window.addEventListener('deviceorientation', handleOrientation);
-                        }
-                    })
-                    .catch(console.error);
-            } else {
-                window.addEventListener('deviceorientation', handleOrientation);
-            }
+        function startAsPhone() {
+            isPC = false;
+            document.getElementById('pcSetup').style.display = 'none';
+            document.getElementById('phoneSetup').style.display = 'block';
         }
 
-        function handleOrientation(event) {
-            const gamma = event.gamma; // Left/right tilt (-90 to 90)
-            const tilt = Math.max(-45, Math.min(45, gamma)) / 45; // Normalize to -1 to 1
-            
-            // Update visual indicator
-            const indicator = document.getElementById('tiltIndicator');
-            if (indicator) {
-                indicator.style.transform = `translate(calc(-50% + ${tilt * 80}px), -50%)`;
+        function connectToPC() {
+            const id = document.getElementById('connectId').value.trim().toUpperCase();
+            if (!id) {
+                document.getElementById('phoneStatus').textContent = 'Please enter a valid ID';
+                return;
             }
             
-            // Send to laptop
-            localStorage.setItem(ROOM_KEY, JSON.stringify({
-                tilt: tilt,
-                timestamp: Date.now()
-            }));
-        }
-
-        function handleControllerInput() {
-            const data = localStorage.getItem(ROOM_KEY);
-            if (data) {
-                try {
-                    const parsed = JSON.parse(data);
-                    if (Date.now() - parsed.timestamp < 100) {
-                        carTilt = parsed.tilt;
+            peer = new Peer();
+            peer.on('open', () => {
+                connection = peer.connect(id);
+                connection.on('open', () => {
+                    document.getElementById('setup').style.display = 'none';
+                    document.getElementById('controller').style.display = 'block';
+                });
+                connection.on('data', (data) => {
+                    if (data.score !== undefined) {
+                        document.getElementById('score').textContent = 'Score: ' + data.score;
                     }
-                } catch (e) {}
+                });
+            });
+        }
+
+        function sendControl(direction) {
+            if (connection && connection.open) {
+                connection.send({ control: direction });
+            }
+        }
+
+        function handleControl(data) {
+            if (data.control) {
+                switch(data.control) {
+                    case 'left':
+                        game.paddle.x = Math.max(0, game.paddle.x - game.paddle.speed);
+                        break;
+                    case 'right':
+                        game.paddle.x = Math.min(800 - game.paddle.width, game.paddle.x + game.paddle.speed);
+                        break;
+                }
             }
         }
 
         function startGame() {
-            // Remove setup card
-            const cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                if (card.parentElement === document.body) {
-                    card.remove();
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            gameLoop = setInterval(() => {
+                // Update ball position
+                game.ball.x += game.ball.vx;
+                game.ball.y += game.ball.vy;
+                
+                // Wall collision
+                if (game.ball.x - game.ball.radius < 0 || game.ball.x + game.ball.radius > 800) {
+                    game.ball.vx = -game.ball.vx;
                 }
-            });
-            
-            document.getElementById('gameScreen').classList.add('active');
-            
-            // Setup canvas
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            
-            // Initialize game
-            carX = canvas.width / 2;
-            obstacles = [];
-            distance = 0;
-            speed = 3;
-            gameRunning = true;
-            
-            gameLoop = setInterval(updateGame, 1000 / 60);
-        }
-
-        function updateGame() {
-            if (!gameRunning) return;
-            
-            // Clear canvas
-            ctx.fillStyle = '#2d3436';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw road
-            ctx.fillStyle = '#636e72';
-            ctx.fillRect(canvas.width / 4, 0, canvas.width / 2, canvas.height);
-            
-            // Draw road lines
-            ctx.strokeStyle = '#f1f2f6';
-            ctx.lineWidth = 5;
-            ctx.setLineDash([30, 20]);
-            ctx.beginPath();
-            ctx.moveTo(canvas.width / 2, 0);
-            ctx.lineTo(canvas.width / 2, canvas.height);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            
-            // Update car position
-            carX += carTilt * 8;
-            carX = Math.max(canvas.width / 4 + 30, Math.min(canvas.width * 3/4 - 30, carX));
-            
-            // Draw car
-            ctx.fillStyle = '#e74c3c';
-            ctx.beginPath();
-            ctx.moveTo(carX, canvas.height - 100);
-            ctx.lineTo(carX - 20, canvas.height - 50);
-            ctx.lineTo(carX + 20, canvas.height - 50);
-            ctx.closePath();
-            ctx.fill();
-            
-            ctx.fillStyle = '#c0392b';
-            ctx.fillRect(carX - 15, canvas.height - 80, 30, 40);
-            
-            // Spawn obstacles
-            if (Math.random() < 0.02) {
-                obstacles.push({
-                    x: canvas.width / 4 + Math.random() * (canvas.width / 2),
-                    y: -50,
-                    width: 40,
-                    height: 60
-                });
-            }
-            
-            // Update and draw obstacles
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                const obs = obstacles[i];
-                obs.y += speed;
-                
-                ctx.fillStyle = '#3498db';
-                ctx.fillRect(obs.x - obs.width/2, obs.y, obs.width, obs.height);
-                
-                // Check collision
-                if (Math.abs(carX - obs.x) < 30 && obs.y > canvas.height - 120 && obs.y < canvas.height - 50) {
-                    gameOver();
-                    return;
+                if (game.ball.y - game.ball.radius < 0) {
+                    game.ball.vy = -game.ball.vy;
                 }
                 
-                // Remove off-screen obstacles
-                if (obs.y > canvas.height) {
-                    obstacles.splice(i, 1);
-                    distance += 10;
+                // Paddle collision
+                if (game.ball.y + game.ball.radius > game.paddle.y &&
+                    game.ball.y - game.ball.radius < game.paddle.y + game.paddle.height &&
+                    game.ball.x > game.paddle.x &&
+                    game.ball.x < game.paddle.x + game.paddle.width) {
+                    game.ball.vy = -Math.abs(game.ball.vy);
+                    game.score++;
+                    if (connection && connection.open) {
+                        connection.send({ score: game.score });
+                    }
                 }
-            }
-            
-            // Increase difficulty
-            speed = Math.min(8, 3 + distance / 1000);
-            
-            // Update score
-            document.getElementById('score').textContent = 
-                `Distance: ${distance}m | Speed: ${speed.toFixed(1)}`;
-        }
-
-        function gameOver() {
-            gameRunning = false;
-            clearInterval(gameLoop);
-            
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 60px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('GAME OVER!', canvas.width / 2, canvas.height / 2 - 50);
-            
-            ctx.font = '30px Arial';
-            ctx.fillText(`Distance: ${distance}m`, canvas.width / 2, canvas.height / 2 + 20);
-            
-            setTimeout(() => {
-                if (confirm('Play again?')) {
-                    startGame();
+                
+                // Ball out of bounds
+                if (game.ball.y > 600) {
+                    game.ball.x = 400;
+                    game.ball.y = 300;
+                    game.ball.vx = 4 * (Math.random() > 0.5 ? 1 : -1);
+                    game.ball.vy = 4;
+                    game.score = 0;
+                    if (connection && connection.open) {
+                        connection.send({ score: game.score });
+                    }
                 }
-            }, 1000);
+                
+                // Draw
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, 800, 600);
+                
+                // Draw paddle
+                ctx.fillStyle = '#f5576c';
+                ctx.fillRect(game.paddle.x, game.paddle.y, game.paddle.width, game.paddle.height);
+                
+                // Draw ball
+                ctx.fillStyle = '#f093fb';
+                ctx.beginPath();
+                ctx.arc(game.ball.x, game.ball.y, game.ball.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw score
+                ctx.fillStyle = 'white';
+                ctx.font = '36px Arial';
+                ctx.fillText('Score: ' + game.score, 20, 40);
+                
+            }, 1000 / 60);
         }
     </script>
 </body>
