@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teleprompter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .setup {
+            background: #000;
+            border: 2px solid #fff;
+            padding: 40px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 30px;
+            letter-spacing: 4px;
+        }
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        button {
+            padding: 15px 40px;
+            font-size: 18px;
+            border: 2px solid #fff;
+            background: #000;
+            color: #fff;
+            cursor: pointer;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+        button:active {
+            background: #fff;
+            color: #000;
+        }
+        .status {
+            margin: 20px;
+            font-size: 16px;
+            letter-spacing: 2px;
+        }
+        
+        /* Prompter Display */
+        #prompterDisplay {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #000;
+            overflow: hidden;
+        }
+        #prompterText {
+            padding: 20vh 10vw;
+            font-size: 4vw;
+            line-height: 1.8;
+            transform: translateY(0);
+            transition: transform 0.1s linear;
+        }
+        .marker {
+            position: fixed;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #ff0000;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+        }
+        
+        /* Phone Controller */
+        #controller {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #1a1a1a;
+        }
+        .control-header {
+            background: #000;
+            border-bottom: 2px solid #fff;
+            padding: 15px;
+            text-align: center;
+            font-size: 20px;
+            letter-spacing: 3px;
+            font-weight: bold;
+        }
+        .control-section {
+            padding: 20px;
+        }
+        .control-group {
+            margin-bottom: 25px;
+        }
+        .control-label {
+            font-size: 14px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            color: #aaa;
+        }
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            background: #000;
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 15px;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            resize: vertical;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        input[type="range"] {
+            flex: 1;
+            height: 40px;
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type="range"]::-webkit-slider-track {
+            background: #fff;
+            height: 4px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 30px;
+            height: 30px;
+            background: #fff;
+            border: 2px solid #000;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-track {
+            background: #fff;
+            height: 4px;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 30px;
+            height: 30px;
+            background: #fff;
+            border: 2px solid #000;
+            cursor: pointer;
+        }
+        .value-display {
+            min-width: 60px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .speed-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .speed-btn {
+            padding: 15px;
+            background: #000;
+            border: 2px solid #fff;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        .speed-btn:active {
+            background: #fff;
+            color: #000;
+        }
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .control-btn {
+            padding: 20px;
+            background: #000;
+            border: 2px solid #fff;
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        .control-btn:active {
+            background: #fff;
+            color: #000;
+        }
+        .control-btn.active {
+            background: #fff;
+            color: #000;
+        }
+        .color-picker {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .color-option {
+            width: 100%;
+            height: 50px;
+            border: 2px solid #fff;
+            cursor: pointer;
+        }
+        .color-option.selected {
+            border-width: 4px;
+        }
+        .fullscreen-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 16px;
+            letter-spacing: 2px;
+            z-index: 200;
+            cursor: pointer;
+        }
+        .fullscreen-btn:active {
+            background: #fff;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="setup" id="setup">
+            <h1>PROMPTER</h1>
+            <div class="buttons">
+                <button onclick="startAsDisplay()">DISPLAY</button>
+                <button onclick="startAsController()">CONTROLLER</button>
+            </div>
+            <div class="status" id="status">SELECT DEVICE</div>
+        </div>
+        
+        <!-- Prompter Display (Laptop/PC) -->
+        <div id="prompterDisplay">
+            <button class="fullscreen-btn" onclick="goFullscreen()">FULLSCREEN</button>
+            <div class="marker"></div>
+            <div id="prompterText">
+                Your text will appear here. Use your phone to control the prompter.
+            </div>
+        </div>
+        
+        <!-- Phone Controller -->
+        <div id="controller">
+            <div class="control-header">PROMPTER CONTROL</div>
+            <div class="control-section">
+                
+                <div class="control-group">
+                    <div class="control-label">TEXT</div>
+                    <textarea id="textInput" placeholder="Enter your script here...">Welcome to the teleprompter!
+
+This is your script. You can edit this text from your phone and it will update on the display in real-time.
+
+Use the controls below to:
+- Adjust scrolling speed
+- Change text size
+- Modify colors
+- Control playback
+
+Tilt your phone up and down to scroll, or use the manual controls.</textarea>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-label">SCROLL SPEED</div>
+                    <div class="slider-container">
+                        <input type="range" id="speedSlider" min="0" max="10" value="0" step="0.5">
+                        <div class="value-display" id="speedValue">0</div>
+                    </div>
+                    <div class="speed-controls">
+                        <button class="speed-btn" onclick="adjustSpeed(-1)">−</button>
+                        <button class="speed-btn" onclick="setSpeed(0)">STOP</button>
+                        <button class="speed-btn" onclick="adjustSpeed(1)">+</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-label">TEXT SIZE</div>
+                    <div class="slider-container">
+                        <input type="range" id="sizeSlider" min="2" max="8" value="4" step="0.5">
+                        <div class="value-display" id="sizeValue">4</div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-label">TEXT COLOR</div>
+                    <div class="color-picker">
+                        <div class="color-option selected" style="background: #fff" onclick="setColor('#fff', '#000')"></div>
+                        <div class="color-option" style="background: #00ff00" onclick="setColor('#00ff00', '#000')"></div>
+                        <div class="color-option" style="background: #ffff00" onclick="setColor('#ffff00', '#000')"></div>
+                        <div class="color-option" style="background: #ff00ff" onclick="setColor('#ff00ff', '#000')"></div>
+                    </div>
+                </div>
+                
+                <div class="control-buttons">
+                    <button class="control-btn" id="playBtn" onclick="togglePlay()">▶ PLAY</button>
+                    <button class="control-btn" onclick="resetPosition()">↺ RESET</button>
+                    <button class="control-btn" onclick="sendUpdate()">↻ SYNC</button>
+                    <button class="control-btn" onclick="mirrorMode()">⇅ MIRROR</button>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const FIXED_ID = 'PROMPTER2024';
+        let peer, connection, isDisplay = false;
+        let scrollSpeed = 0;
+        let currentPosition = 0;
+        let isPlaying = false;
+        let textSize = 4;
+        let textColor = '#fff';
+        let bgColor = '#000';
+        let isMirrored = false;
+        let tiltY = 0;
+        
+        function goFullscreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
+            }
+        }
+        
+        function startAsDisplay() {
+            isDisplay = true;
+            document.getElementById('status').textContent = 'STARTING...';
+            peer = new Peer(FIXED_ID);
+            
+            peer.on('open', () => {
+                document.getElementById('setup').style.display = 'none';
+                document.getElementById('prompterDisplay').style.display = 'block';
+                startScrollLoop();
+            });
+            
+            peer.on('connection', (conn) => {
+                connection = conn;
+                connection.on('data', handleControlData);
+                connection.on('open', () => {
+                    console.log('Controller connected');
+                });
+            });
+            
+            peer.on('error', (err) => {
+                document.getElementById('status').textContent = 'ERROR: CLOSE OTHER TABS';
+            });
+        }
+        
+        function startAsController() {
+            isDisplay = false;
+            document.getElementById('status').textContent = 'CONNECTING...';
+            
+            // Request device orientation permission
+            if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', handleTilt);
+                        }
+                    });
+            } else if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', handleTilt);
+            }
+            
+            peer = new Peer();
+            peer.on('open', attemptConnection);
+            
+            // Setup control listeners
+            document.getElementById('textInput').addEventListener('input', sendUpdate);
+            document.getElementById('speedSlider').addEventListener('input', (e) => {
+                scrollSpeed = parseFloat(e.target.value);
+                document.getElementById('speedValue').textContent = scrollSpeed.toFixed(1);
+                sendControl({ speed: scrollSpeed });
+            });
+            document.getElementById('sizeSlider').addEventListener('input', (e) => {
+                textSize = parseFloat(e.target.value);
+                document.getElementById('sizeValue').textContent = textSize.toFixed(1);
+                sendControl({ size: textSize });
+            });
+        }
+        
+        function attemptConnection() {
+            connection = peer.connect(FIXED_ID);
+            
+            connection.on('open', () => {
+                document.getElementById('setup').style.display = 'none';
+                document.getElementById('controller').style.display = 'block';
+                sendUpdate();
+                startTiltSending();
+            });
+            
+            connection.on('error', () => {
+                setTimeout(attemptConnection, 1000);
+            });
+        }
+        
+        function handleTilt(event) {
+            tiltY = event.beta || 0;
+            // Convert tilt to speed (-5 to 5)
+            const tiltSpeed = Math.max(-5, Math.min(5, (tiltY - 45) / 9));
+            if (Math.abs(tiltSpeed) > 0.5) {
+                scrollSpeed = tiltSpeed;
+                document.getElementById('speedSlider').value = scrollSpeed;
+                document.getElementById('speedValue').textContent = scrollSpeed.toFixed(1);
+            }
+        }
+        
+        function startTiltSending() {
+            setInterval(() => {
+                if (connection && connection.open && isPlaying) {
+                    sendControl({ speed: scrollSpeed });
+                }
+            }, 100);
+        }
+        
+        function handleControlData(data) {
+            if (data.text !== undefined) {
+                document.getElementById('prompterText').innerHTML = data.text.replace(/\n/g, '<br>');
+            }
+            if (data.speed !== undefined) {
+                scrollSpeed = data.speed;
+            }
+            if (data.size !== undefined) {
+                textSize = data.size;
+                document.getElementById('prompterText').style.fontSize = textSize + 'vw';
+            }
+            if (data.color !== undefined) {
+                textColor = data.color;
+                document.getElementById('prompterText').style.color = textColor;
+            }
+            if (data.bgColor !== undefined) {
+                bgColor = data.bgColor;
+                document.getElementById('prompterDisplay').style.background = bgColor;
+            }
+            if (data.reset) {
+                currentPosition = 0;
+                document.getElementById('prompterText').style.transform = 'translateY(0)';
+            }
+            if (data.play !== undefined) {
+                isPlaying = data.play;
+            }
+            if (data.mirror !== undefined) {
+                isMirrored = data.mirror;
+                document.getElementById('prompterText').style.transform = 
+                    isMirrored ? 'scaleY(-1)' : 'scaleY(1)';
+            }
+        }
+        
+        function sendUpdate() {
+            if (connection && connection.open) {
+                const text = document.getElementById('textInput').value;
+                connection.send({ 
+                    text: text,
+                    size: textSize,
+                    color: textColor,
+                    bgColor: bgColor
+                });
+            }
+        }
+        
+        function sendControl(data) {
+            if (connection && connection.open) {
+                connection.send(data);
+            }
+        }
+        
+        function adjustSpeed(delta) {
+            scrollSpeed = Math.max(0, Math.min(10, scrollSpeed + delta));
+            document.getElementById('speedSlider').value = scrollSpeed;
+            document.getElementById('speedValue').textContent = scrollSpeed.toFixed(1);
+            sendControl({ speed: scrollSpeed });
+        }
+        
+        function setSpeed(value) {
+            scrollSpeed = value;
+            document.getElementById('speedSlider').value = scrollSpeed;
+            document.getElementById('speedValue').textContent = scrollSpeed.toFixed(1);
+            sendControl({ speed: scrollSpeed });
+        }
+        
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('playBtn');
+            if (isPlaying) {
+                btn.textContent = '⏸ PAUSE';
+                btn.classList.add('active');
+            } else {
+                btn.textContent = '▶ PLAY';
+                btn.classList.remove('active');
+                setSpeed(0);
+            }
+            sendControl({ play: isPlaying });
+        }
+        
+        function resetPosition() {
+            currentPosition = 0;
+            sendControl({ reset: true });
+        }
+        
+        function setColor(color, bg) {
+            textColor = color;
+            bgColor = bg;
+            document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+            event.target.classList.add('selected');
+            sendUpdate();
+        }
+        
+        function mirrorMode() {
+            isMirrored = !isMirrored;
+            sendControl({ mirror: isMirrored });
+        }
+        
+        function startScrollLoop() {
+            function animate() {
+                requestAnimationFrame(animate);
+                if (isPlaying && scrollSpeed !== 0) {
+                    currentPosition -= scrollSpeed * 0.5;
+                    document.getElementById('prompterText').style.transform = 
+                        `translateY(${currentPosition}px) scaleY(${isMirrored ? -1 : 1})`;
+                }
+            }
+            animate();
+        }
+        
+        // Prevent context menu
+        document.addEventListener('contextmenu', e => e.preventDefault());
+    </script>
+</body>
+</html>
