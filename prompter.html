@@ -234,6 +234,16 @@
         .color-option.selected {
             border-width: 4px;
         }
+        .scroll-pad {
+            background: #000;
+            border: 2px solid #fff;
+            min-height: 200px;
+            touch-action: none;
+            cursor: grab;
+        }
+        .scroll-pad:active {
+            cursor: grabbing;
+        }
         .fullscreen-btn {
             position: fixed;
             top: 20px;
@@ -294,15 +304,11 @@ Tilt your phone up and down to scroll, or use the manual controls.</textarea>
                 </div>
                 
                 <div class="control-group">
-                    <div class="control-label">SCROLL SPEED</div>
-                    <div class="slider-container">
-                        <input type="range" id="speedSlider" min="0" max="10" value="0" step="0.5">
-                        <div class="value-display" id="speedValue">0</div>
-                    </div>
-                    <div class="speed-controls">
-                        <button class="speed-btn" onclick="adjustSpeed(-1)">−</button>
-                        <button class="speed-btn" onclick="setSpeed(0)">STOP</button>
-                        <button class="speed-btn" onclick="adjustSpeed(1)">+</button>
+                    <div class="control-label">SCROLL CONTROL</div>
+                    <div class="scroll-pad" id="scrollPad">
+                        <div style="text-align: center; padding: 60px 20px; color: #666; font-size: 14px;">
+                            SWIPE UP/DOWN TO SCROLL
+                        </div>
                     </div>
                 </div>
                 
@@ -325,10 +331,11 @@ Tilt your phone up and down to scroll, or use the manual controls.</textarea>
                 </div>
                 
                 <div class="control-buttons">
-                    <button class="control-btn" id="playBtn" onclick="togglePlay()">▶ PLAY</button>
                     <button class="control-btn" onclick="resetPosition()">↺ RESET</button>
                     <button class="control-btn" onclick="sendUpdate()">↻ SYNC</button>
                     <button class="control-btn" onclick="mirrorMode()">⇅ MIRROR</button>
+                    <button class="control-btn" onclick="goFullscreenDisplay()">⛶ DISPLAY</button>
+                    <button class="control-btn" onclick="goFullscreenPhone()">⛶ PHONE</button>
                 </div>
                 
             </div>
@@ -345,7 +352,9 @@ Tilt your phone up and down to scroll, or use the manual controls.</textarea>
         let textColor = '#fff';
         let bgColor = '#000';
         let isMirrored = false;
-        let tiltY = 0;
+        
+        let touchStartY = 0;
+        let lastScrollPosition = 0;
         
         function goFullscreen() {
             const elem = document.documentElement;
@@ -386,33 +395,25 @@ Tilt your phone up and down to scroll, or use the manual controls.</textarea>
             isDisplay = false;
             document.getElementById('status').textContent = 'CONNECTING...';
             
-            // Request device orientation permission
-            if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            window.addEventListener('deviceorientation', handleTilt);
-                        }
-                    });
-            } else if (window.DeviceOrientationEvent) {
-                window.addEventListener('deviceorientation', handleTilt);
-            }
-            
             peer = new Peer();
             peer.on('open', attemptConnection);
             
             // Setup control listeners
             document.getElementById('textInput').addEventListener('input', sendUpdate);
-            document.getElementById('speedSlider').addEventListener('input', (e) => {
-                scrollSpeed = parseFloat(e.target.value);
-                document.getElementById('speedValue').textContent = scrollSpeed.toFixed(1);
-                sendControl({ speed: scrollSpeed });
-            });
             document.getElementById('sizeSlider').addEventListener('input', (e) => {
                 textSize = parseFloat(e.target.value);
                 document.getElementById('sizeValue').textContent = textSize.toFixed(1);
                 sendControl({ size: textSize });
             });
+            
+            // Setup scroll pad
+            const scrollPad = document.getElementById('scrollPad');
+            scrollPad.addEventListener('touchstart', handleScrollStart, { passive: false });
+            scrollPad.addEventListener('touchmove', handleScrollMove, { passive: false });
+            scrollPad.addEventListener('touchend', handleScrollEnd, { passive: false });
+            scrollPad.addEventListener('mousedown', handleScrollStart);
+            scrollPad.addEventListener('mousemove', handleScrollMove);
+            scrollPad.addEventListener('mouseup', handleScrollEnd);
         }
         
         function attemptConnection() {
@@ -422,7 +423,6 @@ Tilt your phone up and down to scroll, or use the manual controls.</textarea>
                 document.getElementById('setup').style.display = 'none';
                 document.getElementById('controller').style.display = 'block';
                 sendUpdate();
-                startTiltSending();
             });
             
             connection.on('error', () => {
@@ -430,31 +430,37 @@ Tilt your phone up and down to scroll, or use the manual controls.</textarea>
             });
         }
         
-        function handleTilt(event) {
-            tiltY = event.beta || 0;
-            // Convert tilt to speed (-5 to 5)
-            const tiltSpeed = Math.max(-5, Math.min(5, (tiltY - 45) / 9));
-            if (Math.abs(tiltSpeed) > 0.5) {
-                scrollSpeed = tiltSpeed;
-                document.getElementById('speedSlider').value = scrollSpeed;
-                document.getElementById('speedValue').textContent = scrollSpeed.toFixed(1);
-            }
+        function handleScrollStart(e) {
+            e.preventDefault();
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            touchStartY = clientY;
+            lastScrollPosition = currentPosition;
         }
         
-        function startTiltSending() {
-            setInterval(() => {
-                if (connection && connection.open && isPlaying) {
-                    sendControl({ speed: scrollSpeed });
-                }
-            }, 100);
+        function handleScrollMove(e) {
+            if (touchStartY === 0) return;
+            e.preventDefault();
+            
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const deltaY = touchStartY - clientY;
+            const scrollAmount = deltaY * 2; // Sensitivity multiplier
+            
+            currentPosition = lastScrollPosition - scrollAmount;
+            sendControl({ position: currentPosition });
+        }
+        
+        function handleScrollEnd(e) {
+            touchStartY = 0;
         }
         
         function handleControlData(data) {
             if (data.text !== undefined) {
                 document.getElementById('prompterText').innerHTML = data.text.replace(/\n/g, '<br>');
             }
-            if (data.speed !== undefined) {
-                scrollSpeed = data.speed;
+            if (data.position !== undefined) {
+                currentPosition = data.position;
+                document.getElementById('prompterText').style.transform = 
+                    `translateY(${currentPosition}px) scaleY(${isMirrored ? -1 : 1})`;
             }
             if (data.size !== undefined) {
                 textSize = data.size;
@@ -472,13 +478,13 @@ Tilt your phone up and down to scroll, or use the manual controls.</textarea>
                 currentPosition = 0;
                 document.getElementById('prompterText').style.transform = 'translateY(0)';
             }
-            if (data.play !== undefined) {
-                isPlaying = data.play;
-            }
             if (data.mirror !== undefined) {
                 isMirrored = data.mirror;
                 document.getElementById('prompterText').style.transform = 
-                    isMirrored ? 'scaleY(-1)' : 'scaleY(1)';
+                    `translateY(${currentPosition}px) scaleY(${isMirrored ? -1 : 1})`;
+            }
+            if (data.fullscreen) {
+                goFullscreen();
             }
         }
         
@@ -500,34 +506,6 @@ Tilt your phone up and down to scroll, or use the manual controls.</textarea>
             }
         }
         
-        function adjustSpeed(delta) {
-            scrollSpeed = Math.max(0, Math.min(10, scrollSpeed + delta));
-            document.getElementById('speedSlider').value = scrollSpeed;
-            document.getElementById('speedValue').textContent = scrollSpeed.toFixed(1);
-            sendControl({ speed: scrollSpeed });
-        }
-        
-        function setSpeed(value) {
-            scrollSpeed = value;
-            document.getElementById('speedSlider').value = scrollSpeed;
-            document.getElementById('speedValue').textContent = scrollSpeed.toFixed(1);
-            sendControl({ speed: scrollSpeed });
-        }
-        
-        function togglePlay() {
-            isPlaying = !isPlaying;
-            const btn = document.getElementById('playBtn');
-            if (isPlaying) {
-                btn.textContent = '⏸ PAUSE';
-                btn.classList.add('active');
-            } else {
-                btn.textContent = '▶ PLAY';
-                btn.classList.remove('active');
-                setSpeed(0);
-            }
-            sendControl({ play: isPlaying });
-        }
-        
         function resetPosition() {
             currentPosition = 0;
             sendControl({ reset: true });
@@ -546,14 +524,17 @@ Tilt your phone up and down to scroll, or use the manual controls.</textarea>
             sendControl({ mirror: isMirrored });
         }
         
+        function goFullscreenDisplay() {
+            sendControl({ fullscreen: true });
+        }
+        
+        function goFullscreenPhone() {
+            goFullscreen();
+        }
+        
         function startScrollLoop() {
             function animate() {
                 requestAnimationFrame(animate);
-                if (isPlaying && scrollSpeed !== 0) {
-                    currentPosition -= scrollSpeed * 0.5;
-                    document.getElementById('prompterText').style.transform = 
-                        `translateY(${currentPosition}px) scaleY(${isMirrored ? -1 : 1})`;
-                }
             }
             animate();
         }
