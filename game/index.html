@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local WiFi Game</title>
+    <title>Local WiFi Racing</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,181 +13,207 @@
             box-sizing: border-box;
         }
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #fff;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            color: white;
         }
         .container {
             text-align: center;
-            padding: 20px;
         }
         .setup {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            background: #000;
+            border: 2px solid #fff;
         }
         h1 {
-            margin-bottom: 30px;
-            font-size: 2.5em;
+            font-size: 2em;
+            margin: 20px;
+            letter-spacing: 4px;
         }
         .buttons {
             display: flex;
-            gap: 20px;
+            gap: 10px;
             justify-content: center;
-            margin-bottom: 30px;
+            margin: 20px;
         }
         button {
-            padding: 15px 40px;
-            font-size: 18px;
-            border: none;
-            border-radius: 10px;
+            padding: 12px 30px;
+            font-size: 16px;
+            border: 2px solid #fff;
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
             cursor: pointer;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            font-weight: bold;
-            transition: transform 0.2s;
+            letter-spacing: 2px;
         }
-        button:hover {
-            transform: scale(1.05);
+        button:active {
+            background: #fff;
+            color: #000;
         }
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .status {
+            margin: 20px;
+            font-size: 14px;
+            letter-spacing: 2px;
         }
         #gameCanvas {
-            border: 4px solid white;
-            border-radius: 10px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
             display: none;
+            border: 2px solid #fff;
         }
         .controller {
             display: none;
-            width: 100%;
-            max-width: 500px;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
-        .dpad {
+        .control-area {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .stats {
+            background: #000;
+            border-bottom: 2px solid #fff;
+            padding: 10px;
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+        .tilt-info {
+            background: #000;
+            border-bottom: 2px solid #fff;
+            padding: 15px;
+            font-size: 14px;
+        }
+        .controls {
+            flex: 1;
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin: 20px auto;
-            max-width: 300px;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 2px;
+            background: #fff;
         }
-        .dpad-btn {
-            width: 80px;
-            height: 80px;
+        .control-btn {
+            background: #000;
+            border: none;
+            color: #fff;
             font-size: 24px;
-            border-radius: 15px;
+            font-family: 'Courier New', monospace;
             display: flex;
             align-items: center;
             justify-content: center;
+            letter-spacing: 4px;
         }
-        .dpad-btn:active {
-            transform: scale(0.95);
+        .control-btn:active {
+            background: #fff;
+            color: #000;
         }
-        .status {
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            font-size: 18px;
-        }
-        .score {
-            font-size: 36px;
-            margin: 20px 0;
+        .score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #fff;
+            padding: 10px 20px;
+            font-size: 20px;
+            letter-spacing: 3px;
+            z-index: 100;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="setup" id="setup">
-            <h1>🎮 Local WiFi Game</h1>
+            <h1>RACING</h1>
             <div class="buttons">
-                <button onclick="startAsPC()">💻 PC/Display</button>
-                <button onclick="startAsPhone()">📱 Phone/Controller</button>
+                <button onclick="startAsPC()">PC</button>
+                <button onclick="startAsPhone()">PHONE</button>
             </div>
-            <div class="status" id="status">Choose your device</div>
+            <div class="status" id="status">SELECT DEVICE</div>
         </div>
         
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="gameContainer" style="display: none; position: relative;">
+            <div class="score-display" id="scoreDisplay">SPEED: 0</div>
+            <canvas id="gameCanvas" width="1200" height="800"></canvas>
+        </div>
         
         <div class="controller" id="controller">
-            <div class="score" id="score">Score: 0</div>
-            <div class="dpad">
-                <div></div>
-                <button class="dpad-btn" onmousedown="sendControl('up')" ontouchstart="sendControl('up')">▲</button>
-                <div></div>
-                <button class="dpad-btn" onmousedown="sendControl('left')" ontouchstart="sendControl('left')">◀</button>
-                <div></div>
-                <button class="dpad-btn" onmousedown="sendControl('right')" ontouchstart="sendControl('right')">▶</button>
-                <div></div>
-                <button class="dpad-btn" onmousedown="sendControl('down')" ontouchstart="sendControl('down')">▼</button>
-                <div></div>
+            <div class="control-area">
+                <div class="stats">
+                    <div id="phoneSpeed">SPEED: 0</div>
+                    <div id="phoneScore">SCORE: 0</div>
+                </div>
+                <div class="tilt-info" id="tiltInfo">TILT PHONE TO STEER</div>
+                <div class="controls">
+                    <button class="control-btn" ontouchstart="sendControl('gas', true)" ontouchend="sendControl('gas', false)" onmousedown="sendControl('gas', true)" onmouseup="sendControl('gas', false)">GAS</button>
+                    <button class="control-btn" ontouchstart="sendControl('brake', true)" ontouchend="sendControl('brake', false)" onmousedown="sendControl('brake', true)" onmouseup="sendControl('brake', false)">BRAKE</button>
+                    <button class="control-btn" ontouchstart="sendControl('left', true)" ontouchend="sendControl('left', false)" onmousedown="sendControl('left', true)" onmouseup="sendControl('left', false)">LEFT</button>
+                    <button class="control-btn" ontouchstart="sendControl('right', true)" ontouchend="sendControl('right', false)" onmousedown="sendControl('right', true)" onmouseup="sendControl('right', false)">RIGHT</button>
+                </div>
             </div>
-            <div class="status">Connected! Control the paddle</div>
         </div>
     </div>
 
     <script>
-        const FIXED_ID = 'GAME2024';
-        let peer;
-        let connection;
-        let isPC = false;
-        let gameLoop;
-        let connectionAttempts = 0;
+        const FIXED_ID = 'RACE2024';
+        let peer, connection, isPC = false;
+        let scene, camera, renderer;
+        let car, road = [], obstacles = [];
+        let tiltX = 0, tiltY = 0;
         
-        // Game state
         const game = {
-            paddle: { x: 350, y: 550, width: 100, height: 20, speed: 15 },
-            ball: { x: 400, y: 300, vx: 4, vy: 4, radius: 10 },
-            score: 0
+            carX: 0,
+            speed: 0,
+            score: 0,
+            maxSpeed: 200,
+            acceleration: 2,
+            braking: 4,
+            friction: 0.5,
+            steering: 0,
+            gas: false,
+            brake: false,
+            left: false,
+            right: false
         };
 
         function startAsPC() {
             isPC = true;
-            document.getElementById('status').textContent = 'Starting PC display...';
-            
+            document.getElementById('status').textContent = 'STARTING...';
             peer = new Peer(FIXED_ID);
             
             peer.on('open', () => {
                 document.getElementById('setup').style.display = 'none';
-                document.getElementById('gameCanvas').style.display = 'block';
-                console.log('PC ready, waiting for controller...');
+                document.getElementById('gameContainer').style.display = 'block';
+                initGame();
             });
             
             peer.on('connection', (conn) => {
                 connection = conn;
-                connection.on('data', (data) => {
-                    handleControl(data);
-                });
+                connection.on('data', handleControl);
                 connection.on('open', () => {
-                    console.log('Controller connected!');
-                    startGame();
+                    console.log('Controller connected');
+                    startGameLoop();
                 });
             });
 
             peer.on('error', (err) => {
-                if (err.type === 'unavailable-id') {
-                    document.getElementById('status').textContent = 'PC already running! Close other tabs.';
-                } else {
-                    document.getElementById('status').textContent = 'Connection error. Refresh and try again.';
-                }
+                document.getElementById('status').textContent = 'ERROR: CLOSE OTHER TABS';
             });
         }
 
         function startAsPhone() {
             isPC = false;
-            document.getElementById('status').textContent = 'Connecting to PC...';
+            document.getElementById('status').textContent = 'CONNECTING...';
+            
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', handleTilt);
+            }
             
             peer = new Peer();
-            peer.on('open', () => {
-                attemptConnection();
-            });
+            peer.on('open', attemptConnection);
         }
 
         function attemptConnection() {
@@ -195,105 +222,153 @@
             connection.on('open', () => {
                 document.getElementById('setup').style.display = 'none';
                 document.getElementById('controller').style.display = 'block';
-                console.log('Connected to PC!');
+                startTiltSending();
             });
             
             connection.on('data', (data) => {
-                if (data.score !== undefined) {
-                    document.getElementById('score').textContent = 'Score: ' + data.score;
+                if (data.speed !== undefined) {
+                    document.getElementById('phoneSpeed').textContent = 'SPEED: ' + Math.floor(data.speed);
+                    document.getElementById('phoneScore').textContent = 'SCORE: ' + data.score;
                 }
             });
 
-            connection.on('error', (err) => {
-                connectionAttempts++;
-                if (connectionAttempts < 5) {
-                    document.getElementById('status').textContent = 'Connecting... attempt ' + connectionAttempts;
-                    setTimeout(attemptConnection, 1000);
-                } else {
-                    document.getElementById('status').textContent = 'Cannot find PC. Make sure PC is started first!';
-                }
+            connection.on('error', () => {
+                setTimeout(attemptConnection, 1000);
             });
         }
 
-        function sendControl(direction) {
+        function handleTilt(event) {
+            tiltX = event.gamma || 0;
+            tiltY = event.beta || 0;
+            document.getElementById('tiltInfo').textContent = 
+                `TILT: X:${Math.floor(tiltX)} Y:${Math.floor(tiltY)}`;
+        }
+
+        function startTiltSending() {
+            setInterval(() => {
+                if (connection && connection.open) {
+                    connection.send({ tilt: { x: tiltX, y: tiltY } });
+                }
+            }, 50);
+        }
+
+        function sendControl(type, state) {
             if (connection && connection.open) {
-                connection.send({ control: direction });
+                connection.send({ control: type, state: state });
             }
         }
 
         function handleControl(data) {
             if (data.control) {
-                switch(data.control) {
-                    case 'left':
-                        game.paddle.x = Math.max(0, game.paddle.x - game.paddle.speed);
-                        break;
-                    case 'right':
-                        game.paddle.x = Math.min(800 - game.paddle.width, game.paddle.x + game.paddle.speed);
-                        break;
-                }
+                game[data.control] = data.state;
+            }
+            if (data.tilt) {
+                game.steering = Math.max(-1, Math.min(1, data.tilt.x / 30));
             }
         }
 
-        function startGame() {
-            const canvas = document.getElementById('gameCanvas');
-            const ctx = canvas.getContext('2d');
+        function initGame() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
             
-            gameLoop = setInterval(() => {
-                // Update ball position
-                game.ball.x += game.ball.vx;
-                game.ball.y += game.ball.vy;
-                
-                // Wall collision
-                if (game.ball.x - game.ball.radius < 0 || game.ball.x + game.ball.radius > 800) {
-                    game.ball.vx = -game.ball.vx;
+            camera = new THREE.PerspectiveCamera(75, 1200/800, 0.1, 1000);
+            camera.position.set(0, 15, 20);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+            renderer.setSize(1200, 800);
+            
+            // Car
+            const carGeom = new THREE.BoxGeometry(2, 1, 4);
+            const carMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+            car = new THREE.Mesh(carGeom, carMat);
+            car.position.y = 0.5;
+            scene.add(car);
+            
+            // Road
+            for (let i = 0; i < 100; i++) {
+                const lineGeom = new THREE.BoxGeometry(0.5, 0.1, 2);
+                const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const line = new THREE.Mesh(lineGeom, lineMat);
+                line.position.set(0, 0, -i * 10);
+                road.push(line);
+                scene.add(line);
+            }
+            
+            // Obstacles
+            for (let i = 0; i < 20; i++) {
+                const obsGeom = new THREE.BoxGeometry(2, 2, 2);
+                const obsMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+                const obs = new THREE.Mesh(obsGeom, obsMat);
+                obs.position.set((Math.random() - 0.5) * 20, 1, -Math.random() * 500 - 50);
+                obstacles.push(obs);
+                scene.add(obs);
+            }
+        }
+
+        function startGameLoop() {
+            setInterval(() => {
+                // Speed control
+                if (game.gas && game.speed < game.maxSpeed) {
+                    game.speed += game.acceleration;
                 }
-                if (game.ball.y - game.ball.radius < 0) {
-                    game.ball.vy = -game.ball.vy;
+                if (game.brake && game.speed > 0) {
+                    game.speed -= game.braking;
+                }
+                if (!game.gas && !game.brake && game.speed > 0) {
+                    game.speed -= game.friction;
+                }
+                game.speed = Math.max(0, Math.min(game.maxSpeed, game.speed));
+                
+                // Steering
+                if (game.left) game.steering -= 0.05;
+                if (game.right) game.steering += 0.05;
+                game.steering = Math.max(-1, Math.min(1, game.steering));
+                if (!game.left && !game.right) {
+                    game.steering *= 0.9;
                 }
                 
-                // Paddle collision
-                if (game.ball.y + game.ball.radius > game.paddle.y &&
-                    game.ball.y - game.ball.radius < game.paddle.y + game.paddle.height &&
-                    game.ball.x > game.paddle.x &&
-                    game.ball.x < game.paddle.x + game.paddle.width) {
-                    game.ball.vy = -Math.abs(game.ball.vy);
-                    game.score++;
-                    if (connection && connection.open) {
-                        connection.send({ score: game.score });
+                game.carX += game.steering * 0.5;
+                game.carX = Math.max(-15, Math.min(15, game.carX));
+                
+                car.position.x = game.carX;
+                car.rotation.y = -game.steering * 0.3;
+                
+                // Move road
+                road.forEach(line => {
+                    line.position.z += game.speed * 0.1;
+                    if (line.position.z > 20) {
+                        line.position.z -= 1000;
                     }
-                }
+                });
                 
-                // Ball out of bounds
-                if (game.ball.y > 600) {
-                    game.ball.x = 400;
-                    game.ball.y = 300;
-                    game.ball.vx = 4 * (Math.random() > 0.5 ? 1 : -1);
-                    game.ball.vy = 4;
-                    game.score = 0;
-                    if (connection && connection.open) {
-                        connection.send({ score: game.score });
+                // Move obstacles
+                obstacles.forEach(obs => {
+                    obs.position.z += game.speed * 0.1;
+                    if (obs.position.z > 20) {
+                        obs.position.z = -Math.random() * 500 - 50;
+                        obs.position.x = (Math.random() - 0.5) * 20;
+                        game.score++;
                     }
+                    
+                    // Collision
+                    const dist = Math.sqrt(
+                        Math.pow(obs.position.x - game.carX, 2) + 
+                        Math.pow(obs.position.z, 2)
+                    );
+                    if (dist < 3) {
+                        game.speed *= 0.5;
+                    }
+                });
+                
+                document.getElementById('scoreDisplay').textContent = 
+                    `SPEED: ${Math.floor(game.speed)} | SCORE: ${game.score}`;
+                
+                if (connection && connection.open) {
+                    connection.send({ speed: game.speed, score: game.score });
                 }
                 
-                // Draw
-                ctx.fillStyle = '#1a1a2e';
-                ctx.fillRect(0, 0, 800, 600);
-                
-                // Draw paddle
-                ctx.fillStyle = '#f5576c';
-                ctx.fillRect(game.paddle.x, game.paddle.y, game.paddle.width, game.paddle.height);
-                
-                // Draw ball
-                ctx.fillStyle = '#f093fb';
-                ctx.beginPath();
-                ctx.arc(game.ball.x, game.ball.y, game.ball.radius, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Draw score
-                ctx.fillStyle = 'white';
-                ctx.font = '36px Arial';
-                ctx.fillText('Score: ' + game.score, 20, 40);
-                
+                renderer.render(scene, camera);
             }, 1000 / 60);
         }
     </script>
