@@ -59,25 +59,6 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
-        #gameId {
-            font-size: 32px;
-            letter-spacing: 8px;
-            margin: 20px 0;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            font-weight: bold;
-        }
-        input {
-            padding: 15px;
-            font-size: 24px;
-            border: none;
-            border-radius: 10px;
-            text-align: center;
-            letter-spacing: 4px;
-            width: 300px;
-            margin: 20px 0;
-        }
         #gameCanvas {
             border: 4px solid white;
             border-radius: 10px;
@@ -129,19 +110,7 @@
                 <button onclick="startAsPC()">💻 PC/Display</button>
                 <button onclick="startAsPhone()">📱 Phone/Controller</button>
             </div>
-            <div id="pcSetup" style="display: none;">
-                <p>Your Game ID:</p>
-                <div id="gameId">Generating...</div>
-                <p style="margin-top: 20px; font-size: 14px;">Share this ID with your phone</p>
-                <div class="status" id="pcStatus">Waiting for controller...</div>
-            </div>
-            <div id="phoneSetup" style="display: none;">
-                <p>Enter Game ID:</p>
-                <input type="text" id="connectId" placeholder="Enter ID" maxlength="6">
-                <br>
-                <button onclick="connectToPC()">Connect</button>
-                <div class="status" id="phoneStatus">Enter the game ID</div>
-            </div>
+            <div class="status" id="status">Choose your device</div>
         </div>
         
         <canvas id="gameCanvas" width="800" height="600"></canvas>
@@ -164,10 +133,12 @@
     </div>
 
     <script>
+        const FIXED_ID = 'GAME2024';
         let peer;
         let connection;
         let isPC = false;
         let gameLoop;
+        let connectionAttempts = 0;
         
         // Game state
         const game = {
@@ -176,20 +147,16 @@
             score: 0
         };
 
-        function generateId() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
-        }
-
         function startAsPC() {
             isPC = true;
-            document.getElementById('setup').style.display = 'none';
-            document.getElementById('gameCanvas').style.display = 'block';
+            document.getElementById('status').textContent = 'Starting PC display...';
             
-            const id = generateId();
-            peer = new Peer(id);
+            peer = new Peer(FIXED_ID);
             
             peer.on('open', () => {
-                console.log('PC ready with ID:', id);
+                document.getElementById('setup').style.display = 'none';
+                document.getElementById('gameCanvas').style.display = 'block';
+                console.log('PC ready, waiting for controller...');
             });
             
             peer.on('connection', (conn) => {
@@ -202,33 +169,49 @@
                     startGame();
                 });
             });
+
+            peer.on('error', (err) => {
+                if (err.type === 'unavailable-id') {
+                    document.getElementById('status').textContent = 'PC already running! Close other tabs.';
+                } else {
+                    document.getElementById('status').textContent = 'Connection error. Refresh and try again.';
+                }
+            });
         }
 
         function startAsPhone() {
             isPC = false;
-            document.getElementById('pcSetup').style.display = 'none';
-            document.getElementById('phoneSetup').style.display = 'block';
-        }
-
-        function connectToPC() {
-            const id = document.getElementById('connectId').value.trim().toUpperCase();
-            if (!id) {
-                document.getElementById('phoneStatus').textContent = 'Please enter a valid ID';
-                return;
-            }
+            document.getElementById('status').textContent = 'Connecting to PC...';
             
             peer = new Peer();
             peer.on('open', () => {
-                connection = peer.connect(id);
-                connection.on('open', () => {
-                    document.getElementById('setup').style.display = 'none';
-                    document.getElementById('controller').style.display = 'block';
-                });
-                connection.on('data', (data) => {
-                    if (data.score !== undefined) {
-                        document.getElementById('score').textContent = 'Score: ' + data.score;
-                    }
-                });
+                attemptConnection();
+            });
+        }
+
+        function attemptConnection() {
+            connection = peer.connect(FIXED_ID);
+            
+            connection.on('open', () => {
+                document.getElementById('setup').style.display = 'none';
+                document.getElementById('controller').style.display = 'block';
+                console.log('Connected to PC!');
+            });
+            
+            connection.on('data', (data) => {
+                if (data.score !== undefined) {
+                    document.getElementById('score').textContent = 'Score: ' + data.score;
+                }
+            });
+
+            connection.on('error', (err) => {
+                connectionAttempts++;
+                if (connectionAttempts < 5) {
+                    document.getElementById('status').textContent = 'Connecting... attempt ' + connectionAttempts;
+                    setTimeout(attemptConnection, 1000);
+                } else {
+                    document.getElementById('status').textContent = 'Cannot find PC. Make sure PC is started first!';
+                }
             });
         }
 
