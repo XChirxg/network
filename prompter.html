@@ -2,545 +2,625 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teleprompter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pro Prompter</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <style>
+        :root {
+            --accent: #00ff88;
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --text: #ffffff;
+            --pad-bg: #2a2a2a;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
-            -webkit-tap-highlight-color: transparent;
+            touch-action: none; /* Prevents default browser zooming/scrolling */
         }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #000;
-            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             overflow: hidden;
+            height: 100vh;
+            width: 100vw;
         }
-        .container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+
+        /* --- ICONS (SVG) --- */
+        .icon { width: 24px; height: 24px; fill: currentColor; pointer-events: none; }
+
+        /* --- SETUP SCREEN --- */
         .setup {
-            background: #000;
-            border: 2px solid #fff;
-            padding: 40px;
-            text-align: center;
-        }
-        h1 {
-            font-size: 3em;
-            margin-bottom: 30px;
-            letter-spacing: 4px;
-        }
-        .buttons {
             display: flex;
-            gap: 20px;
+            flex-direction: column;
             justify-content: center;
-            margin: 30px 0;
-        }
-        button {
-            padding: 15px 40px;
-            font-size: 18px;
-            border: 2px solid #fff;
-            background: #000;
-            color: #fff;
-            cursor: pointer;
-            letter-spacing: 2px;
-            font-weight: bold;
-        }
-        button:active {
-            background: #fff;
-            color: #000;
-        }
-        .status {
-            margin: 20px;
-            font-size: 16px;
-            letter-spacing: 2px;
-        }
-        
-        /* Prompter Display */
-        #prompterDisplay {
-            display: none;
-            width: 100vw;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background: #000;
-            overflow: hidden;
-        }
-        #prompterText {
-            padding: 20vh 10vw;
-            font-size: 4vw;
-            line-height: 1.8;
-            transform: translateY(0);
-            transition: transform 0.1s linear;
-        }
-        .marker {
-            position: fixed;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: #ff0000;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 100;
-        }
-        
-        /* Phone Controller */
-        #controller {
-            display: none;
-            width: 100vw;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            background: #1a1a1a;
-        }
-        .control-header {
-            background: #000;
-            border-bottom: 2px solid #fff;
-            padding: 15px;
-            text-align: center;
-            font-size: 20px;
-            letter-spacing: 3px;
-            font-weight: bold;
-        }
-        .control-section {
-            padding: 20px;
-        }
-        .control-group {
-            margin-bottom: 25px;
-        }
-        .control-label {
-            font-size: 14px;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
-            color: #aaa;
-        }
-        textarea {
+            align-items: center;
+            height: 100%;
+            background: var(--bg);
+            z-index: 1000;
+            position: absolute;
             width: 100%;
-            min-height: 150px;
-            background: #000;
-            color: #fff;
-            border: 2px solid #fff;
-            padding: 15px;
-            font-size: 16px;
-            font-family: Arial, sans-serif;
-            resize: vertical;
         }
-        .slider-container {
+
+        .setup h1 { font-size: 2.5rem; letter-spacing: 5px; margin-bottom: 2rem; color: var(--accent); }
+        
+        .btn-group { display: flex; gap: 20px; }
+        
+        .big-btn {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        
+        .big-btn:active { background: var(--accent); color: var(--bg); }
+        .status { margin-top: 20px; color: #666; letter-spacing: 2px; }
+
+        /* --- DISPLAY SCREEN --- */
+        #displayView {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+        }
+
+        #prompterContent {
+            padding: 0 10vw; /* Horizontal padding */
+            font-size: 5rem;
+            line-height: 1.6;
+            transform: translateY(45vh); /* Start in middle */
+            will-change: transform;
+            text-align: left;
+            white-space: pre-wrap;
+            font-weight: bold;
+            transform-origin: center center;
+        }
+
+        .marker-line {
+            position: fixed;
+            top: 45%;
+            left: 0; width: 100%;
+            height: 0;
+            border-top: 2px dashed rgba(255, 0, 0, 0.5);
+            z-index: 50;
+        }
+        
+        .triangle-marker {
+            position: fixed;
+            top: 45%;
+            left: 20px;
+            width: 0; height: 0;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+            border-left: 20px solid rgba(255,0,0,0.7);
+            transform: translateY(-50%);
+        }
+
+        .overlay-ui {
+            position: fixed;
+            top: 20px; right: 20px;
+            z-index: 100;
+            transition: opacity 0.3s;
+        }
+
+        /* --- CONTROLLER SCREEN --- */
+        #controllerView {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            background: var(--bg);
+        }
+
+        /* Top Bar: Input & Edit */
+        .top-bar {
+            padding: 15px;
+            background: var(--surface);
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
+            border-bottom: 1px solid #333;
         }
-        input[type="range"] {
+
+        .text-preview {
             flex: 1;
-            height: 40px;
-            -webkit-appearance: none;
-            background: transparent;
-        }
-        input[type="range"]::-webkit-slider-track {
-            background: #fff;
-            height: 4px;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 30px;
-            height: 30px;
-            background: #fff;
-            border: 2px solid #000;
-            cursor: pointer;
-        }
-        input[type="range"]::-moz-range-track {
-            background: #fff;
-            height: 4px;
-        }
-        input[type="range"]::-moz-range-thumb {
-            width: 30px;
-            height: 30px;
-            background: #fff;
-            border: 2px solid #000;
-            cursor: pointer;
-        }
-        .value-display {
-            min-width: 60px;
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .speed-controls {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .speed-btn {
-            padding: 15px;
             background: #000;
-            border: 2px solid #fff;
-            color: #fff;
-            font-size: 16px;
-            font-weight: bold;
-            letter-spacing: 2px;
+            border: 1px solid #444;
+            padding: 10px;
+            color: #aaa;
+            border-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
         }
-        .speed-btn:active {
-            background: #fff;
+
+        .edit-btn {
+            background: var(--accent);
+            border: none;
+            border-radius: 4px;
+            width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
             color: #000;
         }
-        .control-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .control-btn {
-            padding: 20px;
+
+        /* Scroll Pad Area */
+        .pad-container {
+            flex-grow: 1;
+            position: relative;
             background: #000;
-            border: 2px solid #fff;
-            color: #fff;
-            font-size: 18px;
-            font-weight: bold;
-            letter-spacing: 2px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
         }
-        .control-btn:active {
-            background: #fff;
-            color: #000;
-        }
-        .control-btn.active {
-            background: #fff;
-            color: #000;
-        }
-        .color-picker {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .color-option {
-            width: 100%;
-            height: 50px;
-            border: 2px solid #fff;
-            cursor: pointer;
-        }
-        .color-option.selected {
-            border-width: 4px;
-        }
-        .scroll-pad {
-            background: #000;
-            border: 2px solid #fff;
-            min-height: 200px;
+
+        #scrollPad {
+            width: 90%;
+            height: 90%;
+            background: var(--pad-bg);
+            border-radius: 12px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            border: 2px solid #444;
             touch-action: none;
-            cursor: grab;
         }
-        .scroll-pad:active {
-            cursor: grabbing;
+
+        .pad-instruction {
+            color: rgba(255,255,255,0.2);
+            font-weight: bold;
+            text-align: center;
+            pointer-events: none;
+            line-height: 1.5;
         }
-        .fullscreen-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            border: 2px solid #fff;
+
+        /* Visual feedback for joystick */
+        #stickBase {
+            position: absolute;
+            width: 1px; height: 100%;
+            background: rgba(255,255,255,0.1);
+            display: none; /* Shown on touch */
+        }
+        #stickHead {
+            position: absolute;
+            width: 80px; height: 80px;
+            background: rgba(0, 255, 136, 0.2);
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            pointer-events: none;
+        }
+
+        /* Bottom Toolbar */
+        .bottom-toolbar {
+            background: var(--surface);
+            padding: 15px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            border-top: 1px solid #333;
+        }
+
+        .tool-btn {
+            background: transparent;
+            border: 1px solid #444;
+            border-radius: 8px;
+            height: 50px;
+            display: flex; align-items: center; justify-content: center;
             color: #fff;
-            padding: 10px 20px;
-            font-size: 16px;
-            letter-spacing: 2px;
-            z-index: 200;
-            cursor: pointer;
         }
-        .fullscreen-btn:active {
-            background: #fff;
+        .tool-btn:active { background: #444; }
+        .tool-btn.active { background: var(--accent); color: #000; border: none; }
+
+        /* Edit Modal */
+        #editModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg);
+            z-index: 2000;
+            flex-direction: column;
+        }
+        
+        #editModal textarea {
+            flex: 1;
+            background: #121212;
+            color: #fff;
+            padding: 20px;
+            font-size: 18px;
+            border: none;
+            resize: none;
+            outline: none;
+        }
+        
+        .modal-header {
+            padding: 15px;
+            background: var(--surface);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .save-btn {
+            background: var(--accent);
             color: #000;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
         }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="setup" id="setup">
-            <h1>PROMPTER</h1>
-            <div class="buttons">
-                <button onclick="startAsDisplay()">DISPLAY</button>
-                <button onclick="startAsController()">CONTROLLER</button>
-            </div>
-            <div class="status" id="status">SELECT DEVICE</div>
+
+    <div class="setup" id="setupView">
+        <h1>PROMPTER</h1>
+        <div class="btn-group">
+            <button class="big-btn" onclick="initApp('display')">DISPLAY</button>
+            <button class="big-btn" onclick="initApp('controller')">REMOTE</button>
         </div>
+        <div class="status" id="statusText">Select Mode</div>
+    </div>
+
+    <div id="displayView">
+        <div class="marker-line"></div>
+        <div class="triangle-marker"></div>
         
-        <!-- Prompter Display (Laptop/PC) -->
-        <div id="prompterDisplay">
-            <button class="fullscreen-btn" onclick="goFullscreen()">FULLSCREEN</button>
-            <div class="marker"></div>
-            <div id="prompterText">
-                Your text will appear here. Use your phone to control the prompter.
-            </div>
+        <div class="overlay-ui" id="displayUI">
+            <button class="big-btn" style="font-size: 0.9rem; padding: 10px;" onclick="toggleLocalFullscreen()">FULLSCREEN</button>
         </div>
-        
-        <!-- Phone Controller -->
-        <div id="controller">
-            <div class="control-header">PROMPTER CONTROL</div>
-            <div class="control-section">
-                
-                <div class="control-group">
-                    <div class="control-label">TEXT</div>
-                    <textarea id="textInput" placeholder="Enter your script here...">Welcome to the teleprompter!
 
-This is your script. You can edit this text from your phone and it will update on the display in real-time.
-
-Use the controls below to:
-- Adjust scrolling speed
-- Change text size
-- Modify colors
-- Control playback
-
-Tilt your phone up and down to scroll, or use the manual controls.</textarea>
-                </div>
-                
-                <div class="control-group">
-                    <div class="control-label">SCROLL CONTROL</div>
-                    <div class="scroll-pad" id="scrollPad">
-                        <div style="text-align: center; padding: 60px 20px; color: #666; font-size: 14px;">
-                            SWIPE UP/DOWN TO SCROLL
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="control-group">
-                    <div class="control-label">TEXT SIZE</div>
-                    <div class="slider-container">
-                        <input type="range" id="sizeSlider" min="2" max="8" value="4" step="0.5">
-                        <div class="value-display" id="sizeValue">4</div>
-                    </div>
-                </div>
-                
-                <div class="control-group">
-                    <div class="control-label">TEXT COLOR</div>
-                    <div class="color-picker">
-                        <div class="color-option selected" style="background: #fff" onclick="setColor('#fff', '#000')"></div>
-                        <div class="color-option" style="background: #00ff00" onclick="setColor('#00ff00', '#000')"></div>
-                        <div class="color-option" style="background: #ffff00" onclick="setColor('#ffff00', '#000')"></div>
-                        <div class="color-option" style="background: #ff00ff" onclick="setColor('#ff00ff', '#000')"></div>
-                    </div>
-                </div>
-                
-                <div class="control-buttons">
-                    <button class="control-btn" onclick="resetPosition()">↺ RESET</button>
-                    <button class="control-btn" onclick="sendUpdate()">↻ SYNC</button>
-                    <button class="control-btn" onclick="mirrorMode()">⇅ MIRROR</button>
-                    <button class="control-btn" onclick="goFullscreenDisplay()">⛶ DISPLAY</button>
-                    <button class="control-btn" onclick="goFullscreenPhone()">⛶ PHONE</button>
-                </div>
-                
-            </div>
+        <div id="prompterContent">
+            Waiting for controller...
         </div>
     </div>
-    
+
+    <div id="controllerView">
+        <div class="top-bar">
+            <div class="text-preview" id="textPreview" onclick="openEditor()">Tap to edit script...</div>
+            <button class="edit-btn" onclick="openEditor()">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            </button>
+        </div>
+
+        <div class="pad-container">
+            <div id="scrollPad">
+                <div class="pad-instruction">
+                    TOUCH & HOLD TO SCROLL<br>
+                    <span style="font-size:0.8em; font-weight:normal; opacity:0.7">PINCH TO RESIZE TEXT</span>
+                </div>
+                <div id="stickBase"></div>
+                <div id="stickHead"></div>
+            </div>
+        </div>
+
+        <div class="bottom-toolbar">
+            <button class="tool-btn" onclick="sendAction('reset')">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+            </button>
+            
+            <button class="tool-btn" onclick="toggleMirror()" id="mirrorBtn">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
+            </button>
+
+            <button class="tool-btn" onclick="sendAction('sync')" style="color: var(--accent)">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+            </button>
+            
+            <button class="tool-btn" onclick="cycleColor()">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z"/></svg>
+            </button>
+
+            <button class="tool-btn" onclick="sendAction('hideUI')">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="editModal">
+        <div class="modal-header">
+            <span>Edit Script</span>
+            <button class="save-btn" onclick="closeEditor()">DONE</button>
+        </div>
+        <textarea id="fullTextInput" placeholder="Type your text here...">Welcome to Pro Prompter.
+
+This is a demonstration script.
+
+1. Connect a second device as "Remote".
+2. Use the large pad to scroll.
+   - Slide UP to scroll down.
+   - The further you slide, the faster it goes.
+3. Pinch on the pad to change text size.
+4. Press the Edit button to change this text.
+
+Happy Recording!</textarea>
+    </div>
+
     <script>
-        const FIXED_ID = 'PROMPTER2024';
-        let peer, connection, isDisplay = false;
-        let scrollSpeed = 0;
-        let currentPosition = 0;
-        let isPlaying = false;
-        let textSize = 4;
-        let textColor = '#fff';
-        let bgColor = '#000';
+        // --- CONFIGURATION ---
+        const PEER_ID = "PROMPTER-HOST-2024"; // Simple fixed ID for demo purposes
+        
+        // --- GLOBAL STATE ---
+        let peer, conn;
+        let mode = ''; // 'display' or 'controller'
+        
+        // Display State
+        let scrollY = 0;
+        let speed = 0; // Pixels per frame
         let isMirrored = false;
-        
+        let fontSize = 5; // rem
+        let isUIHidden = false;
+
+        // Controller State
         let touchStartY = 0;
-        let lastScrollPosition = 0;
-        
-        function goFullscreen() {
-            const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen();
-            } else if (elem.webkitRequestFullscreen) {
-                elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) {
-                elem.msRequestFullscreen();
+        let isTouching = false;
+        let pinchDistStart = 0;
+        let tempFontSize = 5;
+
+        // --- INITIALIZATION ---
+        function initApp(selectedMode) {
+            mode = selectedMode;
+            document.getElementById('setupView').style.display = 'none';
+            document.getElementById('statusText').innerText = "Connecting...";
+
+            if (mode === 'display') {
+                document.getElementById('displayView').style.display = 'block';
+                startPeerServer();
+                requestAnimationFrame(displayLoop); // Start the animation loop
+            } else {
+                document.getElementById('controllerView').style.display = 'flex';
+                startPeerClient();
+                setupControllerEvents();
             }
         }
-        
-        function startAsDisplay() {
-            isDisplay = true;
-            document.getElementById('status').textContent = 'STARTING...';
-            peer = new Peer(FIXED_ID);
-            
+
+        // --- PEER JS NETWORKING ---
+        function startPeerServer() {
+            peer = new Peer(PEER_ID);
+            peer.on('open', (id) => {
+                console.log('Host ID:', id);
+            });
+            peer.on('connection', (c) => {
+                conn = c;
+                conn.on('data', handleData);
+                // Send current text to new controller
+                setTimeout(() => {
+                    const currentText = document.getElementById('prompterContent').innerText;
+                    conn.send({ type: 'syncText', text: currentText });
+                }, 500);
+            });
+            peer.on('error', err => alert("ID taken or error. Try closing other tabs."));
+        }
+
+        function startPeerClient() {
+            peer = new Peer(); // Random ID
             peer.on('open', () => {
-                document.getElementById('setup').style.display = 'none';
-                document.getElementById('prompterDisplay').style.display = 'block';
-                startScrollLoop();
-            });
-            
-            peer.on('connection', (conn) => {
-                connection = conn;
-                connection.on('data', handleControlData);
-                connection.on('open', () => {
-                    console.log('Controller connected');
+                conn = peer.connect(PEER_ID);
+                conn.on('open', () => {
+                    console.log("Connected to display");
+                    sendAction('sync'); // Request current text
                 });
-            });
-            
-            peer.on('error', (err) => {
-                document.getElementById('status').textContent = 'ERROR: CLOSE OTHER TABS';
-            });
-        }
-        
-        function startAsController() {
-            isDisplay = false;
-            document.getElementById('status').textContent = 'CONNECTING...';
-            
-            peer = new Peer();
-            peer.on('open', attemptConnection);
-            
-            // Setup control listeners
-            document.getElementById('textInput').addEventListener('input', sendUpdate);
-            document.getElementById('sizeSlider').addEventListener('input', (e) => {
-                textSize = parseFloat(e.target.value);
-                document.getElementById('sizeValue').textContent = textSize.toFixed(1);
-                sendControl({ size: textSize });
-            });
-            
-            // Setup scroll pad
-            const scrollPad = document.getElementById('scrollPad');
-            scrollPad.addEventListener('touchstart', handleScrollStart, { passive: false });
-            scrollPad.addEventListener('touchmove', handleScrollMove, { passive: false });
-            scrollPad.addEventListener('touchend', handleScrollEnd, { passive: false });
-            scrollPad.addEventListener('mousedown', handleScrollStart);
-            scrollPad.addEventListener('mousemove', handleScrollMove);
-            scrollPad.addEventListener('mouseup', handleScrollEnd);
-        }
-        
-        function attemptConnection() {
-            connection = peer.connect(FIXED_ID);
-            
-            connection.on('open', () => {
-                document.getElementById('setup').style.display = 'none';
-                document.getElementById('controller').style.display = 'block';
-                sendUpdate();
-            });
-            
-            connection.on('error', () => {
-                setTimeout(attemptConnection, 1000);
-            });
-        }
-        
-        function handleScrollStart(e) {
-            e.preventDefault();
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            touchStartY = clientY;
-            lastScrollPosition = currentPosition;
-        }
-        
-        function handleScrollMove(e) {
-            if (touchStartY === 0) return;
-            e.preventDefault();
-            
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            const deltaY = touchStartY - clientY;
-            const scrollAmount = deltaY * 2; // Sensitivity multiplier
-            
-            currentPosition = lastScrollPosition - scrollAmount;
-            sendControl({ position: currentPosition });
-        }
-        
-        function handleScrollEnd(e) {
-            touchStartY = 0;
-        }
-        
-        function handleControlData(data) {
-            if (data.text !== undefined) {
-                document.getElementById('prompterText').innerHTML = data.text.replace(/\n/g, '<br>');
-            }
-            if (data.position !== undefined) {
-                currentPosition = data.position;
-                document.getElementById('prompterText').style.transform = 
-                    `translateY(${currentPosition}px) scaleY(${isMirrored ? -1 : 1})`;
-            }
-            if (data.size !== undefined) {
-                textSize = data.size;
-                document.getElementById('prompterText').style.fontSize = textSize + 'vw';
-            }
-            if (data.color !== undefined) {
-                textColor = data.color;
-                document.getElementById('prompterText').style.color = textColor;
-            }
-            if (data.bgColor !== undefined) {
-                bgColor = data.bgColor;
-                document.getElementById('prompterDisplay').style.background = bgColor;
-            }
-            if (data.reset) {
-                currentPosition = 0;
-                document.getElementById('prompterText').style.transform = 'translateY(0)';
-            }
-            if (data.mirror !== undefined) {
-                isMirrored = data.mirror;
-                document.getElementById('prompterText').style.transform = 
-                    `translateY(${currentPosition}px) scaleY(${isMirrored ? -1 : 1})`;
-            }
-            if (data.fullscreen) {
-                goFullscreen();
-            }
-        }
-        
-        function sendUpdate() {
-            if (connection && connection.open) {
-                const text = document.getElementById('textInput').value;
-                connection.send({ 
-                    text: text,
-                    size: textSize,
-                    color: textColor,
-                    bgColor: bgColor
+                conn.on('data', (data) => {
+                    if (data.type === 'syncText') {
+                        document.getElementById('fullTextInput').value = data.text;
+                        updateTextPreview();
+                    }
                 });
+                conn.on('error', () => alert("Could not find Display. Open Display first."));
+            });
+        }
+
+        function sendData(data) {
+            if (conn && conn.open) conn.send(data);
+        }
+
+        function handleData(data) {
+            const content = document.getElementById('prompterContent');
+            
+            if (data.type === 'speed') {
+                speed = data.val;
+            } 
+            else if (data.type === 'text') {
+                content.innerText = data.val;
+                scrollY = 0; // Reset scroll on new text
+            } 
+            else if (data.type === 'fontSize') {
+                fontSize = data.val;
+                content.style.fontSize = fontSize + 'rem';
+            } 
+            else if (data.type === 'reset') {
+                scrollY = 0;
+                speed = 0;
+            }
+            else if (data.type === 'mirror') {
+                isMirrored = !isMirrored;
+                content.style.transform = `scaleX(${isMirrored ? -1 : 1}) translateY(${scrollY}px)`;
+                content.style.textAlign = isMirrored ? 'right' : 'left'; // Helps readability
+            }
+            else if (data.type === 'color') {
+                const colors = ['#ffffff', '#ffff00', '#00ff00', '#00ffff'];
+                let curr = colors.indexOf(content.style.color || '#ffffff');
+                content.style.color = colors[(curr + 1) % colors.length];
+            }
+            else if (data.type === 'hideUI') {
+                isUIHidden = !isUIHidden;
+                document.getElementById('displayUI').style.opacity = isUIHidden ? '0' : '1';
+                document.querySelector('.marker-line').style.opacity = isUIHidden ? '0' : '1';
+                document.querySelector('.triangle-marker').style.opacity = isUIHidden ? '0' : '1';
+                document.body.style.cursor = isUIHidden ? 'none' : 'default';
+            }
+            else if (data.type === 'sync') {
+                // Controller requesting text
+                conn.send({ type: 'syncText', text: content.innerText });
             }
         }
-        
-        function sendControl(data) {
-            if (connection && connection.open) {
-                connection.send(data);
+
+        // --- DISPLAY LOGIC (Animation Loop) ---
+        function displayLoop() {
+            if (Math.abs(speed) > 0.1) {
+                // speed is pixels per frame. 
+                // speed > 0 means finger moved UP, so text should scroll UP (reading forward)
+                // In CSS translateY, negative is UP.
+                scrollY -= speed; 
+            }
+            
+            const content = document.getElementById('prompterContent');
+            // Apply Transform
+            const scale = isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
+            content.style.transform = `${scale} translateY(${scrollY}px)`;
+            
+            requestAnimationFrame(displayLoop);
+        }
+
+        function toggleLocalFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
             }
         }
-        
-        function resetPosition() {
-            currentPosition = 0;
-            sendControl({ reset: true });
+
+        // --- CONTROLLER LOGIC ---
+        function setupControllerEvents() {
+            const pad = document.getElementById('scrollPad');
+            const stickHead = document.getElementById('stickHead');
+            const stickBase = document.getElementById('stickBase');
+
+            pad.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                // Check if pinching (2 fingers)
+                if (e.touches.length === 2) {
+                    isTouching = false; // Disable scroll logic
+                    pinchDistStart = Math.hypot(
+                        e.touches[0].pageX - e.touches[1].pageX,
+                        e.touches[0].pageY - e.touches[1].pageY
+                    );
+                    return;
+                }
+
+                // Scroll Logic (1 finger)
+                isTouching = true;
+                touchStartY = e.touches[0].clientY;
+                
+                // Visuals
+                const rect = pad.getBoundingClientRect();
+                const relativeY = e.touches[0].clientY - rect.top;
+                stickBase.style.display = 'block';
+                stickBase.style.top = relativeY + 'px'; // Base stays at start point
+                stickHead.style.display = 'block';
+                stickHead.style.top = relativeY + 'px';
+            }, { passive: false });
+
+            pad.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+
+                // Pinch Logic
+                if (e.touches.length === 2) {
+                    const dist = Math.hypot(
+                        e.touches[0].pageX - e.touches[1].pageX,
+                        e.touches[0].pageY - e.touches[1].pageY
+                    );
+                    const delta = dist - pinchDistStart;
+                    
+                    // Throttling slightly
+                    if (Math.abs(delta) > 10) {
+                        if (delta > 0) tempFontSize += 0.1;
+                        else tempFontSize = Math.max(1, tempFontSize - 0.1);
+                        
+                        sendData({ type: 'fontSize', val: tempFontSize });
+                        pinchDistStart = dist; // Reset for continuous smooth zoom
+                    }
+                    return;
+                }
+
+                if (!isTouching) return;
+
+                const currentY = e.touches[0].clientY;
+                const deltaY = touchStartY - currentY; // Positive = Finger moved UP
+                
+                // Calculate Speed (Sensitivity)
+                // Moving finger UP (positive delta) = Scroll speed positive (Text goes up)
+                let scrollSpeed = deltaY * 0.15; 
+                
+                // Cap max speed
+                if (scrollSpeed > 20) scrollSpeed = 20;
+                if (scrollSpeed < -20) scrollSpeed = -20;
+
+                sendData({ type: 'speed', val: scrollSpeed });
+
+                // Update Visual Stick Head
+                const rect = pad.getBoundingClientRect();
+                const startRelY = touchStartY - rect.top;
+                // Clamp visual movement
+                let visualOffset = -deltaY; 
+                stickHead.style.transform = `translate(-50%, calc(-50% + ${visualOffset}px))`;
+            }, { passive: false });
+
+            pad.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (e.touches.length === 0) {
+                    isTouching = false;
+                    sendData({ type: 'speed', val: 0 });
+                    stickHead.style.display = 'none';
+                    stickBase.style.display = 'none';
+                    stickHead.style.transform = `translate(-50%, -50%)`;
+                }
+            });
         }
-        
-        function setColor(color, bg) {
-            textColor = color;
-            bgColor = bg;
-            document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
-            event.target.classList.add('selected');
-            sendUpdate();
+
+        // --- CONTROLLER UI FUNCTIONS ---
+        function openEditor() {
+            document.getElementById('editModal').style.display = 'flex';
         }
-        
-        function mirrorMode() {
-            isMirrored = !isMirrored;
-            sendControl({ mirror: isMirrored });
+
+        function closeEditor() {
+            document.getElementById('editModal').style.display = 'none';
+            const text = document.getElementById('fullTextInput').value;
+            updateTextPreview();
+            sendData({ type: 'text', val: text });
         }
-        
-        function goFullscreenDisplay() {
-            sendControl({ fullscreen: true });
+
+        function updateTextPreview() {
+            const text = document.getElementById('fullTextInput').value;
+            const preview = text.split('\n')[0] || "No text...";
+            document.getElementById('textPreview').innerText = preview;
         }
-        
-        function goFullscreenPhone() {
-            goFullscreen();
-        }
-        
-        function startScrollLoop() {
-            function animate() {
-                requestAnimationFrame(animate);
+
+        function sendAction(actionType) {
+            if (actionType === 'mirror') {
+                const btn = document.getElementById('mirrorBtn');
+                btn.classList.toggle('active');
             }
-            animate();
+            sendData({ type: actionType });
+        }
+
+        function cycleColor() {
+            sendData({ type: 'color' });
         }
         
-        // Prevent context menu
-        document.addEventListener('contextmenu', e => e.preventDefault());
+        function toggleMirror() {
+            sendAction('mirror');
+        }
+
+        // Prevent context menu on right click
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
     </script>
 </body>
 </html>
