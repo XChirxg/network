@@ -7,369 +7,101 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #000; color: #fff; min-height: 100vh; }
+        
+        /* Header & Status */
+        .header { background: #111; padding: 16px 24px; border-bottom: 1px solid #222; }
+        .header h1 { font-size: 18px; font-weight: 600; }
+        
+        .status-bar { padding: 12px 24px; background: #0a0a0a; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a1a1a; font-size: 13px; }
+        .status-item { display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #666; transition: background 0.3s; }
+        .status-dot.active { background: #10b981; box-shadow: 0 0 8px #10b981; }
+        .status-dot.error { background: #ef4444; }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #000;
-            color: #fff;
-            min-height: 100vh;
-        }
+        /* Setup Screen */
+        .setup-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: calc(100vh - 100px); padding: 24px; }
+        .setup-screen h2 { font-size: 24px; margin-bottom: 32px; }
+        .mode-selector { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+        
+        .mode-card { background: #111; border: 1px solid #222; border-radius: 12px; padding: 32px; cursor: pointer; text-align: center; width: 220px; transition: all 0.2s; }
+        .mode-card:hover { border-color: #444; background: #161616; transform: translateY(-2px); }
+        .mode-card h3 { font-size: 18px; margin: 12px 0 4px; }
+        .mode-card p { color: #888; font-size: 13px; }
+        .icon { font-size: 32px; margin-bottom: 8px; }
 
-        .header {
-            background: #111;
-            padding: 16px 24px;
-            border-bottom: 1px solid #222;
-        }
+        /* Inputs */
+        .input-group { margin-top: 16px; width: 100%; }
+        .code-input { width: 100%; background: #222; border: 1px solid #333; color: white; padding: 12px; border-radius: 6px; font-size: 16px; text-align: center; letter-spacing: 2px; margin-top: 8px; outline: none; }
+        .code-input:focus { border-color: #666; }
+        .join-btn { width: 100%; background: #fff; color: #000; border: none; padding: 12px; border-radius: 6px; font-weight: 600; margin-top: 12px; cursor: pointer; }
+        .join-btn:active { opacity: 0.9; }
 
-        .header h1 {
-            font-size: 18px;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-        }
+        /* Monitor View */
+        .monitor-view, .camera-view { display: none; padding: 24px; }
+        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .monitor-info { background: #1a1a1a; padding: 8px 16px; border-radius: 20px; border: 1px solid #333; font-size: 14px; }
+        .monitor-code { color: #10b981; font-weight: 700; letter-spacing: 1px; }
 
-        .status-bar {
-            padding: 12px 24px;
-            background: #0a0a0a;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #1a1a1a;
-            font-size: 13px;
-        }
+        .camera-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+        .camera-card { background: #0a0a0a; border-radius: 8px; overflow: hidden; border: 1px solid #222; position: relative; }
+        .camera-card.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1000; border: none; border-radius: 0; }
+        
+        .camera-header { background: rgba(0,0,0,0.8); padding: 12px; display: flex; justify-content: space-between; position: absolute; top: 0; left: 0; right: 0; z-index: 10; backdrop-filter: blur(4px); }
+        .camera-video { width: 100%; aspect-ratio: 16/9; background: #000; display: block; object-fit: cover; }
+        .camera-card.fullscreen .camera-video { height: 100vh; width: 100vw; object-fit: contain; }
 
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        /* Camera View (Sender) */
+        .camera-stream-wrapper { display: flex; flex-direction: column; align-items: center; gap: 20px; max-width: 500px; margin: 0 auto; }
+        .preview-container { width: 100%; position: relative; border-radius: 12px; overflow: hidden; border: 1px solid #333; }
+        .preview-video { width: 100%; display: block; background: #000; }
+        .status-badge { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; font-size: 12px; display: flex; align-items: center; gap: 6px; backdrop-filter: blur(4px); }
+        .blink-dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; animation: blink 1s infinite; }
+        
+        .controls { display: flex; gap: 12px; width: 100%; }
+        .control-btn { flex: 1; background: #222; border: 1px solid #333; color: white; padding: 12px; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; }
+        .control-btn:active { background: #333; }
 
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #666;
-        }
-
-        .status-dot.active {
-            background: #fff;
-        }
-
-        .setup-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: calc(100vh - 100px);
-            padding: 24px;
-        }
-
-        .setup-screen h2 {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 32px;
-            letter-spacing: -0.02em;
-        }
-
-        .mode-selector {
-            display: flex;
-            gap: 16px;
-        }
-
-        .mode-card {
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 8px;
-            padding: 32px;
-            cursor: pointer;
-            text-align: center;
-            width: 200px;
-        }
-
-        .mode-card:active {
-            background: #1a1a1a;
-        }
-
-        .mode-card h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-top: 12px;
-        }
-
-        .mode-card p {
-            color: #666;
-            font-size: 13px;
-            margin-top: 4px;
-        }
-
-        .monitor-view, .camera-view {
-            display: none;
-            padding: 24px;
-        }
-
-        .view-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .view-header h2 {
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .btn {
-            background: #fff;
-            color: #000;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .btn:active {
-            opacity: 0.8;
-        }
-
-        .camera-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 16px;
-        }
-
-        .camera-card {
-            background: #0a0a0a;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #1a1a1a;
-        }
-
-        .camera-card.fullscreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 1000;
-            border-radius: 0;
-        }
-
-        .camera-header {
-            background: #111;
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-        }
-
-        .camera-name {
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .recording-dot {
-            width: 6px;
-            height: 6px;
-            background: #fff;
-            border-radius: 50%;
-        }
-
-        .camera-controls {
-            display: flex;
-            gap: 8px;
-        }
-
-        .control-btn {
-            background: transparent;
-            border: 1px solid #333;
-            border-radius: 4px;
-            width: 28px;
-            height: 28px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 14px;
-        }
-
-        .control-btn:active {
-            background: #1a1a1a;
-        }
-
-        .camera-video {
-            width: 100%;
-            background: #000;
-            display: block;
-            aspect-ratio: 16/9;
-        }
-
-        .camera-card.fullscreen .camera-video {
-            height: calc(100vh - 48px);
-            aspect-ratio: auto;
-        }
-
-        .camera-footer {
-            background: #0a0a0a;
-            padding: 8px 16px;
-            font-size: 12px;
-            color: #666;
-        }
-
-        .empty-state {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 80px 24px;
-            color: #666;
-        }
-
-        .empty-state h3 {
-            font-size: 16px;
-            margin-bottom: 8px;
-            color: #999;
-        }
-
-        .camera-stream-view {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 24px;
-            min-height: calc(100vh - 148px);
-        }
-
-        .preview-video {
-            max-width: 90%;
-            max-height: 60vh;
-            background: #000;
-            border-radius: 8px;
-            border: 1px solid #222;
-        }
-
-        .camera-info {
-            background: #0a0a0a;
-            padding: 24px;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #1a1a1a;
-        }
-
-        .camera-info h2 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .connection-code {
-            font-size: 24px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            margin: 16px 0;
-            padding: 12px;
-            background: #111;
-            border-radius: 6px;
-        }
-
-        .quality-selector {
-            margin-top: 16px;
-        }
-
-        .quality-selector select {
-            background: #111;
-            color: #fff;
-            border: 1px solid #222;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .notification {
-            position: fixed;
-            top: 24px;
-            right: 24px;
-            background: #fff;
-            color: #000;
-            padding: 12px 20px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            z-index: 2000;
-        }
-
-        .camera-switch {
-            display: flex;
-            gap: 8px;
-            margin-top: 16px;
-        }
-
-        .switch-btn {
-            background: #111;
-            color: #fff;
-            border: 1px solid #222;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .switch-btn:active {
-            background: #1a1a1a;
-        }
-
-        @media (max-width: 768px) {
-            .camera-grid {
-                grid-template-columns: 1fr;
-            }
-            .mode-selector {
-                flex-direction: column;
-            }
-        }
+        .empty-state { grid-column: 1 / -1; text-align: center; padding: 60px; color: #666; border: 2px dashed #222; border-radius: 12px; }
+        
+        @keyframes blink { 50% { opacity: 0.5; } }
+        @media (max-width: 768px) { .camera-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Security Camera System</h1>
+        <h1>Security System</h1>
     </div>
 
     <div class="status-bar">
         <div class="status-item">
-            <div class="status-dot" id="systemStatus"></div>
-            <span id="systemStatusText">Ready</span>
+            <div class="status-dot" id="connectionStatus"></div>
+            <span id="statusText">Disconnected</span>
         </div>
-        <div class="status-item">
-            <span>Cameras: <strong id="cameraCount">0</strong></span>
-        </div>
-        <div class="status-item">
-            <span id="connectionInfo">Waiting</span>
+        <div class="status-item" id="peerInfo" style="display:none">
+            ID: <span id="myIdDisplay" style="font-family: monospace;">...</span>
         </div>
     </div>
 
     <div class="setup-screen" id="setupScreen">
-        <h2>Choose Mode</h2>
+        <h2>Select Mode</h2>
         <div class="mode-selector">
-            <div class="mode-card" onclick="initMode('monitor')">
-                <div style="font-size: 32px;">📺</div>
-                <h3>Monitor</h3>
-                <p>View all cameras</p>
+            <div class="mode-card" onclick="initMonitor()">
+                <div class="icon">🖥️</div>
+                <h3>Create Monitor</h3>
+                <p>Use this device to view cameras</p>
             </div>
-            <div class="mode-card" onclick="initMode('camera')">
-                <div style="font-size: 32px;">📹</div>
-                <h3>Camera</h3>
-                <p>Stream as camera</p>
+
+            <div class="mode-card" onclick="showCameraInput()">
+                <div class="icon">🎥</div>
+                <h3>Connect Camera</h3>
+                <p>Use this device as a camera</p>
+                
+                <div id="cameraInputGroup" class="input-group" style="display: none;" onclick="event.stopPropagation()">
+                    <input type="number" id="monitorCodeInput" class="code-input" placeholder="Enter Monitor Code">
+                    <button class="join-btn" onclick="initCamera()">Start Streaming</button>
+                </div>
             </div>
         </div>
     </div>
@@ -377,330 +109,267 @@
     <div class="monitor-view" id="monitorView">
         <div class="view-header">
             <h2>Live Feeds</h2>
-            <button class="btn" onclick="refreshConnections()">Refresh</button>
+            <div class="monitor-info">
+                Monitor Code: <span class="monitor-code" id="displayCode">...</span>
+            </div>
         </div>
         <div class="camera-grid" id="cameraGrid">
             <div class="empty-state">
-                <h3>No Cameras Connected</h3>
-                <p>Open this page on another device and select Camera mode</p>
+                <h3>Waiting for connection...</h3>
+                <p>Enter code <strong id="emptyStateCode" style="color:#fff">...</strong> on your camera device</p>
             </div>
         </div>
     </div>
 
     <div class="camera-view" id="cameraView">
-        <div class="camera-stream-view">
-            <video id="localVideo" class="preview-video" autoplay muted playsinline></video>
-            <div class="camera-info">
-                <h2>Camera Active</h2>
-                <p style="color: #666; font-size: 13px;">Streaming to monitor</p>
-                <div class="connection-code" id="cameraId">Connecting...</div>
-                <div class="quality-selector">
-                    <select id="qualitySelect" onchange="changeQuality()">
-                        <option value="low">Low Quality</option>
-                        <option value="medium" selected>Medium Quality</option>
-                        <option value="high">High Quality</option>
-                    </select>
-                </div>
-                <div class="camera-switch">
-                    <button class="switch-btn" onclick="switchCamera('user')">Front Camera</button>
-                    <button class="switch-btn" onclick="switchCamera('environment')">Back Camera</button>
+        <div class="camera-stream-wrapper">
+            <div class="preview-container">
+                <video id="localVideo" class="preview-video" autoplay muted playsinline></video>
+                <div class="status-badge">
+                    <div class="blink-dot"></div>
+                    <span>LIVE</span>
                 </div>
             </div>
+            
+            <div class="controls">
+                <button class="control-btn" onclick="switchCamera()">
+                    <span>🔄</span> Switch Cam
+                </button>
+                <button class="control-btn" onclick="toggleMute()">
+                    <span>🎤</span> Toggle Audio
+                </button>
+            </div>
+            <p style="color: #666; font-size: 13px; text-align: center;">Connected to Monitor</p>
         </div>
     </div>
 
     <script>
-        const SIGNALING_SERVER = 'wss://0.peerjs.com';
-        const MONITOR_ID = 'SEC-MON-' + Date.now();
-        
-        let peer;
-        let mode = '';
-        let cameras = {};
-        let localStream;
-        let currentFacingMode = 'environment';
-        let currentQuality = 'medium';
-
-        function initMode(selectedMode) {
-            mode = selectedMode;
-            document.getElementById('setupScreen').style.display = 'none';
-            
-            if (mode === 'monitor') {
-                document.getElementById('monitorView').style.display = 'block';
-                startMonitor();
-            } else {
-                document.getElementById('cameraView').style.display = 'block';
-                startCamera();
+        // --- Configuration ---
+        const PEER_CONFIG = {
+            debug: 2,
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:global.stun.twilio.com:3478' }
+                ]
             }
-            
-            updateStatus('active', 'Active');
+        };
+
+        // --- Global Variables ---
+        let peer = null;
+        let localStream = null;
+        let currentFacingMode = 'environment';
+        let isMonitor = false;
+
+        // --- Utils ---
+        function generateShortId() {
+            // Generate a random 6-digit number
+            return Math.floor(100000 + Math.random() * 900000).toString();
         }
 
-        function startMonitor() {
-            peer = new Peer(MONITOR_ID, {
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]
-                }
-            });
-            
+        function updateStatus(active, text) {
+            const dot = document.getElementById('connectionStatus');
+            const txt = document.getElementById('statusText');
+            dot.className = active ? 'status-dot active' : 'status-dot error';
+            txt.textContent = text;
+        }
+
+        // --- Monitor Logic ---
+        function initMonitor() {
+            isMonitor = true;
+            document.getElementById('setupScreen').style.display = 'none';
+            document.getElementById('monitorView').style.display = 'block';
+
+            // 1. Generate a Code
+            const code = generateShortId();
+            const peerId = 'scam-mon-' + code;
+
+            // 2. Display Code to User
+            document.getElementById('displayCode').textContent = code;
+            document.getElementById('emptyStateCode').textContent = code;
+
+            // 3. Initialize Peer
+            peer = new Peer(peerId, PEER_CONFIG);
+
             peer.on('open', (id) => {
-                console.log('Monitor ready:', id);
-                updateConnectionInfo('Ready for cameras');
-            });
-
-            peer.on('connection', (conn) => {
-                conn.on('open', () => {
-                    showNotification('Camera connected');
-                    conn.send({ type: 'requestInfo' });
-                });
-
-                conn.on('data', (data) => {
-                    if (data.type === 'cameraInfo') {
-                        cameras[conn.peer] = {
-                            conn: conn,
-                            name: data.name,
-                            id: conn.peer
-                        };
-                        updateCameraCount();
-                    }
-                });
-
-                conn.on('close', () => {
-                    removeCameraFeed(conn.peer);
-                });
+                console.log('Monitor ID:', id);
+                updateStatus(true, 'Monitor Active');
             });
 
             peer.on('call', (call) => {
-                call.answer();
+                console.log('Incoming call...');
+                call.answer(); // Answer automatically
                 call.on('stream', (remoteStream) => {
                     addCameraFeed(call.peer, remoteStream);
                 });
+                call.on('close', () => removeCameraFeed(call.peer));
+            });
+
+            peer.on('error', (err) => {
+                console.error(err);
+                if (err.type === 'unavailable-id') {
+                    alert('ID Collision. Please reload.');
+                } else {
+                    updateStatus(false, 'Error: ' + err.type);
+                }
+            });
+        }
+
+        function addCameraFeed(peerId, stream) {
+            const grid = document.getElementById('cameraGrid');
+            
+            // Remove empty state if exists
+            const empty = grid.querySelector('.empty-state');
+            if(empty) empty.style.display = 'none';
+
+            // Check if already exists
+            if (document.getElementById('cam-' + peerId)) return;
+
+            const card = document.createElement('div');
+            card.className = 'camera-card';
+            card.id = 'cam-' + peerId;
+            
+            card.innerHTML = `
+                <div class="camera-header">
+                    <span>🎥 Remote Camera</span>
+                    <button style="background:none;border:none;color:white;cursor:pointer" onclick="toggleFull('${peerId}')">⛶</button>
+                </div>
+                <video class="camera-video" autoplay playsinline></video>
+            `;
+
+            grid.appendChild(card);
+            
+            const video = card.querySelector('video');
+            video.srcObject = stream;
+        }
+
+        function removeCameraFeed(peerId) {
+            const card = document.getElementById('cam-' + peerId);
+            if (card) card.remove();
+            
+            const grid = document.getElementById('cameraGrid');
+            if (grid.children.length === 1) { // Only empty state remains (hidden)
+                grid.querySelector('.empty-state').style.display = 'block';
+            }
+        }
+
+        function toggleFull(id) {
+            const el = document.getElementById('cam-' + 'scam-mon-' + id) || document.getElementById('cam-' + id);
+            if(el) el.classList.toggle('fullscreen');
+        }
+
+        // --- Camera Logic ---
+        function showCameraInput() {
+            document.getElementById('cameraInputGroup').style.display = 'block';
+        }
+
+        async function initCamera() {
+            const code = document.getElementById('monitorCodeInput').value;
+            if (!code || code.length < 6) {
+                alert('Please enter the 6-digit Monitor Code shown on the other device.');
+                return;
+            }
+
+            // 1. Setup UI
+            document.getElementById('setupScreen').style.display = 'none';
+            document.getElementById('cameraView').style.display = 'block';
+
+            // 2. Start Camera
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: currentFacingMode, width: 1280, height: 720 },
+                    audio: true
+                });
+                document.getElementById('localVideo').srcObject = localStream;
+            } catch (err) {
+                alert('Camera access denied: ' + err.message);
+                return;
+            }
+
+            // 3. Connect to Monitor
+            const monitorId = 'scam-mon-' + code;
+            const myId = 'scam-cam-' + generateShortId();
+            
+            peer = new Peer(myId, PEER_CONFIG);
+
+            peer.on('open', (id) => {
+                updateStatus(true, 'Connecting to Monitor...');
+                const call = peer.call(monitorId, localStream);
+                
                 call.on('close', () => {
-                    removeCameraFeed(call.peer);
+                    updateStatus(false, 'Monitor Disconnected');
+                    alert('Monitor disconnected');
+                    location.reload();
+                });
+
+                call.on('error', (err) => {
+                    console.error(err);
+                    updateStatus(false, 'Call Failed');
+                });
+                
+                // Monitor the connection state
+                const conn = peer.connect(monitorId);
+                conn.on('open', () => {
+                    updateStatus(true, 'Connected & Streaming');
                 });
             });
 
             peer.on('error', (err) => {
-                console.error('Peer error:', err);
-                updateStatus('error', 'Error: ' + err.type);
-            });
-        }
-
-        function addCameraFeed(cameraId, stream) {
-            const grid = document.getElementById('cameraGrid');
-            const emptyState = grid.querySelector('.empty-state');
-            if (emptyState) emptyState.remove();
-
-            if (document.getElementById('cam-' + cameraId)) return;
-
-            const cameraCard = document.createElement('div');
-            cameraCard.className = 'camera-card';
-            cameraCard.id = 'cam-' + cameraId;
-
-            const cameraName = cameras[cameraId]?.name || 'Camera ' + Object.keys(cameras).length;
-
-            cameraCard.innerHTML = `
-                <div class="camera-header">
-                    <div class="camera-name">
-                        <div class="recording-dot"></div>
-                        ${cameraName}
-                    </div>
-                    <div class="camera-controls">
-                        <button class="control-btn" onclick="toggleFullscreen('cam-${cameraId}')" title="Fullscreen">⛶</button>
-                        <button class="control-btn" onclick="enterFullscreen()" title="F11 Mode">⛶</button>
-                    </div>
-                </div>
-                <video class="camera-video" autoplay playsinline></video>
-                <div class="camera-footer">
-                    Connected: ${new Date().toLocaleTimeString()}
-                </div>
-            `;
-
-            grid.appendChild(cameraCard);
-            const video = cameraCard.querySelector('video');
-            video.srcObject = stream;
-
-            updateCameraCount();
-            updateConnectionInfo(`${Object.keys(cameras).length} online`);
-        }
-
-        function removeCameraFeed(cameraId) {
-            const feed = document.getElementById('cam-' + cameraId);
-            if (feed) feed.remove();
-            delete cameras[cameraId];
-            updateCameraCount();
-
-            const grid = document.getElementById('cameraGrid');
-            if (grid.children.length === 0) {
-                grid.innerHTML = `
-                    <div class="empty-state">
-                        <h3>No Cameras Connected</h3>
-                        <p>Waiting for cameras...</p>
-                    </div>
-                `;
-            }
-            updateConnectionInfo(`${Object.keys(cameras).length} online`);
-        }
-
-        function toggleFullscreen(cardId) {
-            const card = document.getElementById(cardId);
-            card.classList.toggle('fullscreen');
-        }
-
-        function enterFullscreen() {
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
-            }
-        }
-
-        async function startCamera() {
-            try {
-                await getCamera();
-                
-                const cameraName = 'CAM-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-                
-                peer = new Peer({
-                    config: {
-                        iceServers: [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:global.stun.twilio.com:3478' }
-                        ]
-                    }
-                });
-                
-                peer.on('open', (id) => {
-                    console.log('Camera ID:', id);
-                    document.getElementById('cameraId').textContent = cameraName;
-                    connectToMonitor(cameraName);
-                });
-
-                peer.on('error', (err) => {
-                    console.error('Peer error:', err);
-                    updateStatus('error', 'Error');
-                });
-
-            } catch (err) {
-                console.error('Camera error:', err);
-                alert('Camera access denied');
-                updateStatus('error', 'No Camera');
-            }
-        }
-
-        async function getCamera() {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-
-            const constraints = getQualityConstraints(currentQuality);
-            localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            document.getElementById('localVideo').srcObject = localStream;
-        }
-
-        function connectToMonitor(cameraName) {
-            const conn = peer.connect(MONITOR_ID);
-            
-            conn.on('open', () => {
-                console.log('Connected to monitor');
-                updateStatus('active', 'Streaming');
-                
-                conn.send({
-                    type: 'cameraInfo',
-                    name: cameraName,
-                    timestamp: new Date().toISOString()
-                });
-                
-                const call = peer.call(MONITOR_ID, localStream);
-                
-                call.on('error', (err) => {
-                    console.error('Call error:', err);
-                });
-            });
-
-            conn.on('error', (err) => {
-                console.error('Connection error:', err);
-                updateStatus('error', 'No Monitor');
-                setTimeout(() => connectToMonitor(cameraName), 3000);
-            });
-
-            conn.on('data', (data) => {
-                if (data.type === 'requestInfo') {
-                    conn.send({
-                        type: 'cameraInfo',
-                        name: cameraName,
-                        timestamp: new Date().toISOString()
-                    });
+                console.error(err);
+                if(err.type === 'peer-unavailable') {
+                    alert('Monitor not found! Check the code and try again.');
+                    location.reload();
+                } else {
+                    updateStatus(false, 'Connection Error');
                 }
             });
         }
 
-        function getQualityConstraints(quality) {
-            const presets = {
-                low: { width: 640, height: 480, frameRate: 15 },
-                medium: { width: 1280, height: 720, frameRate: 24 },
-                high: { width: 1920, height: 1080, frameRate: 30 }
-            };
-
-            const preset = presets[quality];
+        // --- Camera Controls ---
+        async function switchCamera() {
+            if (!localStream) return;
             
-            return {
-                video: {
-                    width: { ideal: preset.width },
-                    height: { ideal: preset.height },
-                    frameRate: { ideal: preset.frameRate },
-                    facingMode: currentFacingMode
-                },
-                audio: false
-            };
-        }
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            
+            // Stop current tracks
+            localStream.getTracks().forEach(track => track.stop());
+            
+            // Restart with new facing mode
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: currentFacingMode },
+                    audio: true
+                });
+                
+                // Update local video
+                document.getElementById('localVideo').srcObject = localStream;
+                
+                // Note: PeerJS ReplaceTrack is complex, easiest way for this simple app 
+                // is to just rejoin or let the user know they need to refresh to send new stream.
+                // For now, we update local preview. To update remote, we'd need to re-call.
+                // Simple re-call logic:
+                const code = document.getElementById('monitorCodeInput').value;
+                const monitorId = 'scam-mon-' + code;
+                peer.call(monitorId, localStream);
 
-        async function changeQuality() {
-            currentQuality = document.getElementById('qualitySelect').value;
-            if (localStream && mode === 'camera') {
-                await getCamera();
-                showNotification('Quality changed');
+            } catch (err) {
+                console.error(err);
             }
         }
 
-        async function switchCamera(facingMode) {
-            currentFacingMode = facingMode;
-            if (localStream && mode === 'camera') {
-                await getCamera();
-                showNotification(facingMode === 'user' ? 'Front camera' : 'Back camera');
+        function toggleMute() {
+            if (localStream) {
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    audioTrack.enabled = !audioTrack.enabled;
+                    alert(audioTrack.enabled ? 'Microphone Unmuted' : 'Microphone Muted');
+                }
             }
         }
 
-        function updateStatus(status, text) {
-            const dot = document.getElementById('systemStatus');
-            const statusText = document.getElementById('systemStatusText');
-            dot.className = 'status-dot ' + (status === 'active' ? 'active' : '');
-            statusText.textContent = text;
-        }
-
-        function updateCameraCount() {
-            document.getElementById('cameraCount').textContent = Object.keys(cameras).length;
-        }
-
-        function updateConnectionInfo(text) {
-            document.getElementById('connectionInfo').textContent = text;
-        }
-
-        function showNotification(message) {
-            const notif = document.createElement('div');
-            notif.className = 'notification';
-            notif.textContent = message;
-            document.body.appendChild(notif);
-            setTimeout(() => notif.remove(), 2000);
-        }
-
-        function refreshConnections() {
-            showNotification('Refreshing...');
-            location.reload();
-        }
-
-        if ('wakeLock' in navigator && mode === 'camera') {
-            navigator.wakeLock.request('screen').catch(err => console.log(err));
+        // Keep screen awake (hack)
+        if ('wakeLock' in navigator) {
+            navigator.wakeLock.request('screen').catch(console.error);
         }
     </script>
 </body>
