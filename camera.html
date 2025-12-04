@@ -269,6 +269,7 @@
             padding: 20px;
             border-radius: 12px;
             text-align: center;
+            max-width: 500px;
         }
 
         .camera-info h2 {
@@ -277,14 +278,15 @@
         }
 
         .connection-code {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: bold;
             color: #00ff88;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
             margin: 15px 0;
             padding: 10px;
             background: rgba(0, 255, 136, 0.1);
             border-radius: 8px;
+            word-break: break-all;
         }
 
         .settings-btn {
@@ -296,6 +298,7 @@
             cursor: pointer;
             font-size: 1rem;
             transition: all 0.3s;
+            margin: 5px;
         }
 
         .settings-btn:hover {
@@ -331,7 +334,7 @@
             margin-top: 15px;
         }
 
-        .quality-selector select {
+        .quality-selector select, .quality-selector button {
             background: rgba(0, 0, 0, 0.5);
             color: #fff;
             border: 1px solid #666;
@@ -339,23 +342,15 @@
             border-radius: 6px;
             font-size: 1rem;
             cursor: pointer;
+            margin: 5px;
         }
 
-        .debug-log {
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            margin-top: 20px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 0.85rem;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #333;
-        }
-
-        .debug-log div {
-            padding: 3px 0;
-            border-bottom: 1px solid #222;
+        .camera-controls-panel {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 15px;
         }
 
         @media (max-width: 768px) {
@@ -413,15 +408,17 @@
 
     <!-- Monitor View -->
     <div class="monitor-view" id="monitorView">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap;">
             <h2>📡 Live Camera Feeds</h2>
-            <div style="display: flex; gap: 10px;">
-                <button class="settings-btn" onclick="toggleDebug()">🔍 Debug</button>
+            <div>
+                <button class="settings-btn" onclick="toggleMonitorFullscreen()">⛶ Fullscreen (F11)</button>
                 <button class="settings-btn" onclick="refreshConnections()">🔄 Refresh</button>
             </div>
         </div>
         
-        <div class="debug-log" id="debugLog" style="display: none;"></div>
+        <div style="margin-bottom: 15px; padding: 10px; background: rgba(0,255,136,0.1); border-radius: 8px; border: 1px solid #00ff88;">
+            <strong>Monitor ID:</strong> <span id="monitorIdDisplay" style="color: #00ff88; font-family: monospace;">Connecting...</span>
+        </div>
         
         <div class="camera-grid" id="cameraGrid">
             <div class="empty-state">
@@ -431,7 +428,6 @@
                 <h3>No Cameras Connected</h3>
                 <p>Open this page on your old phones and select "Camera" mode</p>
                 <p style="margin-top: 10px; color: #888;">Cameras will appear here automatically</p>
-                <p style="margin-top: 15px; color: #00ff88; font-weight: bold;" id="monitorIdDisplay"></p>
             </div>
         </div>
     </div>
@@ -445,7 +441,12 @@
                 <h2>📹 Camera Active</h2>
                 <p>This device is now streaming as a security camera</p>
                 <div class="connection-code" id="cameraId">Connecting...</div>
-                <p style="color: #aaa; font-size: 0.9rem;">Keep this page open and position your phone</p>
+                <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 10px;">Keep this page open and position your phone</p>
+                
+                <div class="camera-controls-panel">
+                    <button class="settings-btn" onclick="switchCamera()">🔄 Switch Camera</button>
+                    <button class="settings-btn" onclick="toggleCameraFullscreen()">⛶ Fullscreen</button>
+                </div>
                 
                 <div class="quality-selector">
                     <label>Video Quality: </label>
@@ -455,41 +456,22 @@
                         <option value="high">High</option>
                     </select>
                 </div>
-                
-                <div class="debug-log" id="cameraDebugLog" style="display: block; margin-top: 20px;"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Simple shared room ID that both devices will use
-        const ROOM_ID = 'HOME-SECURITY-' + window.location.hostname;
+        // Configuration - Use a fixed, predictable monitor ID
+        const MONITOR_ID = 'HOME-SECURITY-MONITOR-MAIN';
         
         // State
         let peer;
         let mode = '';
-        let cameras = new Map();
+        let cameras = {};
         let localStream;
-        let activeCalls = new Map();
-        let debugMode = false;
-
-        function log(message, isError = false) {
-            console.log(message);
-            const logDiv = mode === 'monitor' ? document.getElementById('debugLog') : document.getElementById('cameraDebugLog');
-            if (logDiv) {
-                const entry = document.createElement('div');
-                entry.style.color = isError ? '#ff4444' : '#00ff88';
-                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                logDiv.appendChild(entry);
-                logDiv.scrollTop = logDiv.scrollHeight;
-            }
-        }
-
-        function toggleDebug() {
-            debugMode = !debugMode;
-            const debugLog = document.getElementById('debugLog');
-            debugLog.style.display = debugMode ? 'block' : 'none';
-        }
+        let currentFacingMode = 'environment'; // 'user' for front, 'environment' for back
+        let currentCall = null;
+        let currentConnection = null;
 
         // Initialize based on mode selection
         function initMode(selectedMode) {
@@ -507,93 +489,98 @@
             updateStatus('active', 'System Active');
         }
 
-        // Monitor Mode - Acts as a receiver
+        // Monitor Mode
         function startMonitor() {
-            log('Starting monitor mode...');
+            console.log('Starting monitor with ID:', MONITOR_ID);
             
-            // Create peer with a predictable ID
-            const monitorId = ROOM_ID + '-MONITOR';
-            document.getElementById('monitorIdDisplay').textContent = 'Monitor ID: ' + monitorId;
-            
-            peer = new Peer(monitorId, {
-                debug: 2
+            // Use config for better connection
+            peer = new Peer(MONITOR_ID, {
+                debug: 2,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
             });
             
             peer.on('open', (id) => {
-                log('✓ Monitor ready with ID: ' + id);
-                updateConnectionInfo('Ready - Waiting for cameras');
-                updateStatus('active', 'Online');
+                console.log('✅ Monitor opened with ID:', id);
+                document.getElementById('monitorIdDisplay').textContent = id;
+                updateConnectionInfo('Ready - Waiting for cameras...');
+                showNotification('Monitor ready! Open camera mode on other devices.');
             });
 
             peer.on('connection', (conn) => {
-                log('New data connection from: ' + conn.peer);
+                console.log('📞 Incoming connection from:', conn.peer);
                 
                 conn.on('open', () => {
-                    log('Data connection opened with: ' + conn.peer);
+                    console.log('✅ Data connection opened with:', conn.peer);
+                    showNotification('Camera connecting: ' + conn.peer);
+                    
+                    // Request camera info
+                    conn.send({ type: 'requestInfo' });
                 });
 
                 conn.on('data', (data) => {
-                    log('Received data: ' + JSON.stringify(data));
-                    
+                    console.log('📩 Received data:', data);
                     if (data.type === 'cameraInfo') {
-                        cameras.set(conn.peer, {
+                        cameras[conn.peer] = {
                             conn: conn,
                             name: data.name,
                             id: conn.peer
-                        });
+                        };
                         updateCameraCount();
-                        log('Camera registered: ' + data.name);
+                        console.log('Camera registered:', data.name);
                     }
                 });
 
                 conn.on('close', () => {
-                    log('Data connection closed: ' + conn.peer);
+                    console.log('❌ Connection closed:', conn.peer);
+                    removeCameraFeed(conn.peer);
                 });
 
                 conn.on('error', (err) => {
-                    log('Data connection error: ' + err.message, true);
+                    console.error('Connection error:', err);
                 });
             });
 
-            // Most important: Handle incoming video calls
             peer.on('call', (call) => {
-                log('📞 Incoming video call from: ' + call.peer);
+                console.log('📞 Incoming call from:', call.peer);
                 
-                // Answer the call without sending our own stream
+                // Answer the call without sending any stream
                 call.answer();
                 
                 call.on('stream', (remoteStream) => {
-                    log('✓ Receiving video stream from: ' + call.peer);
+                    console.log('📹 Received stream from:', call.peer);
                     addCameraFeed(call.peer, remoteStream);
-                    activeCalls.set(call.peer, call);
+                    showNotification('Camera online: ' + call.peer);
                 });
 
                 call.on('close', () => {
-                    log('Call closed: ' + call.peer);
+                    console.log('Call closed:', call.peer);
                     removeCameraFeed(call.peer);
-                    activeCalls.delete(call.peer);
                 });
 
                 call.on('error', (err) => {
-                    log('Call error: ' + err.message, true);
+                    console.error('Call error:', err);
                 });
             });
 
-            peer.on('error', (err) => {
-                log('Peer error: ' + err.type + ' - ' + err.message, true);
-                
-                if (err.type === 'unavailable-id') {
-                    log('Monitor already running elsewhere. Close other tabs.', true);
-                    alert('Monitor is already running in another tab. Please close other tabs and refresh.');
-                } else if (err.type === 'peer-unavailable') {
-                    log('Camera peer not available yet', true);
-                }
-                updateStatus('error', 'Error: ' + err.type);
+            peer.on('disconnected', () => {
+                console.log('⚠️ Peer disconnected, attempting reconnection...');
+                peer.reconnect();
             });
 
-            peer.on('disconnected', () => {
-                log('Peer disconnected, attempting reconnect...', true);
-                peer.reconnect();
+            peer.on('error', (err) => {
+                console.error('❌ Peer error:', err);
+                if (err.type === 'unavailable-id') {
+                    alert('Monitor ID already in use. Please close other monitor tabs and refresh.');
+                } else if (err.type === 'peer-unavailable') {
+                    console.log('Peer unavailable:', err);
+                } else {
+                    showNotification('Connection error: ' + err.type);
+                }
             });
         }
 
@@ -606,18 +593,18 @@
 
             // Check if already exists
             if (document.getElementById('cam-' + cameraId)) {
-                log('Camera feed already exists, updating stream');
+                console.log('Camera feed already exists, updating stream');
                 const video = document.querySelector('#cam-' + cameraId + ' video');
-                if (video) video.srcObject = stream;
+                video.srcObject = stream;
                 return;
             }
-
-            const cameraName = cameras.get(cameraId)?.name || 'Camera ' + (cameras.size + 1);
-            const timestamp = new Date().toLocaleTimeString();
 
             const cameraCard = document.createElement('div');
             cameraCard.className = 'camera-card';
             cameraCard.id = 'cam-' + cameraId;
+
+            const cameraName = cameras[cameraId]?.name || 'Camera ' + Object.keys(cameras).length;
+            const timestamp = new Date().toLocaleTimeString();
 
             cameraCard.innerHTML = `
                 <div class="camera-header">
@@ -634,7 +621,7 @@
                 <video class="camera-video" autoplay playsinline></video>
                 <div class="camera-footer">
                     <span>Connected: ${timestamp}</span>
-                    <span style="color: #00ff88;">● LIVE</span>
+                    <span id="quality-${cameraId}">● Live</span>
                 </div>
             `;
 
@@ -642,23 +629,17 @@
 
             const video = cameraCard.querySelector('video');
             video.srcObject = stream;
-            
-            // Force play
-            video.play().catch(e => log('Video play error: ' + e.message, true));
+            video.play().catch(err => console.error('Video play error:', err));
 
             updateCameraCount();
-            updateConnectionInfo(`${cameras.size} camera(s) online`);
-            showNotification('New camera connected: ' + cameraName);
+            updateConnectionInfo(`${Object.keys(cameras).length} camera(s) online`);
         }
 
         function removeCameraFeed(cameraId) {
             const feed = document.getElementById('cam-' + cameraId);
-            if (feed) {
-                feed.remove();
-                log('Removed camera feed: ' + cameraId);
-            }
+            if (feed) feed.remove();
             
-            cameras.delete(cameraId);
+            delete cameras[cameraId];
             updateCameraCount();
 
             const grid = document.getElementById('cameraGrid');
@@ -674,128 +655,167 @@
                 `;
             }
             
-            updateConnectionInfo(`${cameras.size} camera(s) online`);
+            updateConnectionInfo(`${Object.keys(cameras).length} camera(s) online`);
         }
 
         function toggleFullscreen(cardId) {
             const card = document.getElementById(cardId);
-            card.classList.toggle('fullscreen');
+            if (!card) return;
+            
+            if (!document.fullscreenElement) {
+                card.requestFullscreen().catch(err => {
+                    console.error('Fullscreen error:', err);
+                    // Fallback to CSS fullscreen
+                    card.classList.toggle('fullscreen');
+                });
+            } else {
+                document.exitFullscreen();
+            }
         }
 
-        // Camera Mode - Acts as a broadcaster
+        function toggleMonitorFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error('Fullscreen error:', err);
+                    showNotification('Press F11 for fullscreen');
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function toggleCameraFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error('Fullscreen error:', err);
+                    showNotification('Press F11 for fullscreen');
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Camera Mode
         async function startCamera() {
-            log('Starting camera mode...');
-            
             const constraints = getQualityConstraints('medium');
             
             try {
                 localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 document.getElementById('localVideo').srcObject = localStream;
-                log('✓ Camera access granted');
                 
                 // Generate unique camera ID
                 const cameraName = 'Camera-' + Math.random().toString(36).substr(2, 6).toUpperCase();
                 
-                // Create peer with random ID
+                // Create peer with config
                 peer = new Peer({
-                    debug: 2
+                    debug: 2,
+                    config: {
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun1.l.google.com:19302' }
+                        ]
+                    }
                 });
                 
                 peer.on('open', (id) => {
-                    log('✓ Camera peer created with ID: ' + id);
-                    document.getElementById('cameraId').textContent = cameraName;
+                    console.log('✅ Camera ID:', id);
+                    document.getElementById('cameraId').textContent = id;
                     
-                    // Wait a bit then connect to monitor
-                    setTimeout(() => {
-                        connectToMonitor(id, cameraName);
-                    }, 1000);
-                });
-
-                peer.on('error', (err) => {
-                    log('Peer error: ' + err.type + ' - ' + err.message, true);
-                    updateStatus('error', 'Connection Error');
-                    
-                    // Retry connection
-                    if (err.type === 'peer-unavailable') {
-                        log('Monitor not found, retrying in 3 seconds...');
-                        setTimeout(() => {
-                            if (peer && peer.id) {
-                                connectToMonitor(peer.id, cameraName);
-                            }
-                        }, 3000);
-                    }
+                    // Connect to monitor
+                    setTimeout(() => connectToMonitor(cameraName), 1000);
                 });
 
                 peer.on('disconnected', () => {
-                    log('Peer disconnected, reconnecting...', true);
+                    console.log('⚠️ Disconnected, reconnecting...');
                     peer.reconnect();
                 });
 
+                peer.on('error', (err) => {
+                    console.error('❌ Peer error:', err);
+                    updateStatus('error', 'Connection Error');
+                    // Try to reconnect after error
+                    setTimeout(() => {
+                        location.reload();
+                    }, 5000);
+                });
+
             } catch (err) {
-                log('Camera access error: ' + err.message, true);
+                console.error('Camera access error:', err);
                 alert('Could not access camera. Please grant camera permissions.');
                 updateStatus('error', 'Camera Access Denied');
             }
         }
 
-        function connectToMonitor(peerId, cameraName) {
-            const monitorId = ROOM_ID + '-MONITOR';
-            log('Attempting to connect to monitor: ' + monitorId);
+        function connectToMonitor(cameraName) {
+            console.log('🔗 Connecting to monitor:', MONITOR_ID);
             
-            // First establish data connection
-            const conn = peer.connect(monitorId);
+            // Close existing connection if any
+            if (currentConnection) {
+                currentConnection.close();
+            }
+            if (currentCall) {
+                currentCall.close();
+            }
             
-            conn.on('open', () => {
-                log('✓ Data connection established with monitor');
-                updateStatus('active', 'Connected');
+            // Create data connection
+            currentConnection = peer.connect(MONITOR_ID, {
+                reliable: true
+            });
+            
+            currentConnection.on('open', () => {
+                console.log('✅ Connected to monitor!');
+                updateStatus('active', 'Connected to Monitor');
+                showNotification('Connected to monitor!');
                 
                 // Send camera info
-                conn.send({
+                currentConnection.send({
                     type: 'cameraInfo',
                     name: cameraName,
                     timestamp: new Date().toISOString()
                 });
                 
-                log('Sending camera info: ' + cameraName);
+                // Make video call
+                console.log('📞 Calling monitor with stream...');
+                currentCall = peer.call(MONITOR_ID, localStream);
                 
-                // Now make the video call
-                setTimeout(() => {
-                    log('Initiating video call to monitor...');
-                    const call = peer.call(monitorId, localStream);
-                    
-                    call.on('stream', (remoteStream) => {
-                        // Monitor doesn't send stream back, so this won't fire
-                        log('Received stream from monitor (unexpected)');
-                    });
-                    
-                    call.on('close', () => {
-                        log('Video call closed', true);
-                        updateStatus('error', 'Disconnected');
-                    });
-                    
-                    call.on('error', (err) => {
-                        log('Video call error: ' + err.message, true);
-                    });
-                    
-                    log('✓ Video call initiated');
-                    updateStatus('active', 'Streaming');
-                }, 500);
+                currentCall.on('stream', (remoteStream) => {
+                    console.log('Received stream from monitor (shouldn\'t happen)');
+                });
+                
+                currentCall.on('error', (err) => {
+                    console.error('❌ Call error:', err);
+                    updateStatus('error', 'Call Failed');
+                    setTimeout(() => connectToMonitor(cameraName), 5000);
+                });
+
+                currentCall.on('close', () => {
+                    console.log('Call closed');
+                    updateStatus('error', 'Call Closed');
+                    setTimeout(() => connectToMonitor(cameraName), 3000);
+                });
             });
 
-            conn.on('error', (err) => {
-                log('Data connection error: ' + err.message, true);
+            currentConnection.on('error', (err) => {
+                console.error('❌ Connection error:', err);
                 updateStatus('error', 'Monitor Not Found');
-                
-                // Retry after delay
-                setTimeout(() => {
-                    log('Retrying connection to monitor...');
-                    connectToMonitor(peerId, cameraName);
-                }, 5000);
+                showNotification('Monitor not found. Retrying in 5s...');
+                setTimeout(() => connectToMonitor(cameraName), 5000);
             });
 
-            conn.on('close', () => {
-                log('Data connection closed', true);
+            currentConnection.on('close', () => {
+                console.log('Connection closed');
                 updateStatus('error', 'Disconnected');
+                setTimeout(() => connectToMonitor(cameraName), 3000);
+            });
+
+            currentConnection.on('data', (data) => {
+                if (data.type === 'requestInfo') {
+                    currentConnection.send({
+                        type: 'cameraInfo',
+                        name: cameraName,
+                        timestamp: new Date().toISOString()
+                    });
+                }
             });
         }
 
@@ -813,7 +833,7 @@
                     width: { ideal: preset.width },
                     height: { ideal: preset.height },
                     frameRate: { ideal: preset.frameRate },
-                    facingMode: 'environment'
+                    facingMode: currentFacingMode
                 },
                 audio: false
             };
@@ -826,56 +846,24 @@
                 localStream.getTracks().forEach(track => track.stop());
                 
                 const constraints = getQualityConstraints(quality);
-                localStream = await navigator.mediaDevices.getUserMedia(constraints);
-                document.getElementById('localVideo').srcObject = localStream;
-                
-                log('Quality changed to: ' + quality);
-                showNotification(`Quality changed to ${quality}`);
-            }
-        }
-
-        // Helper Functions
-        function updateStatus(status, text) {
-            const dot = document.getElementById('systemStatus');
-            const statusText = document.getElementById('systemStatusText');
-            
-            dot.className = 'status-dot ' + (status === 'active' ? 'active' : '');
-            statusText.textContent = text;
-        }
-
-        function updateCameraCount() {
-            document.getElementById('cameraCount').textContent = cameras.size;
-        }
-
-        function updateConnectionInfo(text) {
-            document.getElementById('connectionInfo').textContent = text;
-        }
-
-        function showNotification(message) {
-            const notif = document.createElement('div');
-            notif.className = 'notification';
-            notif.textContent = message;
-            document.body.appendChild(notif);
-            
-            setTimeout(() => notif.remove(), 3000);
-        }
-
-        function refreshConnections() {
-            showNotification('Refreshing connections...');
-            location.reload();
-        }
-
-        // Prevent sleep on camera devices
-        let wakeLock = null;
-        async function requestWakeLock() {
-            if ('wakeLock' in navigator && mode === 'camera') {
                 try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    log('✓ Wake lock activated');
+                    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    document.getElementById('localVideo').srcObject = localStream;
+                    
+                    // Update the stream in the call
+                    if (currentCall && currentCall.peerConnection) {
+                        const videoTrack = localStream.getVideoTracks()[0];
+                        const sender = currentCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                        if (sender) {
+                            sender.replaceTrack(videoTrack);
+                        }
+                    }
+                    
+                    showNotification(`Quality changed to ${quality}`);
                 } catch (err) {
-                    log('Wake lock error: ' + err.message, true);
+                    console.error('Quality change error:', err);
+                    showNotification('Failed to change quality');
                 }
             }
-        }
 
-        //</script></body></html>
+                </script></body></html>
