@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Prompter</title>
+    <title>Pro Prompter V2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <style>
         :root {
@@ -12,6 +12,7 @@
             --surface: #1e1e1e;
             --text: #ffffff;
             --pad-bg: #2a2a2a;
+            --error: #ff4444;
         }
 
         * {
@@ -21,11 +22,11 @@
             -webkit-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
-            touch-action: none; /* Prevents default browser zooming/scrolling */
+            touch-action: none;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
             background: var(--bg);
             color: var(--text);
             overflow: hidden;
@@ -33,7 +34,7 @@
             width: 100vw;
         }
 
-        /* --- ICONS (SVG) --- */
+        /* --- ICONS --- */
         .icon { width: 24px; height: 24px; fill: currentColor; pointer-events: none; }
 
         /* --- SETUP SCREEN --- */
@@ -47,11 +48,12 @@
             z-index: 1000;
             position: absolute;
             width: 100%;
+            transition: opacity 0.3s;
         }
 
         .setup h1 { font-size: 2.5rem; letter-spacing: 5px; margin-bottom: 2rem; color: var(--accent); }
         
-        .btn-group { display: flex; gap: 20px; }
+        .mode-select { display: flex; flex-direction: column; gap: 20px; align-items: center; width: 100%; max-width: 300px; }
         
         .big-btn {
             padding: 15px 30px;
@@ -63,10 +65,34 @@
             cursor: pointer;
             font-weight: bold;
             transition: 0.2s;
+            width: 100%;
+            text-align: center;
         }
         
-        .big-btn:active { background: var(--accent); color: var(--bg); }
-        .status { margin-top: 20px; color: #666; letter-spacing: 2px; }
+        .big-btn:active { background: var(--accent); color: var(--bg); transform: scale(0.98); }
+
+        .input-group {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .code-input {
+            background: var(--surface);
+            border: 1px solid #444;
+            color: #fff;
+            padding: 15px;
+            font-size: 1.5rem;
+            text-align: center;
+            border-radius: 8px;
+            letter-spacing: 5px;
+            outline: none;
+        }
+        .code-input:focus { border-color: var(--accent); }
+
+        .status { margin-top: 20px; color: #666; letter-spacing: 2px; font-size: 0.9rem; min-height: 20px; text-align: center;}
+        .status.error { color: var(--error); }
 
         /* --- DISPLAY SCREEN --- */
         #displayView {
@@ -77,10 +103,10 @@
         }
 
         #prompterContent {
-            padding: 0 10vw; /* Horizontal padding */
+            padding: 0 10vw;
             font-size: 5rem;
             line-height: 1.6;
-            transform: translateY(45vh); /* Start in middle */
+            transform: translateY(45vh);
             will-change: transform;
             text-align: left;
             white-space: pre-wrap;
@@ -89,30 +115,29 @@
         }
 
         .marker-line {
-            position: fixed;
-            top: 45%;
-            left: 0; width: 100%;
-            height: 0;
-            border-top: 2px dashed rgba(255, 0, 0, 0.5);
-            z-index: 50;
+            position: fixed; top: 45%; left: 0; width: 100%; height: 0;
+            border-top: 2px dashed rgba(255, 0, 0, 0.5); z-index: 50;
         }
         
         .triangle-marker {
-            position: fixed;
-            top: 45%;
-            left: 20px;
-            width: 0; height: 0;
-            border-top: 15px solid transparent;
-            border-bottom: 15px solid transparent;
-            border-left: 20px solid rgba(255,0,0,0.7);
-            transform: translateY(-50%);
+            position: fixed; top: 45%; left: 20px; width: 0; height: 0;
+            border-top: 15px solid transparent; border-bottom: 15px solid transparent;
+            border-left: 20px solid rgba(255,0,0,0.7); transform: translateY(-50%);
         }
 
         .overlay-ui {
-            position: fixed;
-            top: 20px; right: 20px;
-            z-index: 100;
-            transition: opacity 0.3s;
+            position: fixed; top: 20px; right: 20px; z-index: 100;
+            display: flex; gap: 10px; flex-direction: column; align-items: flex-end;
+        }
+
+        .room-code-display {
+            background: rgba(0,0,0,0.7);
+            color: var(--accent);
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--accent);
+            font-family: monospace;
+            font-size: 1.2rem;
         }
 
         /* --- CONTROLLER SCREEN --- */
@@ -123,146 +148,67 @@
             background: var(--bg);
         }
 
-        /* Top Bar: Input & Edit */
         .top-bar {
-            padding: 15px;
-            background: var(--surface);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-bottom: 1px solid #333;
+            padding: 15px; background: var(--surface); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #333;
         }
 
         .text-preview {
-            flex: 1;
-            background: #000;
-            border: 1px solid #444;
-            padding: 10px;
-            color: #aaa;
-            border-radius: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-size: 14px;
+            flex: 1; background: #000; border: 1px solid #444; padding: 10px; color: #aaa; border-radius: 4px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;
         }
 
         .edit-btn {
-            background: var(--accent);
-            border: none;
-            border-radius: 4px;
-            width: 40px; height: 40px;
-            display: flex; align-items: center; justify-content: center;
-            color: #000;
+            background: var(--accent); border: none; border-radius: 4px; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center; color: #000; cursor: pointer;
         }
 
-        /* Scroll Pad Area */
         .pad-container {
-            flex-grow: 1;
-            position: relative;
-            background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
+            flex-grow: 1; position: relative; background: #000; display: flex; justify-content: center; align-items: center; overflow: hidden;
         }
 
         #scrollPad {
-            width: 90%;
-            height: 90%;
-            background: var(--pad-bg);
-            border-radius: 12px;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            border: 2px solid #444;
-            touch-action: none;
+            width: 90%; height: 90%; background: var(--pad-bg); border-radius: 12px; position: relative;
+            display: flex; justify-content: center; align-items: center; flex-direction: column; border: 2px solid #444; touch-action: none;
         }
 
         .pad-instruction {
-            color: rgba(255,255,255,0.2);
-            font-weight: bold;
-            text-align: center;
-            pointer-events: none;
-            line-height: 1.5;
+            color: rgba(255,255,255,0.2); font-weight: bold; text-align: center; pointer-events: none; line-height: 1.5;
         }
 
-        /* Visual feedback for joystick */
         #stickBase {
-            position: absolute;
-            width: 1px; height: 100%;
-            background: rgba(255,255,255,0.1);
-            display: none; /* Shown on touch */
+            position: absolute; width: 1px; height: 100%; background: rgba(255,255,255,0.1); display: none;
         }
         #stickHead {
-            position: absolute;
-            width: 80px; height: 80px;
-            background: rgba(0, 255, 136, 0.2);
-            border: 2px solid var(--accent);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            display: none;
-            pointer-events: none;
+            position: absolute; width: 80px; height: 80px; background: rgba(0, 255, 136, 0.2);
+            border: 2px solid var(--accent); border-radius: 50%; transform: translate(-50%, -50%); display: none; pointer-events: none;
         }
 
-        /* Bottom Toolbar */
         .bottom-toolbar {
-            background: var(--surface);
-            padding: 15px;
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            border-top: 1px solid #333;
+            background: var(--surface); padding: 15px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; border-top: 1px solid #333;
         }
 
         .tool-btn {
-            background: transparent;
-            border: 1px solid #444;
-            border-radius: 8px;
-            height: 50px;
-            display: flex; align-items: center; justify-content: center;
-            color: #fff;
+            background: transparent; border: 1px solid #444; border-radius: 8px; height: 50px;
+            display: flex; align-items: center; justify-content: center; color: #fff; cursor: pointer;
         }
         .tool-btn:active { background: #444; }
         .tool-btn.active { background: var(--accent); color: #000; border: none; }
 
-        /* Edit Modal */
+        /* --- EDIT MODAL --- */
         #editModal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg);
-            z-index: 2000;
-            flex-direction: column;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 2000; flex-direction: column;
         }
         
         #editModal textarea {
-            flex: 1;
-            background: #121212;
-            color: #fff;
-            padding: 20px;
-            font-size: 18px;
-            border: none;
-            resize: none;
-            outline: none;
+            flex: 1; background: #121212; color: #fff; padding: 20px; font-size: 18px; border: none; resize: none; outline: none;
         }
         
         .modal-header {
-            padding: 15px;
-            background: var(--surface);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 15px; background: var(--surface); display: flex; justify-content: space-between; align-items: center;
         }
 
         .save-btn {
-            background: var(--accent);
-            color: #000;
-            padding: 8px 20px;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
+            background: var(--accent); color: #000; padding: 8px 20px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;
         }
 
     </style>
@@ -271,10 +217,18 @@
 
     <div class="setup" id="setupView">
         <h1>PROMPTER</h1>
-        <div class="btn-group">
-            <button class="big-btn" onclick="initApp('display')">DISPLAY</button>
-            <button class="big-btn" onclick="initApp('controller')">REMOTE</button>
+        
+        <div class="mode-select" id="initialBtns">
+            <button class="big-btn" onclick="startDisplay()">I AM THE SCREEN</button>
+            <button class="big-btn" onclick="showRemoteInput()">I AM THE REMOTE</button>
         </div>
+
+        <div class="mode-select input-group" id="remoteInputGroup">
+            <input type="number" id="roomCodeInput" class="code-input" placeholder="0000" pattern="\d*">
+            <button class="big-btn" onclick="connectToDisplay()">CONNECT</button>
+            <button class="big-btn" style="border-color: #444; color: #888; font-size: 0.9rem;" onclick="backToMain()">BACK</button>
+        </div>
+
         <div class="status" id="statusText">Select Mode</div>
     </div>
 
@@ -283,11 +237,15 @@
         <div class="triangle-marker"></div>
         
         <div class="overlay-ui" id="displayUI">
-            <button class="big-btn" style="font-size: 0.9rem; padding: 10px;" onclick="toggleLocalFullscreen()">FULLSCREEN</button>
+            <div class="room-code-display" id="displayCodeBox">CODE: ----</div>
+            <button class="big-btn" style="font-size: 0.8rem; padding: 8px;" onclick="toggleLocalFullscreen()">FULLSCREEN</button>
         </div>
 
         <div id="prompterContent">
-            Waiting for controller...
+            Waiting for connection...
+            1. Open Prompter on phone
+            2. Select 'I AM THE REMOTE'
+            3. Enter code above
         </div>
     </div>
 
@@ -342,29 +300,31 @@
 
 This is a demonstration script.
 
-1. Connect a second device as "Remote".
-2. Use the large pad to scroll.
+1. Use the large pad on the Remote to scroll.
    - Slide UP to scroll down.
    - The further you slide, the faster it goes.
-3. Pinch on the pad to change text size.
-4. Press the Edit button to change this text.
+2. Pinch on the pad to change text size.
+3. Tap "Edit" on the remote to change this text.
 
 Happy Recording!</textarea>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const PEER_ID = "PROMPTER-HOST-2024"; // Simple fixed ID for demo purposes
-        
+        // --- CONSTANTS ---
+        const ID_PREFIX = "PROMPTER-V2-";
+
         // --- GLOBAL STATE ---
         let peer, conn;
         let mode = ''; // 'display' or 'controller'
-        
+        let myRoomCode = '';
+        let heartbeatInterval;
+        let wakeLock = null;
+
         // Display State
         let scrollY = 0;
-        let speed = 0; // Pixels per frame
+        let speed = 0;
         let isMirrored = false;
-        let fontSize = 5; // rem
+        let fontSize = 5; 
         let isUIHidden = false;
 
         // Controller State
@@ -373,119 +333,231 @@ Happy Recording!</textarea>
         let pinchDistStart = 0;
         let tempFontSize = 5;
 
-        // --- INITIALIZATION ---
-        function initApp(selectedMode) {
-            mode = selectedMode;
-            document.getElementById('setupView').style.display = 'none';
-            document.getElementById('statusText').innerText = "Connecting...";
+        // --- SETUP FUNCTIONS ---
+        function setStatus(msg, isError = false) {
+            const el = document.getElementById('statusText');
+            el.innerText = msg;
+            el.className = isError ? "status error" : "status";
+        }
 
-            if (mode === 'display') {
-                document.getElementById('displayView').style.display = 'block';
-                startPeerServer();
-                requestAnimationFrame(displayLoop); // Start the animation loop
-            } else {
-                document.getElementById('controllerView').style.display = 'flex';
-                startPeerClient();
-                setupControllerEvents();
+        function backToMain() {
+            document.getElementById('initialBtns').style.display = 'flex';
+            document.getElementById('remoteInputGroup').style.display = 'none';
+            setStatus("Select Mode");
+        }
+
+        function showRemoteInput() {
+            document.getElementById('initialBtns').style.display = 'none';
+            document.getElementById('remoteInputGroup').style.display = 'flex';
+            document.getElementById('roomCodeInput').focus();
+            setStatus("Enter the code from the Display screen");
+        }
+
+        // --- WAKE LOCK (Prevent sleep) ---
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock active');
+                    wakeLock.addEventListener('release', () => console.log('Wake Lock released'));
+                }
+            } catch (err) {
+                console.log(`${err.name}, ${err.message}`);
             }
         }
 
-        // --- PEER JS NETWORKING ---
-        function startPeerServer() {
-            peer = new Peer(PEER_ID);
+        // --- PEER JS: DISPLAY SIDE ---
+        function startDisplay() {
+            mode = 'display';
+            setStatus("Starting Display...");
+            requestWakeLock();
+            
+            // Generate Random 4-Digit Code
+            myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
+            const fullId = ID_PREFIX + myRoomCode;
+
+            document.getElementById('setupView').style.display = 'none';
+            document.getElementById('displayView').style.display = 'block';
+            document.getElementById('displayCodeBox').innerText = "CODE: " + myRoomCode;
+
+            // Init Peer
+            peer = new Peer(fullId);
+            
             peer.on('open', (id) => {
                 console.log('Host ID:', id);
             });
+
             peer.on('connection', (c) => {
+                // If we already have a connection, we can choose to replace it or allow multiple
+                // For this logic, we'll allow the new one to take over.
+                if(conn) { conn.close(); }
+                
                 conn = c;
+                setStatus("Remote Connected!");
+                
                 conn.on('data', handleData);
-                // Send current text to new controller
+                conn.on('close', () => {
+                    setStatus("Remote Disconnected");
+                    conn = null;
+                });
+
+                // Send current text to new controller immediately
                 setTimeout(() => {
                     const currentText = document.getElementById('prompterContent').innerText;
-                    conn.send({ type: 'syncText', text: currentText });
+                    if(conn && conn.open) conn.send({ type: 'syncText', text: currentText });
                 }, 500);
             });
-            peer.on('error', err => alert("ID taken or error. Try closing other tabs."));
+
+            peer.on('error', (err) => {
+                // If ID is taken (rare with random 4 digits), try again automatically
+                if (err.type === 'unavailable-id') {
+                    startDisplay(); 
+                } else {
+                    alert("Network Error: " + err.type);
+                }
+            });
+
+            requestAnimationFrame(displayLoop);
         }
 
-        function startPeerClient() {
-            peer = new Peer(); // Random ID
+        // --- PEER JS: CONTROLLER SIDE ---
+        function connectToDisplay() {
+            const inputVal = document.getElementById('roomCodeInput').value;
+            if (inputVal.length < 4) {
+                setStatus("Please enter the 4-digit code", true);
+                return;
+            }
+
+            mode = 'controller';
+            setStatus("Connecting...");
+            requestWakeLock();
+            
+            const targetId = ID_PREFIX + inputVal;
+            
+            peer = new Peer(); // Let PeerJS assign a random ID for the remote
+
             peer.on('open', () => {
-                conn = peer.connect(PEER_ID);
-                conn.on('open', () => {
-                    console.log("Connected to display");
-                    sendAction('sync'); // Request current text
-                });
-                conn.on('data', (data) => {
-                    if (data.type === 'syncText') {
-                        document.getElementById('fullTextInput').value = data.text;
-                        updateTextPreview();
-                    }
-                });
-                conn.on('error', () => alert("Could not find Display. Open Display first."));
+                conn = peer.connect(targetId, { reliable: true });
+                setupConnectionHandlers();
+            });
+
+            peer.on('error', (err) => {
+                setStatus("Error: " + err.type, true);
+                if(err.type === 'peer-unavailable') {
+                    setStatus("Display not found. Check code.", true);
+                }
             });
         }
 
+        function setupConnectionHandlers() {
+            conn.on('open', () => {
+                console.log("Connected to display");
+                document.getElementById('setupView').style.display = 'none';
+                document.getElementById('controllerView').style.display = 'flex';
+                setupControllerEvents();
+                sendAction('sync'); // Request text
+                startHeartbeat();
+            });
+
+            conn.on('data', (data) => {
+                if (data.type === 'syncText') {
+                    document.getElementById('fullTextInput').value = data.text;
+                    updateTextPreview();
+                }
+            });
+
+            conn.on('close', () => {
+                console.log("Connection lost");
+                document.getElementById('textPreview').innerText = "DISCONNECTED - Reconnecting...";
+                // Attempt Reconnect
+                setTimeout(() => {
+                   if(peer && !peer.destroyed) {
+                        const targetId = conn.peer;
+                        console.log("Reconnecting to " + targetId);
+                        conn = peer.connect(targetId);
+                        setupConnectionHandlers();
+                   }
+                }, 2000);
+            });
+
+            conn.on('error', (err) => console.error(err));
+        }
+
+        // --- HEARTBEAT SYSTEM ---
+        // Keeps the connection alive by sending small data every few seconds
+        function startHeartbeat() {
+            if(heartbeatInterval) clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(() => {
+                if(conn && conn.open) {
+                    conn.send({ type: 'ping' });
+                }
+            }, 2000);
+        }
+
+        // --- DATA HANDLING ---
         function sendData(data) {
-            if (conn && conn.open) conn.send(data);
+            if (conn && conn.open) {
+                conn.send(data);
+            }
         }
 
         function handleData(data) {
             const content = document.getElementById('prompterContent');
             
-            if (data.type === 'speed') {
-                speed = data.val;
-            } 
-            else if (data.type === 'text') {
-                content.innerText = data.val;
-                scrollY = 0; // Reset scroll on new text
-            } 
-            else if (data.type === 'fontSize') {
-                fontSize = data.val;
-                content.style.fontSize = fontSize + 'rem';
-            } 
-            else if (data.type === 'reset') {
-                scrollY = 0;
-                speed = 0;
-            }
-            else if (data.type === 'mirror') {
-                isMirrored = !isMirrored;
-                content.style.transform = `scaleX(${isMirrored ? -1 : 1}) translateY(${scrollY}px)`;
-                content.style.textAlign = isMirrored ? 'right' : 'left'; // Helps readability
-            }
-            else if (data.type === 'color') {
-                const colors = ['#ffffff', '#ffff00', '#00ff00', '#00ffff'];
-                let curr = colors.indexOf(content.style.color || '#ffffff');
-                content.style.color = colors[(curr + 1) % colors.length];
-            }
-            else if (data.type === 'hideUI') {
-                isUIHidden = !isUIHidden;
-                document.getElementById('displayUI').style.opacity = isUIHidden ? '0' : '1';
-                document.querySelector('.marker-line').style.opacity = isUIHidden ? '0' : '1';
-                document.querySelector('.triangle-marker').style.opacity = isUIHidden ? '0' : '1';
-                document.body.style.cursor = isUIHidden ? 'none' : 'default';
-            }
-            else if (data.type === 'sync') {
-                // Controller requesting text
-                conn.send({ type: 'syncText', text: content.innerText });
+            switch(data.type) {
+                case 'speed': speed = data.val; break;
+                case 'text': 
+                    content.innerText = data.val; 
+                    scrollY = 0; 
+                    break;
+                case 'fontSize':
+                    fontSize = data.val;
+                    content.style.fontSize = fontSize + 'rem';
+                    break;
+                case 'reset':
+                    scrollY = 0;
+                    speed = 0;
+                    break;
+                case 'mirror':
+                    isMirrored = !isMirrored;
+                    updateTransform();
+                    content.style.textAlign = isMirrored ? 'right' : 'left';
+                    break;
+                case 'color':
+                    const colors = ['#ffffff', '#ffff00', '#00ff00', '#00ffff'];
+                    let curr = colors.indexOf(content.style.color || '#ffffff');
+                    content.style.color = colors[(curr + 1) % colors.length];
+                    break;
+                case 'hideUI':
+                    isUIHidden = !isUIHidden;
+                    const opacity = isUIHidden ? '0' : '1';
+                    document.getElementById('displayUI').style.opacity = opacity;
+                    document.querySelector('.marker-line').style.opacity = opacity;
+                    document.querySelector('.triangle-marker').style.opacity = opacity;
+                    document.body.style.cursor = isUIHidden ? 'none' : 'default';
+                    break;
+                case 'sync':
+                    conn.send({ type: 'syncText', text: content.innerText });
+                    break;
+                case 'ping':
+                    // Just keeping connection alive
+                    break;
             }
         }
 
-        // --- DISPLAY LOGIC (Animation Loop) ---
+        // --- DISPLAY LOOP ---
         function displayLoop() {
             if (Math.abs(speed) > 0.1) {
-                // speed is pixels per frame. 
-                // speed > 0 means finger moved UP, so text should scroll UP (reading forward)
-                // In CSS translateY, negative is UP.
                 scrollY -= speed; 
             }
-            
+            updateTransform();
+            requestAnimationFrame(displayLoop);
+        }
+
+        function updateTransform() {
             const content = document.getElementById('prompterContent');
-            // Apply Transform
             const scale = isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
             content.style.transform = `${scale} translateY(${scrollY}px)`;
-            
-            requestAnimationFrame(displayLoop);
         }
 
         function toggleLocalFullscreen() {
@@ -496,7 +568,7 @@ Happy Recording!</textarea>
             }
         }
 
-        // --- CONTROLLER LOGIC ---
+        // --- CONTROLLER INPUT LOGIC ---
         function setupControllerEvents() {
             const pad = document.getElementById('scrollPad');
             const stickHead = document.getElementById('stickHead');
@@ -504,9 +576,8 @@ Happy Recording!</textarea>
 
             pad.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                // Check if pinching (2 fingers)
                 if (e.touches.length === 2) {
-                    isTouching = false; // Disable scroll logic
+                    isTouching = false;
                     pinchDistStart = Math.hypot(
                         e.touches[0].pageX - e.touches[1].pageX,
                         e.touches[0].pageY - e.touches[1].pageY
@@ -514,22 +585,20 @@ Happy Recording!</textarea>
                     return;
                 }
 
-                // Scroll Logic (1 finger)
                 isTouching = true;
                 touchStartY = e.touches[0].clientY;
                 
-                // Visuals
                 const rect = pad.getBoundingClientRect();
                 const relativeY = e.touches[0].clientY - rect.top;
+                
                 stickBase.style.display = 'block';
-                stickBase.style.top = relativeY + 'px'; // Base stays at start point
+                stickBase.style.top = relativeY + 'px';
                 stickHead.style.display = 'block';
                 stickHead.style.top = relativeY + 'px';
             }, { passive: false });
 
             pad.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-
                 // Pinch Logic
                 if (e.touches.length === 2) {
                     const dist = Math.hypot(
@@ -537,14 +606,11 @@ Happy Recording!</textarea>
                         e.touches[0].pageY - e.touches[1].pageY
                     );
                     const delta = dist - pinchDistStart;
-                    
-                    // Throttling slightly
                     if (Math.abs(delta) > 10) {
                         if (delta > 0) tempFontSize += 0.1;
                         else tempFontSize = Math.max(1, tempFontSize - 0.1);
-                        
                         sendData({ type: 'fontSize', val: tempFontSize });
-                        pinchDistStart = dist; // Reset for continuous smooth zoom
+                        pinchDistStart = dist;
                     }
                     return;
                 }
@@ -552,23 +618,18 @@ Happy Recording!</textarea>
                 if (!isTouching) return;
 
                 const currentY = e.touches[0].clientY;
-                const deltaY = touchStartY - currentY; // Positive = Finger moved UP
+                const deltaY = touchStartY - currentY;
+                let scrollSpeed = deltaY * 0.15;
                 
-                // Calculate Speed (Sensitivity)
-                // Moving finger UP (positive delta) = Scroll speed positive (Text goes up)
-                let scrollSpeed = deltaY * 0.15; 
-                
-                // Cap max speed
-                if (scrollSpeed > 20) scrollSpeed = 20;
-                if (scrollSpeed < -20) scrollSpeed = -20;
+                if (scrollSpeed > 25) scrollSpeed = 25;
+                if (scrollSpeed < -25) scrollSpeed = -25;
 
                 sendData({ type: 'speed', val: scrollSpeed });
 
-                // Update Visual Stick Head
-                const rect = pad.getBoundingClientRect();
-                const startRelY = touchStartY - rect.top;
-                // Clamp visual movement
+                // Visual Joystick
                 let visualOffset = -deltaY; 
+                if(visualOffset > 40) visualOffset = 40;
+                if(visualOffset < -40) visualOffset = -40;
                 stickHead.style.transform = `translate(-50%, calc(-50% + ${visualOffset}px))`;
             }, { passive: false });
 
@@ -584,11 +645,9 @@ Happy Recording!</textarea>
             });
         }
 
-        // --- CONTROLLER UI FUNCTIONS ---
-        function openEditor() {
-            document.getElementById('editModal').style.display = 'flex';
-        }
-
+        // --- CONTROLLER UI ACTIONS ---
+        function openEditor() { document.getElementById('editModal').style.display = 'flex'; }
+        
         function closeEditor() {
             document.getElementById('editModal').style.display = 'none';
             const text = document.getElementById('fullTextInput').value;
@@ -604,22 +663,22 @@ Happy Recording!</textarea>
 
         function sendAction(actionType) {
             if (actionType === 'mirror') {
-                const btn = document.getElementById('mirrorBtn');
-                btn.classList.toggle('active');
+                document.getElementById('mirrorBtn').classList.toggle('active');
             }
             sendData({ type: actionType });
         }
 
-        function cycleColor() {
-            sendData({ type: 'color' });
-        }
-        
-        function toggleMirror() {
-            sendAction('mirror');
-        }
+        function cycleColor() { sendData({ type: 'color' }); }
+        function toggleMirror() { sendAction('mirror'); }
 
-        // Prevent context menu on right click
         document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // Re-request wake lock on visibility change (tabs can lose it)
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                await requestWakeLock();
+            }
+        });
 
     </script>
 </body>
