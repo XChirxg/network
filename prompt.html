@@ -77,6 +77,10 @@
         .api-setup input{background:var(--surface);border:1px solid #444;color:#fff;padding:12px;border-radius:4px;outline:none}
         .api-setup input:focus{border-color:var(--accent)}
         .install-prompt{margin-top:10px;font-size:.85rem;color:#888}
+        .remaining-text {
+    display: none;
+}
+
     </style>
 </head>
 <body>
@@ -114,6 +118,7 @@
     </div>
 
     <div id="controllerView">
+                <div class="remaining-text" id="remainingText">0% remaining</div>
         <div class="top-bar">
             <div class="text-preview" id="textPreview" onclick="openEditor()">Tap to edit script...</div>
             <button class="edit-btn" onclick="openProjects()">
@@ -330,5 +335,6 @@ Happy Recording!</textarea>
         </script>
         </body>
         </html>
+
 
 
