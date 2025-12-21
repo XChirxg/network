@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spot the Imposter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <style>
+        :root{--accent:#00ff88;--bg:#121212;--surface:#1e1e1e;--text:#fff;--error:#ff4444;--imposter:#ff0066}
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+        body{font-family:-apple-system,monospace;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw}
+        .setup{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;background:var(--bg);z-index:1000;position:absolute;width:100%;padding:20px;overflow-y:auto}
+        .setup h1{font-size:2.5rem;letter-spacing:5px;margin-bottom:1rem;color:var(--accent);text-align:center}
+        .subtitle{color:#888;font-size:1rem;text-align:center;margin-bottom:2rem;line-height:1.6;max-width:600px}
+        .how-to-play{background:var(--surface);padding:20px;border-radius:12px;margin-bottom:2rem;max-width:600px;border:1px solid #333}
+        .how-to-play h3{color:var(--accent);margin-bottom:15px;font-size:1.2rem}
+        .how-to-play ol{margin-left:20px;line-height:1.8;color:#aaa}
+        .how-to-play .tip{margin-top:15px;padding:10px;background:rgba(0,255,136,.1);border-left:3px solid var(--accent);color:#ccc;font-size:.9rem}
+        .mode-select{display:flex;flex-direction:column;gap:20px;align-items:center;width:100%;max-width:320px}
+        .big-btn{padding:15px 30px;font-size:1.2rem;background:transparent;border:2px solid var(--accent);color:var(--accent);border-radius:8px;cursor:pointer;font-weight:bold;transition:.2s;width:100%;text-align:center}
+        .big-btn:active{background:var(--accent);color:var(--bg);transform:scale(.98)}
+        .input-group{display:none;flex-direction:column;gap:10px;width:100%}
+        .code-input{background:var(--surface);border:1px solid #444;color:#fff;padding:15px;font-size:1.5rem;text-align:center;border-radius:8px;letter-spacing:5px;outline:none}
+        .code-input:focus{border-color:var(--accent)}
+        .status{margin-top:20px;color:#666;letter-spacing:2px;font-size:.9rem;min-height:20px;text-align:center}
+        .status.error{color:var(--error)}
+        .dev-credit{margin-top:30px;font-size:.8rem;color:#666}
+        .dev-credit a{color:var(--accent);text-decoration:none}
+        #hostView,#playerView{display:none;flex-direction:column;height:100%;background:var(--bg)}
+        .top-bar{padding:15px;background:var(--surface);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #333;flex-wrap:wrap;gap:10px}
+        .code-display{background:rgba(0,255,136,.1);color:var(--accent);padding:10px 15px;border-radius:6px;border:1px solid var(--accent);font-family:monospace;font-size:1.1rem;letter-spacing:2px}
+        .content-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+        .word-display{font-size:4rem;color:var(--accent);text-align:center;padding:40px;font-weight:bold;line-height:1.3;word-break:break-word}
+        .word-display.imposter{color:var(--imposter);animation:pulse 2s infinite}
+        .custom-badge{background:var(--imposter);color:#fff;padding:5px 15px;border-radius:20px;font-size:.9rem;margin-top:20px;display:inline-block}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+        .role-text{font-size:1.5rem;color:#aaa;margin-bottom:20px;text-align:center}
+        .player-list{display:grid;grid-template-columns:1fr;gap:12px;width:100%;max-width:400px;margin-bottom:20px}
+        .player-card{background:var(--surface);padding:15px;border-radius:8px;border:2px solid #444;display:flex;justify-content:space-between;align-items:center}
+        .player-card.kicked{opacity:.5;border-color:#666}
+        .player-name{font-size:1.1rem;font-weight:bold}
+        .player-status{font-size:.85rem;color:#888}
+        .controls{display:flex;flex-direction:column;gap:15px;width:100%;max-width:400px}
+        .control-btn{padding:15px;background:var(--surface);border:2px solid #444;color:#fff;border-radius:8px;font-size:1rem;font-weight:bold;cursor:pointer;transition:.2s}
+        .control-btn:active{transform:scale(.98);background:var(--accent);color:#000}
+        .control-btn.primary{border-color:var(--accent);color:var(--accent)}
+        .control-btn.danger{border-color:var(--error);color:var(--error)}
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.95);z-index:2000;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+        .modal-content{background:var(--surface);padding:30px;border-radius:12px;max-width:400px;width:100%;border:1px solid #333}
+        .modal h3{color:var(--accent);margin-bottom:20px;font-size:1.5rem;text-align:center}
+        .form-group{margin-bottom:20px}
+        .form-group label{display:block;color:#aaa;margin-bottom:8px;font-size:.9rem}
+        .form-group input{width:100%;background:var(--bg);border:1px solid #444;color:#fff;padding:12px;border-radius:6px;font-size:1rem;outline:none}
+        .form-group input:focus{border-color:var(--accent)}
+        .waiting-msg{text-align:center;color:#666;font-size:1.2rem;padding:40px;line-height:1.8}
+    </style>
+</head>
+<body>
+    <div class="setup" id="setupView">
+        <h1>SPOT THE IMPOSTER</h1>
+        <p class="subtitle">A social deduction party game</p>
+        
+        <div class="how-to-play">
+            <h3>HOW TO PLAY</h3>
+            <ol>
+                <li>One person hosts the game</li>
+                <li>Everyone gets a SECRET WORD except one IMPOSTER</li>
+                <li>Go around and say a word related to your secret word</li>
+                <li>The imposter tries to blend in without knowing the word</li>
+                <li>Vote to kick out who you think is the imposter</li>
+                <li>If you kick the imposter, everyone wins!</li>
+            </ol>
+            <div class="tip">
+                <strong>TIP:</strong> Host can use custom words like movie names, brands, animals, locations, etc. for more fun!
+            </div>
+        </div>
+        
+        <div class="mode-select" id="initialBtns">
+            <button class="big-btn" onclick="startHost()">HOST GAME</button>
+            <button class="big-btn" onclick="showPlayerInput()">JOIN GAME</button>
+        </div>
+        
+        <div class="mode-select input-group" id="playerInputGroup">
+            <input type="number" id="playerCodeInput" class="code-input" placeholder="0000" pattern="\d*">
+            <input type="text" id="playerNameInput" class="code-input" placeholder="YOUR NAME" style="font-size:1.2rem;letter-spacing:normal">
+            <button class="big-btn" onclick="connectAsPlayer()">JOIN</button>
+            <button class="big-btn" style="border-color:#444;color:#888;font-size:.9rem" onclick="backToMain()">BACK</button>
+        </div>
+        
+        <div class="status" id="statusText">Select Mode</div>
+        <div class="dev-credit">Developed by <a href="https://ChiragSharma.web.app" target="_blank">xchirxg</a></div>
+    </div>
+
+    <div id="hostView">
+        <div class="top-bar">
+            <div class="code-display">GAME CODE: <span id="hostGameCode">----</span></div>
+            <button class="big-btn" style="padding:8px 16px;font-size:.9rem" onclick="openCustomWord()">CUSTOM WORD</button>
+        </div>
+        <div class="content-area">
+            <div class="waiting-msg" id="hostWaiting">Waiting for players to join...</div>
+            <div id="hostGameArea" style="display:none;width:100%;max-width:500px">
+                <div class="player-list" id="hostPlayerList"></div>
+                <div class="controls">
+                    <button class="control-btn primary" onclick="startRound()">START NEW ROUND</button>
+                    <button class="control-btn danger" onclick="kickPlayer()">KICK SELECTED PLAYER</button>
+                    <button class="control-btn" onclick="resetGame()">RESET GAME</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="playerView">
+        <div class="top-bar">
+            <div class="code-display" id="playerNameDisplay"></div>
+        </div>
+        <div class="content-area">
+            <div class="waiting-msg" id="playerWaiting">Waiting for host to start...</div>
+            <div id="playerWordArea" style="display:none;text-align:center">
+                <div class="role-text" id="playerRole"></div>
+                <div class="word-display" id="playerWord"></div>
+                <div id="customBadge" style="display:none">
+                    <span class="custom-badge">CUSTOM WORD</span>
+                </div>
+                <button class="big-btn" style="margin-top:40px;max-width:300px" onclick="requestWordChange()">CHANGE WORD</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="customWordModal">
+        <div class="modal-content">
+            <h3>CUSTOM WORD</h3>
+            <div class="form-group">
+                <label>Enter a custom word (movie, brand, animal, location, etc.)</label>
+                <input type="text" id="customWordInput" placeholder="e.g., Pizza, Netflix, Tiger">
+            </div>
+            <button class="big-btn" onclick="setCustomWord()">USE THIS WORD</button>
+            <button class="big-btn" style="border-color:#444;color:#888;font-size:.9rem;margin-top:10px" onclick="closeCustomWord()">CANCEL</button>
+        </div>
+    </div>
+
+    <script>
+const WORD_LIST = [
+    "Pizza", "Coffee", "Beach", "Mountain", "Ocean", "Forest", "Desert", "River",
+    "Guitar", "Piano", "Drums", "Violin", "Trumpet", "Microphone",
+    "Soccer", "Basketball", "Tennis", "Swimming", "Running", "Cycling",
+    "Dog", "Cat", "Bird", "Fish", "Horse", "Elephant", "Lion", "Tiger",
+    "Apple", "Banana", "Orange", "Strawberry", "Mango", "Grapes",
+    "Car", "Bicycle", "Airplane", "Train", "Boat", "Helicopter",
+    "Book", "Movie", "Music", "Dance", "Painting", "Photography",
+    "School", "Hospital", "Library", "Museum", "Theater", "Stadium",
+    "Summer", "Winter", "Spring", "Autumn", "Rain", "Snow", "Sunshine",
+    "Happy", "Sad", "Angry", "Excited", "Scared", "Surprised",
+    "Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink",
+    "Phone", "Computer", "Television", "Camera", "Watch", "Headphones",
+    "Shirt", "Pants", "Shoes", "Hat", "Jacket", "Dress",
+    "Breakfast", "Lunch", "Dinner", "Snack", "Dessert",
+    "Doctor", "Teacher", "Chef", "Artist", "Musician", "Athlete",
+    "Birthday", "Wedding", "Party", "Festival", "Celebration",
+    "Money", "Gold", "Diamond", "Silver", "Pearl"
+];
+
+let peer, mode = '', gameCode = '';
+let playerConns = [], currentWord = '', isCustomWord = false;
+let myPlayerName = '', myConn = null, myRole = '', myWord = '';
+let kickedPlayers = [], selectedPlayerIndex = -1;
+
+function setStatus(msg, isError = false) {
+    const el = document.getElementById('statusText');
+    if (el) {
+        el.innerText = msg;
+        el.className = isError ? "status error" : "status";
+    }
+}
+
+function backToMain() {
+    document.getElementById('initialBtns').style.display = 'flex';
+    document.getElementById('playerInputGroup').style.display = 'none';
+    setStatus("Select Mode");
+}
+
+function showPlayerInput() {
+    document.getElementById('initialBtns').style.display = 'none';
+    document.getElementById('playerInputGroup').style.display = 'flex';
+    document.getElementById('playerCodeInput').focus();
+    setStatus("Enter game code and your name");
+}
+
+function startHost() {
+    mode = 'host';
+    setStatus("Creating Game...");
+    
+    gameCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const peerId = 'IMPOSTER-GAME-' + gameCode;
+    
+    peer = new Peer(peerId);
+    peer.on('open', () => {
+        console.log('Game created with code:', gameCode);
+        document.getElementById('setupView').style.display = 'none';
+        document.getElementById('hostView').style.display = 'flex';
+        document.getElementById('hostGameCode').innerText = gameCode;
+    });
+    
+    peer.on('connection', c => {
+        if (c.metadata && c.metadata.type === 'player') {
+            c.metadata.kicked = false;
+            playerConns.push(c);
+            updateHostView();
+            
+            c.on('data', data => handleHostData(data, c));
+            c.on('close', () => {
+                playerConns = playerConns.filter(x => x !== c);
+                updateHostView();
+            });
+        }
+    });
+    
+    peer.on('error', err => {
+        if (err.type === 'unavailable-id') startHost();
+        else alert("Error: " + err.type);
+    });
+}
+
+function connectAsPlayer() {
+    const code = document.getElementById('playerCodeInput').value;
+    const name = document.getElementById('playerNameInput').value.trim();
+    if (code.length < 4) {
+        setStatus("Enter 4-digit code", true);
+        return;
+    }
+    if (!name) {
+        setStatus("Enter your name", true);
+        return;
+    }
+    mode = 'player';
+    myPlayerName = name;
+    setStatus("Connecting...");
+    const targetId = 'IMPOSTER-GAME-' + code;
+    peer = new Peer();
+    peer.on('open', () => {
+        const c = peer.connect(targetId, {
+            reliable: true,
+            metadata: { type: 'player', name }
+        });
+        myConn = c;
+        c.on('open', () => {
+            document.getElementById('setupView').style.display = 'none';
+            document.getElementById('playerView').style.display = 'flex';
+            document.getElementById('playerNameDisplay').innerText = name;
+        });
+        c.on('data', data => handlePlayerData(data));
+        c.on('close', () => {
+            alert("Connection lost");
+            location.reload();
+        });
+    });
+    peer.on('error', err => setStatus("Connection failed: " + err.type, true));
+}
+
+function updateHostView() {
+    if (playerConns.length > 0) {
+        document.getElementById('hostWaiting').style.display = 'none';
+        document.getElementById('hostGameArea').style.display = 'block';
+    } else {
+        document.getElementById('hostWaiting').style.display = 'block';
+        document.getElementById('hostGameArea').style.display = 'none';
+    }
+    
+    const list = document.getElementById('hostPlayerList');
+    list.innerHTML = '';
+    playerConns.forEach((c, i) => {
+        const div = document.createElement('div');
+        div.className = 'player-card' + (c.metadata.kicked ? ' kicked' : '') + (i === selectedPlayerIndex ? ' ' : '');
+        div.style.border = i === selectedPlayerIndex ? '2px solid var(--accent)' : '2px solid #444';
+        div.innerHTML = `
+            <div>
+                <div class="player-name">${c.metadata.name}</div>
+                <div class="player-status">${c.metadata.kicked ? 'KICKED' : (c.metadata.role || 'Waiting')}</div>
+            </div>
+        `;
+        div.onclick = () => {
+            selectedPlayerIndex = i;
+            updateHostView();
+        };
+        list.appendChild(div);
+    });
+}
+
+function broadcastToPlayers(data) {
+    playerConns.forEach(c => {
+        if (c.open && !c.metadata.kicked) c.send(data);
+    });
+}
+
+function handleHostData(data, conn) {
+    if (data.type === 'requestWordChange') {
+        const allWantChange = playerConns.filter(p => !p.metadata.kicked).every(p => p.metadata.wantsChange);
+        if (allWantChange && playerConns.filter(p => !p.metadata.kicked).length > 1) {
+            startRound();
+        }
+    }
+}
+
+function handlePlayerData(data) {
+    if (data.type === 'startRound') {
+        myRole = data.role;
+        myWord = data.word;
+        document.getElementById('playerWaiting').style.display = 'none';
+        document.getElementById('playerWordArea').style.display = 'block';
+        document.getElementById('playerRole').innerText = data.role === 'imposter' ? 'YOU ARE THE IMPOSTER!' : 'You are a regular player';
+        const wordEl = document.getElementById('playerWord');
+        wordEl.innerText = data.word;
+        wordEl.className = 'word-display' + (data.role === 'imposter' ? ' imposter' : '');
+        
+        if (data.isCustom) {
+            document.getElementById('customBadge').style.display = 'block';
+        } else {
+            document.getElementById('customBadge').style.display = 'none';
+        }
+    } else if (data.type === 'kicked') {
+        alert(`You were kicked from the game! ${data.wasImposter ? 'You were the imposter!' : 'You were innocent!'}`);
+        document.getElementById('playerWaiting').style.display = 'block';
+        document.getElementById('playerWaiting').innerText = data.wasImposter ? 'You were the IMPOSTER! Game Over.' : 'You were INNOCENT! Wait for next round.';
+        document.getElementById('playerWordArea').style.display = 'none';
+    } else if (data.type === 'reset') {
+        document.getElementById('playerWaiting').style.display = 'block';
+        document.getElementById('playerWaiting').innerText = 'Waiting for host to start...';
+        document.getElementById('playerWordArea').style.display = 'none';
+    }
+}
+
+function startRound() {
+    if (playerConns.filter(p => !p.metadata.kicked).length < 2) {
+        alert('Need at least 2 players!');
+        return;
+    }
+    
+    const activePlayers = playerConns.filter(p => !p.metadata.kicked);
+    
+    // Choose word
+    if (!isCustomWord) {
+        currentWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+    }
+    
+    // Choose random imposter
+    const imposterIndex = Math.floor(Math.random() * activePlayers.length);
+    
+    activePlayers.forEach((c, i) => {
+        c.metadata.wantsChange = false;
+        if (i === imposterIndex) {
+            c.metadata.role = 'imposter';
+            c.send({
+                type: 'startRound',
+                role: 'imposter',
+                word: 'IMPOSTER',
+                isCustom: isCustomWord
+            });
+        } else {
+            c.metadata.role = 'player';
+            c.send({
+                type: 'startRound',
+                role: 'player',
+                word: currentWord,
+                isCustom: isCustomWord
+            });
+        }
+    });
+    
+    isCustomWord = false;
+    updateHostView();
+}
+
+function kickPlayer() {
+    if (selectedPlayerIndex < 0 || selectedPlayerIndex >= playerConns.length) {
+        alert('Select a player first!');
+        return;
+    }
+    
+    const player = playerConns[selectedPlayerIndex];
+    if (player.metadata.kicked) {
+        alert('Player already kicked!');
+        return;
+    }
+    
+    const wasImposter = player.metadata.role === 'imposter';
+    player.metadata.kicked = true;
+    player.send({
+        type: 'kicked',
+        wasImposter: wasImposter
+    });
+    
+    alert(wasImposter ? 
+        `${player.metadata.name} was the IMPOSTER! Everyone wins! 🎉` : 
+        `${player.metadata.name} was INNOCENT! Keep playing...`
+    );
+    
+    selectedPlayerIndex = -1;
+    updateHostView();
+}
+
+function resetGame() {
+    playerConns.forEach(c => {
+        c.metadata.kicked = false;
+        c.metadata.role = null;
+        c.send({ type: 'reset' });
+    });
+    selectedPlayerIndex = -1;
+    isCustomWord = false;
+    updateHostView();
+}
+
+function requestWordChange() {
+    if (!myConn) return;
+    myConn.metadata.wantsChange = true;
+    myConn.send({ type: 'requestWordChange' });
+    alert('Vote recorded! When everyone votes, word will change.');
+}
+
+function openCustomWord() {
+    document.getElementById('customWordModal').style.display = 'flex';
+    document.getElementById('customWordInput').value = '';
+    document.getElementById('customWordInput').focus();
+}
+
+function closeCustomWord() {
+    document.getElementById('customWordModal').style.display = 'none';
+}
+
+function setCustomWord() {
+    const word = document.getElementById('customWordInput').value.trim();
+    if (!word) {
+        alert('Enter a word!');
+        return;
+    }
+    currentWord = word;
+    isCustomWord = true;
+    closeCustomWord();
+    alert(`Custom word set: "${word}". Start round to use it!`);
+}
+    </script>
+</body>
+</html>
