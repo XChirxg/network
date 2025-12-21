@@ -1,391 +1,1063 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Prompter</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
-    <style>
-        :root{--accent:#00ff88;--bg:#121212;--surface:#1e1e1e;--text:#fff;--pad-bg:#2a2a2a;--error:#ff4444}
-        *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-        body{font-family:-apple-system,monospace;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw}
-        .icon{width:20px;height:20px;fill:currentColor;pointer-events:none}
-        .setup{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;background:var(--bg);z-index:1000;position:absolute;width:100%;transition:opacity .3s}
-        .setup h1{font-size:2.5rem;letter-spacing:5px;margin-bottom:2rem;color:var(--accent)}
-        .mode-select{display:flex;flex-direction:column;gap:20px;align-items:center;width:100%;max-width:300px}
-        .big-btn{padding:15px 30px;font-size:1.2rem;background:transparent;border:2px solid var(--accent);color:var(--accent);border-radius:8px;cursor:pointer;font-weight:bold;transition:.2s;width:100%;text-align:center}
-        .big-btn:active{background:var(--accent);color:var(--bg);transform:scale(.98)}
-        .input-group{display:none;flex-direction:column;gap:10px;width:100%}
-        .code-input{background:var(--surface);border:1px solid #444;color:#fff;padding:15px;font-size:1.5rem;text-align:center;border-radius:8px;letter-spacing:5px;outline:none}
-        .code-input:focus{border-color:var(--accent)}
-        .status{margin-top:20px;color:#666;letter-spacing:2px;font-size:.9rem;min-height:20px;text-align:center}
-        .status.error{color:var(--error)}
-        .dev-credit{margin-top:30px;font-size:.8rem;color:#666}
-        .dev-credit a{color:var(--accent);text-decoration:none}
-        #displayView{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;touch-action:pan-y}
-        #prompterContent{padding:0 10vw;font-size:5rem;line-height:1.6;transform:translateY(45vh);will-change:transform;text-align:left;white-space:pre-wrap;font-weight:bold;letter-spacing:.05em;word-spacing:.1em}
-        .marker-line{position:fixed;top:45%;left:0;width:100%;height:0;border-top:2px dashed rgba(255,0,0,.5);z-index:50;pointer-events:none}
-        .triangle-marker{position:fixed;top:45%;left:20px;width:0;height:0;border-top:15px solid transparent;border-bottom:15px solid transparent;border-left:20px solid rgba(255,0,0,.7);transform:translateY(-50%);pointer-events:none}
-        .overlay-ui{position:fixed;top:20px;right:20px;z-index:100;display:flex;gap:10px;flex-direction:column;align-items:flex-end}
-        .room-code-display{background:rgba(0,0,0,.7);color:var(--accent);padding:10px;border-radius:4px;border:1px solid var(--accent);font-family:monospace;font-size:1.2rem}
-        #slideContent{display:none;position:fixed;top:0;left:0;width:100%;height:100%;padding:5vw;font-size:4rem;line-height:1.5;text-align:center;justify-content:center;align-items:center;white-space:pre-wrap;font-weight:bold}
-        .slide-nav{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);display:none;gap:20px;z-index:100}
-        .slide-nav button{width:60px;height:60px;border-radius:50%;background:rgba(0,255,136,.2);border:2px solid var(--accent);color:var(--accent);font-size:1.5rem;cursor:pointer}
-        .slide-counter{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:var(--accent);padding:10px 20px;border-radius:4px;display:none;font-size:1.2rem}
-        .wpm-stats{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);color:var(--accent);padding:15px 25px;border-radius:8px;display:none;font-size:1rem;max-width:80%;text-align:center;line-height:1.6}
-        #controllerView{display:none;flex-direction:column;height:100%;background:var(--bg)}
-        .top-bar{padding:10px;background:var(--surface);display:flex;align-items:center;gap:10px;border-bottom:1px solid #333}
-        .text-preview{flex:1;background:#000;border:1px solid #444;padding:10px;color:#aaa;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
-        .edit-btn{background:var(--accent);border:none;border-radius:4px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:#000;cursor:pointer}
-        .toolbar{background:var(--surface);padding:10px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;border-bottom:1px solid #333}
-        .pad-container{flex-grow:1;position:relative;background:#000;display:flex;justify-content:center;align-items:center;overflow:hidden}
-        #scrollPad{width:90%;height:80%;background:var(--pad-bg);border-radius:12px;position:relative;display:flex;justify-content:center;align-items:center;flex-direction:column;border:2px solid #444;touch-action:none}
-        .pad-instruction{color:rgba(255,255,255,.2);font-weight:bold;text-align:center;pointer-events:none;line-height:1.5;font-size:.9rem}
-        .pad-stats{position:absolute;top:15px;left:0;right:0;display:flex;flex-direction:column;gap:8px;padding:0 15px;pointer-events:none}
-        .stat-row{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.5);padding:8px 12px;border-radius:6px;font-size:.85rem;color:var(--accent)}
-        .stat-label{opacity:.7}
-        .stat-value{font-weight:bold;font-family:monospace}
-        .pad-footer{position:absolute;bottom:10px;font-size:.65rem;color:rgba(255,255,255,.15);pointer-events:none}
-        #stickBase{position:absolute;width:1px;height:100%;background:rgba(255,255,255,.1);display:none}
-        #stickHead{position:absolute;width:80px;height:80px;background:rgba(0,255,136,.2);border:2px solid var(--accent);border-radius:50%;transform:translate(-50%,-50%);display:none;pointer-events:none}
-        #slideControls{display:none;flex-direction:column;justify-content:center;align-items:center;gap:40px;height:100%;padding:40px}
-        .slide-btn-big{width:200px;height:200px;border-radius:20px;background:var(--accent);border:none;color:#000;font-size:2.5rem;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(0,255,136,.3)}
-        .slide-btn-big:active{transform:scale(.95)}
-        .slide-info{color:#aaa;font-size:1.5rem;text-align:center;font-weight:bold}
-        .tool-btn{background:transparent;border:1px solid #444;border-radius:8px;height:45px;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;cursor:pointer;font-size:.65rem;padding:5px}
-        .tool-btn:active{background:#444}
-        .tool-btn.active{background:var(--accent);color:#000;border:none}
-        #editModal,#projectsModal,#apiModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:2000;flex-direction:column}
-        .modal-header{padding:15px;background:var(--surface);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333}
-        .save-btn{background:var(--accent);color:#000;padding:8px 20px;border:none;border-radius:4px;font-weight:bold;cursor:pointer}
-        .editor-toolbar{background:var(--surface);padding:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;border-bottom:1px solid #333}
-        .editor-toolbar .tool-btn{height:50px;font-size:.7rem}
-        #fullTextInput{flex:1;background:#121212;color:#fff;padding:20px;font-size:18px;border:none;resize:none;outline:none;font-family:monospace}
-        .format-panel{background:var(--surface);padding:10px;border-top:1px solid #333;display:grid;grid-template-columns:1fr;gap:8px;max-height:40vh;overflow-y:auto}
-        .text-stats{background:var(--surface);padding:15px;border-bottom:1px solid #333;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-        .stat-box{background:#000;padding:10px;border-radius:6px;text-align:center}
-        .stat-box .stat-number{font-size:1.5rem;color:var(--accent);font-weight:bold;font-family:monospace}
-        .stat-box .stat-label{font-size:.7rem;color:#888;margin-top:4px}
-        .format-row{display:flex;align-items:center;gap:10px}
-        .format-row label{font-size:.75rem;color:#aaa;min-width:70px}
-        .format-row input,.format-row select{flex:1;background:#000;border:1px solid #444;color:#fff;padding:6px;border-radius:4px;outline:none;font-size:.8rem}
-        .project-list{flex:1;overflow-y:auto;padding:15px}
-        .project-item{background:var(--surface);padding:15px;margin-bottom:10px;border-radius:8px;border:1px solid #444}
-        .project-name{font-weight:bold;margin-bottom:5px;color:var(--accent)}
-        .project-preview{color:#888;font-size:.85rem;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .project-stats{color:#666;font-size:.75rem;margin-bottom:10px}
-        .project-actions{display:flex;gap:8px}
-        .project-actions button{padding:6px 12px;border:1px solid #444;background:transparent;color:#fff;border-radius:4px;font-size:.75rem;cursor:pointer}
-        .api-setup{padding:20px;display:flex;flex-direction:column;gap:15px}
-        .api-setup input{background:var(--surface);border:1px solid #444;color:#fff;padding:12px;border-radius:4px;outline:none}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prastuti - AI PPT Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Playfair+Display:wght@400;600;700&family=Source+Sans+Pro:wght@300;400;600&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-color:#fff;--text-color:#000;--secondary-text:#666;--border-color:#ccc;--accent-color:#0066cc;--hover-color:#f5f5f5;--button-bg:#000;--button-text:#fff;--logo-font:'Pacifico',cursive;--heading-font:'Playfair Display',serif;--body-font:'Source Sans Pro',sans-serif;--ui-font:'Poppins',sans-serif}
+.dark-theme{--bg-color:#000;--text-color:#fff;--secondary-text:#999;--border-color:#333;--accent-color:#4da6ff;--hover-color:#1a1a1a;--button-bg:#fff;--button-text:#000}
+body{font-family:var(--body-font);background-color:var(--bg-color);color:var(--text-color);line-height:1.6;transition:all .3s ease;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:0 20px}
+header{padding:20px 0;border-bottom:1px solid var(--border-color)}
+.header-content{display:flex;justify-content:space-between;align-items:center}
+.logo{font-family:var(--logo-font);font-size:32px;color:var(--accent-color)}
+.theme-toggle{background:var(--button-bg);color:var(--button-text);border:none;padding:10px 18px;cursor:pointer;font-size:14px;font-family:var(--ui-font);font-weight:500;border-radius:25px;transition:all .3s;display:flex;align-items:center;gap:8px}
+.theme-toggle:hover{opacity:.8;transform:translateY(-1px)}
+.main-content{padding:60px 0}
+.hero{text-align:center;margin-bottom:60px}
+.hero h1{font-family:var(--heading-font);font-size:56px;font-weight:700;margin-bottom:16px}
+.hero p{font-family:var(--body-font);font-size:20px;color:var(--secondary-text);margin-bottom:40px}
+.greeting-message{font-family:var(--ui-font);font-size:24px;color:var(--accent-color);margin-bottom:20px;font-weight:500}
+.action-buttons{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:40px}
+.btn{padding:14px 28px;font-size:16px;font-weight:600;font-family:var(--ui-font);cursor:pointer;transition:all .3s;text-decoration:none;display:inline-flex;align-items:center;gap:10px;border:none;border-radius:8px}
+.btn-primary{background:var(--button-bg);color:var(--button-text)}
+.btn-secondary{background:transparent;color:var(--text-color);border:2px solid var(--border-color)}
+.btn:hover{opacity:.9;transform:translateY(-2px)}
+.credit-section{margin-top:60px;text-align:center;opacity:.7}
+.credit-link{color:var(--secondary-text);text-decoration:none;font-size:12px;font-family:var(--ui-font);display:inline-flex;align-items:center;gap:6px}
+.credit-link:hover{color:var(--accent-color)}
+.credit-link i{color:#e91e63;font-size:14px}
+.input-section{max-width:600px;margin:0 auto;display:none}
+.form-group{margin-bottom:24px}
+.form-group label{display:block;margin-bottom:8px;font-weight:600;font-family:var(--ui-font);font-size:14px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:14px;border:2px solid var(--border-color);background:var(--bg-color);color:var(--text-color);font-size:16px;font-family:var(--body-font);border-radius:8px}
+.form-group textarea{min-height:200px;resize:vertical}
+.template-display{background:var(--hover-color);padding:24px;margin:20px 0;border:2px solid var(--border-color);border-radius:12px;font-family:monospace;font-size:13px;white-space:pre-wrap;word-wrap:break-word;line-height:1.5}
+.copy-btn{background:var(--accent-color);color:#fff;border:none;padding:10px 20px;cursor:pointer;font-size:14px;font-family:var(--ui-font);font-weight:500;border-radius:6px;margin-top:12px;display:inline-flex;align-items:center;gap:8px}
+.presentation-view{display:none;position:relative;height:100vh;background:var(--bg-color)}
+.presentation-view header{display:none!important}
+.slide{display:none;padding:60px;height:100vh;overflow-y:auto}
+.slide.active{display:block}
+.slide h1{font-family:var(--heading-font);font-size:48px;margin-bottom:30px;text-align:center;font-weight:700}
+.slide h2{font-family:var(--heading-font);font-size:36px;margin-bottom:24px;font-weight:600}
+.slide h3{font-family:var(--heading-font);font-size:28px;margin-bottom:20px;font-weight:500}
+.slide p{font-family:var(--body-font);font-size:20px;margin-bottom:16px;line-height:1.7}
+.slide ul,.slide ol{margin-left:40px;margin-bottom:20px}
+.slide li{font-family:var(--body-font);font-size:18px;margin-bottom:8px;line-height:1.6}
+.slide table{width:100%;border-collapse:collapse;margin:20px 0;font-family:var(--body-font);font-size:18px}
+.slide th,.slide td{border:1px solid var(--border-color);padding:16px;text-align:left;font-size:18px}
+.slide th{background:var(--hover-color);font-weight:600;font-family:var(--ui-font);font-size:18px}
+.controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:12px;background:rgba(0,0,0,.9);padding:12px 24px;border-radius:50px;opacity:0;transition:opacity .3s;z-index:1000}
+.controls.visible{opacity:1}
+.control-btn{background:transparent;color:#fff;border:none;padding:10px 14px;cursor:pointer;font-size:14px;font-family:var(--ui-font);font-weight:500;border-radius:25px;transition:all .3s;display:flex;align-items:center;gap:6px}
+.control-btn:hover{background:rgba(255,255,255,.2)}
+.progress-bar{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--accent-color),#4da6ff);transition:width .3s;z-index:1000}
+.end-options{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-color);border:2px solid var(--border-color);padding:40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);border-radius:16px;z-index:1001}
+.end-options h2{font-family:var(--heading-font);font-size:28px;margin-bottom:16px}
+.end-options p{font-family:var(--body-font);font-size:16px;color:var(--secondary-text)}
+.highlight{background:#ffeb3b;color:#000;padding:2px 6px;border-radius:4px;font-weight:500}
+.important{color:#f44336;font-weight:700}
+.success{color:#4caf50;font-weight:700}
+.info{color:#2196f3;font-weight:700}
+.copy-success-modal,.nav-instructions-modal,.projects-modal,.api-modal,.remote-setup-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:2000}
+.modal-content{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-color);padding:30px;border-radius:12px;text-align:center;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-content h3{font-family:var(--heading-font);font-size:24px;margin-bottom:16px;color:var(--accent-color)}
+.modal-content p{font-family:var(--body-font);margin-bottom:12px;line-height:1.6}
+.close-btn{background:var(--accent-color);color:#fff;border:none;padding:12px 24px;cursor:pointer;font-size:14px;font-family:var(--ui-font);font-weight:500;border-radius:6px;margin-top:20px}
+.nav-instructions-list{text-align:left;margin:20px 0}
+.nav-instructions-list li{font-family:var(--body-font);margin-bottom:12px;font-size:16px;display:flex;align-items:center;gap:12px}
+.nav-instructions-list i{color:var(--accent-color);font-size:18px;width:20px}
+.project-list{max-height:400px;overflow-y:auto;margin:20px 0}
+.project-item{background:var(--hover-color);padding:15px;margin-bottom:10px;border-radius:8px;border:1px solid var(--border-color);text-align:left}
+.project-name{font-weight:bold;margin-bottom:5px;color:var(--accent-color)}
+.project-preview{color:var(--secondary-text);font-size:.85rem;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-stats{color:var(--secondary-text);font-size:.75rem;margin-bottom:10px}
+.project-actions{display:flex;gap:8px}
+.project-actions button{padding:6px 12px;border:1px solid var(--border-color);background:transparent;color:var(--text-color);border-radius:4px;font-size:.75rem;cursor:pointer}
+.code-input{background:var(--hover-color);border:1px solid var(--border-color);color:var(--text-color);padding:15px;font-size:1.5rem;text-align:center;border-radius:8px;letter-spacing:5px;outline:none;width:100%;margin-bottom:15px}
+.status{margin-top:10px;color:var(--secondary-text);font-size:.9rem;text-align:center}
+.status.error{color:#f44336}
+#controllerView{display:none;flex-direction:column;height:100vh;background:var(--bg-color)}
+.controller-header{padding:15px;background:var(--hover-color);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-color)}
+.controller-header h2{font-family:var(--heading-font);font-size:20px}
+.disconnect-btn{background:#f44336;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px}
+.controller-content{flex:1;overflow-y:auto;padding:20px}
+.control-section{margin-bottom:30px}
+.control-section h3{font-family:var(--heading-font);font-size:18px;margin-bottom:15px;color:var(--accent-color)}
+.control-row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.control-row button{flex:1;min-width:100px;padding:12px;background:var(--button-bg);color:var(--button-text);border:none;border-radius:6px;cursor:pointer;font-size:14px;font-family:var(--ui-font)}
+.control-row button:hover{opacity:.9}
+.slider-control{margin-bottom:15px}
+.slider-control label{display:block;margin-bottom:8px;font-size:14px;font-weight:500}
+.slider-control input{width:100%;height:6px;border-radius:3px;outline:none;background:var(--border-color)}
+.slider-value{float:right;color:var(--accent-color);font-weight:600}
+@media(max-width:768px){
+.hero h1{font-size:42px}
+.slide{padding:30px 20px}
+.slide h1{font-size:36px}
+.logo{font-size:28px}
+.controls{padding:8px 16px;gap:8px;max-width:90%;flex-wrap:wrap}
+.control-btn{padding:8px 12px;font-size:12px}
+}
+</style>
 </head>
 <body>
-    <div class="setup" id="setupView">
-        <h1>PROMPTER</h1>
-        <div class="mode-select" id="initialBtns">
-            <button class="big-btn" onclick="startDisplay()">I AM THE SCREEN</button>
-            <button class="big-btn" onclick="showRemoteInput()">I AM THE REMOTE</button>
-        </div>
-        <div class="mode-select input-group" id="remoteInputGroup">
-            <input type="number" id="roomCodeInput" class="code-input" placeholder="0000" pattern="\d*">
-            <button class="big-btn" onclick="connectToDisplay()">CONNECT</button>
-            <button class="big-btn" style="border-color:#444;color:#888;font-size:.9rem" onclick="backToMain()">BACK</button>
-        </div>
-        <div class="status" id="statusText">Select Mode</div>
-        <div class="dev-credit">Developed by <a href="https://ChiragSharma.web.app" target="_blank">xchirxg</a></div>
-    </div>
-
-    <div id="displayView">
-        <div class="marker-line"></div>
-        <div class="triangle-marker"></div>
-        <div class="overlay-ui" id="displayUI">
-            <div class="room-code-display" id="displayCodeBox">CODE: ----</div>
-            <button class="big-btn" style="font-size:.8rem;padding:8px" onclick="toggleLocalFullscreen()">FULLSCREEN</button>
-        </div>
-        <div id="prompterContent">Speak it like you are **thinking out loud**, not like you are delivering a speech.
-
-Pause where a thought ends, not where a line ends.
-
-Let silence do some of the work for you.
-
-Do not rush to fill gaps with words.
-
-If a sentence feels long, break it naturally while speaking.
-
-Your voice does not need to be loud to sound confident.
-
-Clarity matters more than volume.
-
-Imagine you are explaining this to one person, not an audience.
-
-Change your tone slightly when a new idea begins.
-
-Keep your pace slow enough that your mind stays ahead of your words.
-
-If you make a small mistake, continue without correcting it.
-
-Natural speech flows forward, it does not rewind.
-
-Breathe before important thoughts.
-
-Exhale while speaking to stay relaxed.
-
-Use your hands only when they help you think.
-
-If they distract you, keep them still.
-
-Look at ideas, not lines.
-
-Remember the meaning, not the wording.
-
-If a sentence comes out differently, let it.
-
-That means it is becoming yours.
-
-Practice once slowly.
-
-Practice once normally.
-
-Practice once without stopping at all.
-
-Record yourself and listen without judging.
-
-Notice rhythm, not perfection.
-
-Trust that your voice already knows how to speak.
-
-You are not performing.
-
-You are thinking clearly, out loud.
+<header id="mainHeader">
+<div class="container">
+<div class="header-content">
+<div class="logo">Prastuti</div>
+<button class="theme-toggle" onclick="toggleTheme()">
+<i class="fas fa-moon"></i>
+Theme
+</button>
 </div>
-        <div id="slideContent"></div>
-        <div class="slide-counter" id="slideCounter">1 / 1</div>
-        <div class="slide-nav" id="slideNav">
-            <button onclick="prevSlide()">◀</button>
-            <button onclick="nextSlide()">▶</button>
-        </div>
-        <div class="wpm-stats" id="wpmStats"></div>
-    </div>
+</div>
+</header>
 
-    <div id="controllerView">
-        <div class="top-bar">
-            <div class="text-preview" id="textPreview" onclick="openEditor()">Tap to edit script...</div>
-            <button class="edit-btn" onclick="openProjects()">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
-            </button>
-            <button class="edit-btn" onclick="openEditor()">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-            </button>
-        </div>
-        <div class="toolbar">
-            <button class="tool-btn" onclick="sendAction('reset')">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-                <span>RESET</span>
-            </button>
-            <button class="tool-btn" onclick="toggleMirror()" id="mirrorBtn">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
-                <span>MIRROR</span>
-            </button>
-            <button class="tool-btn" onclick="sendAction('sync')" style="color:var(--accent)">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-                <span>SYNC</span>
-            </button>
-            <button class="tool-btn" onclick="cycleColor()">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z"/></svg>
-                <span>COLOR</span>
-            </button>
-            <button class="tool-btn" onclick="sendAction('hideUI')">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-                <span>HIDE UI</span>
-            </button>
-        </div>
-        <div class="pad-container">
-            <div id="scrollPad">
-                <div class="pad-stats">
-                    <div class="stat-row">
-                        <span class="stat-label">TIME</span>
-                        <span class="stat-value" id="padTimer">00:00</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">WPM</span>
-                        <span class="stat-value" id="padWPM">0</span>
-                    </div>
-                </div>
-                <div class="pad-instruction">TOUCH & HOLD TO SCROLL<br><span style="font-size:.8em;font-weight:normal;opacity:.7">PINCH TO RESIZE</span></div>
-                <div class="pad-footer">developed by xchirxg</div>
-                <div id="stickBase"></div>
-                <div id="stickHead"></div>
-            </div>
-            <div id="slideControls">
-                <div class="slide-info" id="slideInfo">Slide 1 / 1</div>
-                <button class="slide-btn-big" onclick="remoteNextSlide()">▶</button>
-                <button class="slide-btn-big" onclick="remotePrevSlide()">◀</button>
-            </div>
-        </div>
-    </div>
+<main class="main-content" id="mainContent">
+<div class="container">
+<div class="hero" id="heroSection">
+<div id="greetingMessage" class="greeting-message" style="display:none;"></div>
+<h1>AI-Powered Presentation Generator</h1>
+<p>A Completely Free AI PPT Making Tool</p>
+<div class="action-buttons">
+<button class="btn btn-primary" onclick="showCreateNew()">
+<i class="fas fa-plus-circle"></i>
+Create New PPT
+</button>
+<button class="btn btn-secondary" onclick="showRemoteSetup()">
+<i class="fas fa-wifi"></i>
+Connect Remote
+</button>
+<button class="btn btn-secondary" onclick="openProjectsModal()">
+<i class="fas fa-folder"></i>
+Saved Projects
+</button>
+</div>
+<div class="credit-section">
+<a href="https://www.google.com/search?q=chinurag" target="_blank" class="credit-link">
+<i class="fas fa-heart"></i>
+View more from Chinurag
+</a>
+</div>
+</div>
 
-    <div id="editModal">
-        <div class="modal-header">
-            <span>Edit Script</span>
-            <button class="save-btn" onclick="saveProject()">SAVE</button>
-            <button class="save-btn" onclick="closeEditor()">DONE</button>
-        </div>
-        <div class="text-stats">
-            <div class="stat-box">
-                <div class="stat-number" id="wordCount">0</div>
-                <div class="stat-label">WORDS</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-number" id="avgTime">0:00</div>
-                <div class="stat-label">AVG TIME (150 WPM)</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-number" id="charCount">0</div>
-                <div class="stat-label">CHARACTERS</div>
-            </div>
-        </div>
-        <div class="editor-toolbar">
-            <button class="tool-btn" onclick="clearText()">CLEAR</button>
-            <button class="tool-btn" onclick="copyText()">COPY</button>
-            <button class="tool-btn" onclick="pasteText()">PASTE</button>
-            <button class="tool-btn" onclick="toggleMode()" id="modeToggle">SLIDE</button>
-        </div>
-        <textarea id="fullTextInput" placeholder="Type your text here..." oninput="updateTextStats()">Welcome to Pro Prompter.
+<div class="input-section" id="inputSection">
+<div class="form-group">
+<label for="topicName">
+<i class="fas fa-lightbulb"></i>
+Presentation Topic:
+</label>
+<input type="text" id="topicName" placeholder="Enter your presentation topic">
+</div>
+<div class="form-group">
+<label for="authorName">
+<i class="fas fa-user"></i>
+Your Name (Optional):
+</label>
+<input type="text" id="authorName" placeholder="Enter your name">
+</div>
+<div class="form-group">
+<label for="generationMethod">
+<i class="fas fa-cog"></i>
+Generation Method:
+</label>
+<select id="generationMethod">
+<option value="template">Manual (Copy Template)</option>
+<option value="ai">AI Generate (Gemini API)</option>
+</select>
+</div>
+<div id="apiKeySection" style="display:none;">
+<div class="form-group">
+<label for="apiKey">
+<i class="fas fa-key"></i>
+Gemini API Key:
+</label>
+<input type="text" id="apiKey" placeholder="Enter your Gemini API key">
+</div>
+</div>
+<button class="btn btn-primary" onclick="generateContent()">
+<i class="fas fa-magic"></i>
+Generate Presentation
+</button>
 
-This is a demonstration script.
+<div id="templateSection" style="display:none;">
+<h3 style="font-family:var(--heading-font);font-size:24px;margin:30px 0 20px 0;">Copy this template and paste it to your AI tool:</h3>
+<div class="template-display" id="templateDisplay"></div>
+<button class="copy-btn" onclick="copyTemplate()">
+<i class="fas fa-copy"></i>
+Copy Template
+</button>
+<div class="form-group" style="margin-top:30px;">
+<label for="xmlInput">
+<i class="fas fa-code"></i>
+Paste the AI-generated XML here:
+</label>
+<textarea id="xmlInput" placeholder="Paste your AI-generated XML presentation here..."></textarea>
+</div>
+<button class="btn btn-primary" onclick="createPresentation()">
+<i class="fas fa-play"></i>
+Create Presentation
+</button>
+</div>
+</div>
+</div>
+</main>
 
-Use the large pad on the Remote to scroll.
+<div class="presentation-view" id="presentationView">
+<div class="progress-bar" id="progressBar"></div>
+<div id="slidesContainer"></div>
+<div class="controls" id="controls">
+<button class="control-btn" onclick="previousSlide()">
+<i class="fas fa-chevron-left"></i>
+Previous
+</button>
+<button class="control-btn" onclick="nextSlide()">
+Next
+<i class="fas fa-chevron-right"></i>
+</button>
+<button class="control-btn" onclick="toggleFullscreen()">
+<i class="fas fa-expand"></i>
+Fullscreen
+</button>
+<button class="control-btn" onclick="toggleTheme()">
+<i class="fas fa-moon"></i>
+Theme
+</button>
+<button class="control-btn" onclick="exitPresentation()">
+<i class="fas fa-times"></i>
+Exit
+</button>
+</div>
+</div>
 
-Slide UP to scroll down.
+<div id="controllerView">
+<div class="controller-header">
+<h2>Remote Control</h2>
+<button class="disconnect-btn" onclick="disconnectRemote()">Disconnect</button>
+</div>
+<div class="controller-content">
+<div class="control-section">
+<h3>Navigation</h3>
+<div class="control-row">
+<button onclick="remoteAction('prev')"><i class="fas fa-chevron-left"></i> Previous</button>
+<button onclick="remoteAction('next')"><i class="fas fa-chevron-right"></i> Next</button>
+</div>
+<div class="control-row">
+<button onclick="remoteAction('reset')"><i class="fas fa-redo"></i> Reset</button>
+<button onclick="remoteAction('fullscreen')"><i class="fas fa-expand"></i> Fullscreen</button>
+</div>
+</div>
+<div class="control-section">
+<h3>Appearance</h3>
+<div class="control-row">
+<button onclick="remoteAction('theme')"><i class="fas fa-moon"></i> Toggle Theme</button>
+</div>
+<div class="slider-control">
+<label>Font Size <span class="slider-value" id="fontSizeValue">20px</span></label>
+<input type="range" id="fontSizeSlider" min="14" max="48" value="20" oninput="updateRemoteFontSize(this.value)">
+</div>
+</div>
+<div class="control-section">
+<h3>Actions</h3>
+<div class="control-row">
+<button onclick="openProjectsModal()"><i class="fas fa-folder"></i> Projects</button>
+<button onclick="remoteAction('exit')"><i class="fas fa-times"></i> Exit</button>
+</div>
+</div>
+</div>
+</div>
 
-The further you slide, the faster it goes.
+<div class="end-options" id="endOptions">
+<h2>Presentation Complete!</h2>
+<p style="margin:20px 0;">What would you like to do next?</p>
+<div style="display:flex;gap:15px;justify-content:center;flex-wrap:wrap;">
+<button class="btn btn-primary" onclick="restartPresentation()">
+<i class="fas fa-redo"></i>
+Restart
+</button>
+<button class="btn btn-secondary" onclick="downloadPresentation()">
+<i class="fas fa-save"></i>
+Download
+</button>
+<button class="btn btn-secondary" onclick="sharePresentation()">
+<i class="fas fa-share"></i>
+Share
+</button>
+<button class="btn btn-secondary" onclick="createNewPresentation()">
+<i class="fas fa-plus"></i>
+Create New
+</button>
+</div>
+</div>
 
-Pinch on the pad to change text size.
+<div class="copy-success-modal" id="copySuccessModal">
+<div class="modal-content">
+<h3><i class="fas fa-check-circle"></i> Code Copied!</h3>
+<p><strong>Next Steps:</strong></p>
+<p>1. Open your preferred AI tool (ChatGPT, Claude, Gemini, etc.)</p>
+<p>2. Paste the copied template and press Enter</p>
+<p>3. Copy the AI-generated XML response</p>
+<p>4. Come back here and paste it in the XML input field</p>
+<p>5. Click "Create Presentation" to start your slideshow</p>
+<button class="close-btn" onclick="closeModal('copySuccessModal')">
+<i class="fas fa-times"></i>
+Close
+</button>
+</div>
+</div>
 
-Tap Edit on the remote to change this text.
+<div class="nav-instructions-modal" id="navInstructionsModal">
+<div class="modal-content">
+<h3><i class="fas fa-info-circle"></i> Navigation Guide</h3>
+<p>Here's how to navigate through your presentation:</p>
+<ul class="nav-instructions-list">
+<li><i class="fas fa-hand-pointer"></i>Double tap anywhere on screen to show/hide controls</li>
+<li><i class="fas fa-swatchbook"></i>Swipe left or right to navigate between slides</li>
+<li><i class="fas fa-keyboard"></i>Use arrow keys or spacebar (desktop)</li>
+<li><i class="fas fa-expand"></i>Use fullscreen mode for better experience</li>
+<li><i class="fas fa-moon"></i>Toggle dark/light theme anytime</li>
+</ul>
+<button class="close-btn" onclick="closeModal('navInstructionsModal')">
+<i class="fas fa-play"></i>
+Got it, Start Presentation
+</button>
+</div>
+</div>
 
-Happy Recording!</textarea>
-        <div class="format-panel">
-            <div class="format-row">
-                <label>Font Size:</label>
-                <input type="range" id="fontSizeSlider" min="2" max="10" step="0.5" value="5" oninput="updateFontSize(this.value)">
-            </div>
-            <div class="format-row">
-                <label>Font Style:</label>
-                <select id="fontStyleSelect" onchange="updateFontStyle(this.value)">
-                    <option value="monospace">Monospace</option>
-                    <option value="'Arial',sans-serif">Arial</option>
-                    <option value="'Times New Roman',serif">Times</option>
-                    <option value="'Courier New',monospace">Courier</option>
-                    <option value="'Georgia',serif">Georgia</option>
-                    <option value="'Verdana',sans-serif">Verdana</option>
-                </select>
-            </div>
-            <div class="format-row">
-                <label>Alignment:</label>
-                <select id="alignSelect" onchange="updateAlignment(this.value)">
-                    <option value="left">Left</option>
-                    <option value="center">Center</option>
-                    <option value="right">Right</option>
-                </select>
-            </div>
-            <div class="format-row">
-                <label>Letter Space:</label>
-                <input type="range" id="letterSpaceSlider" min="0" max="0.5" step="0.01" value="0.05" oninput="updateLetterSpacing(this.value)">
-            </div>
-            <div class="format-row">
-                <label>Line Height:</label>
-                <input type="range" id="lineHeightSlider" min="1" max="3" step="0.1" value="1.6" oninput="updateLineHeight(this.value)">
-            </div>
-        </div>
-    </div>
+<div class="projects-modal" id="projectsModal">
+<div class="modal-content" style="max-width:700px;">
+<h3><i class="fas fa-folder"></i> Saved Projects</h3>
+<div class="project-list" id="projectList"></div>
+<button class="close-btn" onclick="closeModal('projectsModal')">
+<i class="fas fa-times"></i>
+Close
+</button>
+</div>
+</div>
 
-    <div id="projectsModal">
-        <div class="modal-header">
-            <span>Projects</span>
-            <button class="save-btn" onclick="showApiSetup()">AI GENERATE</button>
-            <button class="save-btn" onclick="closeProjects()">CLOSE</button>
-        </div>
-        <div class="project-list" id="projectList"></div>
-    </div>
+<div class="remote-setup-modal" id="remoteSetupModal">
+<div class="modal-content">
+<h3><i class="fas fa-wifi"></i> Remote Control Setup</h3>
+<div style="margin:20px 0;">
+<button class="btn btn-primary" style="width:100%;margin-bottom:15px;" onclick="startDisplay()">
+<i class="fas fa-tv"></i>
+I AM THE DISPLAY
+</button>
+<button class="btn btn-secondary" style="width:100%;" onclick="showRemoteConnect()">
+<i class="fas fa-mobile-alt"></i>
+I AM THE REMOTE
+</button>
+</div>
+<div id="remoteConnectSection" style="display:none;">
+<input type="number" id="roomCodeInput" class="code-input" placeholder="0000" pattern="\d*">
+<button class="btn btn-primary" style="width:100%;" onclick="connectToDisplay()">
+<i class="fas fa-link"></i>
+CONNECT
+</button>
+</div>
+<div class="status" id="remoteStatus">Select your device role</div>
+<button class="close-btn" onclick="closeModal('remoteSetupModal')">
+<i class="fas fa-times"></i>
+Close
+</button>
+</div>
+</div>
 
-    <div id="apiModal">
-        <div class="modal-header">
-            <span>AI Generate Script</span>
-            <button class="save-btn" onclick="closeApiSetup()">CLOSE</button>
-        </div>
-        <div class="api-setup">
-            <input type="text" id="apiKeyInput" placeholder="Enter Gemini API Key">
-            <input type="text" id="topicInput" placeholder="Enter topic (e.g., Climate Change)">
-            <button class="big-btn" onclick="generateAiScript()">GENERATE</button>
-            <div class="status" id="apiStatus"></div>
-        </div>
-    </div>
+<script>
+const ID_PREFIX="PRASTUTI-";
+let peer,conn,mode='',myRoomCode='',heartbeatInterval;
+let currentSlide=0,slides=[],presentationData=null;
+let touchStartX=0,touchEndX=0,lastTap=0;
+const STATE_KEYS={USER_NAME:'prastuti_user_name',CURRENT_STATE:'prastuti_current_state',PRESENTATION_DATA:'prastuti_presentation_data',CURRENT_SLIDE:'prastuti_current_slide',TOPIC:'prastuti_topic',AUTHOR:'prastuti_author',XML_INPUT:'prastuti_xml_input',TEMPLATE_VISIBLE:'prastuti_template_visible',THEME:'prastuti_theme',SEEN_INSTRUCTIONS:'prastuti_seen_instructions',API_KEY:'prastuti_api_key',PROJECTS:'prastuti_projects'};
+const APP_STATES={HOME:'home',CREATE_NEW:'create_new',TEMPLATE_GENERATED:'template_generated',PRESENTATION:'presentation',REMOTE_DISPLAY:'remote_display',REMOTE_CONTROLLER:'remote_controller'};
 
-    <script>
-const ID_PREFIX="PROMPTER-V2-";let peer,conn,mode='',myRoomCode='',heartbeatInterval,wakeLock=null;
-let scrollY=0,speed=0,isMirrored=false,fontSize=5,isUIHidden=false,textAlign='left',letterSpacing=.05,lineHeight=1.6,fontWeight='bold',fontStyle='monospace',displayMode='scroll',slides=[],currentSlide=0;
-let touchStartY=0,isTouching=false,pinchDistStart=0,tempFontSize=5,displayTouchStartY=0,displayTouching=false;
-const colors=['#ffffff','#ffff00','#00ff00','#00ffff','#ff00ff','#ff8800'];let colorIndex=0;
-let wpmTracking={started:false,startTime:0,totalWords:0,contentHeight:0,maxScroll:0,lastScrollProgress:0,currentWPM:0,elapsed:0};
-function loadState(){const s=localStorage.getItem('prompterState');if(s){const d=JSON.parse(s);fontSize=d.fontSize||5;textAlign=d.textAlign||'left';letterSpacing=d.letterSpacing||.05;lineHeight=d.lineHeight||1.6;fontWeight=d.fontWeight||'bold';fontStyle=d.fontStyle||'monospace';colorIndex=d.colorIndex||0}}
-function saveState(){localStorage.setItem('prompterState',JSON.stringify({fontSize,textAlign,letterSpacing,lineHeight,fontWeight,fontStyle,colorIndex}))}
-function setStatus(msg,isError=false){const el=document.getElementById('statusText');el.innerText=msg;el.className=isError?"status error":"status"}
-function backToMain(){document.getElementById('initialBtns').style.display='flex';document.getElementById('remoteInputGroup').style.display='none';setStatus("Select Mode")}
-function showRemoteInput(){document.getElementById('initialBtns').style.display='none';document.getElementById('remoteInputGroup').style.display='flex';document.getElementById('roomCodeInput').focus();setStatus("Enter the code from Display")}
-async function requestWakeLock(){try{if('wakeLock'in navigator){wakeLock=await navigator.wakeLock.request('screen')}}catch(err){}}
-function startDisplay(){mode='display';setStatus("Starting Display...");requestWakeLock();loadState();myRoomCode=Math.floor(1000+Math.random()*9000).toString();const fullId=ID_PREFIX+myRoomCode;document.getElementById('setupView').style.display='none';document.getElementById('displayView').style.display='block';document.getElementById('displayCodeBox').innerText="CODE: "+myRoomCode;peer=new Peer(fullId);peer.on('open',id=>console.log('Host ID:',id));peer.on('connection',c=>{if(conn)conn.close();conn=c;setStatus("Remote Connected!");conn.on('data',handleData);conn.on('close',()=>{setStatus("Remote Disconnected");conn=null});setTimeout(()=>{const currentText=document.getElementById('prompterContent').innerText;if(conn&&conn.open)conn.send({type:'syncAll',text:currentText,fontSize,align:textAlign,letterSpacing,lineHeight,fontWeight,fontStyle,mode:displayMode,colorIndex})},500)});peer.on('error',err=>{if(err.type==='unavailable-id')startDisplay();else alert("Network Error: "+err.type)});setupDisplayTouch();requestAnimationFrame(displayLoop)}
-function setupDisplayTouch(){const v=document.getElementById('displayView');v.addEventListener('touchstart',e=>{if(displayMode==='slide')return;displayTouching=true;displayTouchStartY=e.touches[0].clientY},{passive:true});v.addEventListener('touchmove',e=>{if(displayMode==='slide'||!displayTouching)return;const y=e.touches[0].clientY,d=displayTouchStartY-y;scrollY-=d*.8;displayTouchStartY=y},{passive:true});v.addEventListener('touchend',()=>displayTouching=false,{passive:true})}
-function connectToDisplay(){const val=document.getElementById('roomCodeInput').value;if(val.length<4){setStatus("Please enter 4-digit code",true);return}mode='controller';setStatus("Connecting...");requestWakeLock();loadState();const targetId=ID_PREFIX+val;peer=new Peer();peer.on('open',()=>{conn=peer.connect(targetId,{reliable:true});setupConnectionHandlers()});peer.on('error',err=>{setStatus("Error: "+err.type,true);if(err.type==='peer-unavailable')setStatus("Display not found. Check code.",true)})}
-function setupConnectionHandlers(){conn.on('open',()=>{console.log("Connected");document.getElementById('setupView').style.display='none';document.getElementById('controllerView').style.display='flex';setupControllerEvents();sendAction('sync');startHeartbeat();startTimer()});conn.on('data',data=>{if(data.type==='syncAll'){document.getElementById('fullTextInput').value=data.text;document.getElementById('fontSizeSlider').value=data.fontSize;document.getElementById('fontStyleSelect').value=data.fontStyle||'monospace';document.getElementById('alignSelect').value=data.align;document.getElementById('letterSpaceSlider').value=data.letterSpacing;document.getElementById('lineHeightSlider').value=data.lineHeight;tempFontSize=data.fontSize;colorIndex=data.colorIndex||0;if(data.mode==='slide'){displayMode='slide';switchToSlideMode()}updateTextPreview()}else if(data.type==='wpmUpdate'){updatePadDisplay(data.elapsed,data.currentWPM)}});conn.on('close',()=>{console.log("Connection lost");document.getElementById('textPreview').innerText="DISCONNECTED";setTimeout(()=>{if(peer&&!peer.destroyed){conn=peer.connect(conn.peer);setupConnectionHandlers()}},2000)});conn.on('error',err=>console.error(err))}
-function startHeartbeat(){if(heartbeatInterval)clearInterval(heartbeatInterval);heartbeatInterval=setInterval(()=>{if(conn&&conn.open)conn.send({type:'ping'})},2000)}
-function sendData(data){if(conn&&conn.open)conn.send(data)}
-function handleData(data){const content=document.getElementById('prompterContent'),slideContent=document.getElementById('slideContent');switch(data.type){case 'speed':speed=data.val;break;case 'text':content.innerText=data.val;scrollY=0;resetWPMTracking(data.val);if(displayMode==='slide')updateSlides(data.val);break;case 'fontSize':fontSize=data.val;content.style.fontSize=fontSize+'rem';slideContent.style.fontSize=fontSize+'rem';setTimeout(()=>resetWPMTracking(content.innerText),100);break;case 'fontStyle':fontStyle=data.val;content.style.fontFamily=fontStyle;slideContent.style.fontFamily=fontStyle;break;case 'align':textAlign=data.val;content.style.textAlign=textAlign;slideContent.style.textAlign=textAlign;break;case 'letterSpacing':letterSpacing=data.val;content.style.letterSpacing=letterSpacing+'em';slideContent.style.letterSpacing=letterSpacing+'em';break;case 'lineHeight':lineHeight=data.val;content.style.lineHeight=lineHeight;slideContent.style.lineHeight=lineHeight;break;case 'fontWeight':fontWeight=data.val;content.style.fontWeight=fontWeight;slideContent.style.fontWeight=fontWeight;break;case 'reset':scrollY=0;speed=0;currentSlide=0;resetWPMTracking(content.innerText);document.getElementById('wpmStats').style.display='none';if(displayMode==='slide')showSlide(0);break;case 'mirror':isMirrored=!isMirrored;updateTransform();content.style.textAlign=isMirrored?'right':textAlign;break;case 'color':colorIndex=(colorIndex+1)%colors.length;content.style.color=colors[colorIndex];slideContent.style.color=colors[colorIndex];break;case 'hideUI':isUIHidden=!isUIHidden;const opacity=isUIHidden?'0':'1';document.getElementById('displayUI').style.opacity=opacity;document.querySelector('.marker-line').style.opacity=opacity;document.querySelector('.triangle-marker').style.opacity=opacity;document.getElementById('slideCounter').style.opacity=opacity;document.body.style.cursor=isUIHidden?'none':'default';break;case 'sync':conn.send({type:'syncAll',text:content.innerText,fontSize,fontStyle,align:textAlign,letterSpacing,lineHeight,fontWeight,mode:displayMode,colorIndex});break;case 'mode':displayMode=data.val;if(displayMode==='slide'){document.getElementById('prompterContent').style.display='none';document.getElementById('slideContent').style.display='flex';document.querySelector('.marker-line').style.display='none';document.querySelector('.triangle-marker').style.display='none';document.getElementById('slideCounter').style.display='block';document.getElementById('slideNav').style.display='flex';updateSlides(content.innerText);showSlide(0)}else{document.getElementById('prompterContent').style.display='block';document.getElementById('slideContent').style.display='none';document.querySelector('.marker-line').style.display='block';document.querySelector('.triangle-marker').style.display='block';document.getElementById('slideCounter').style.display='none';document.getElementById('slideNav').style.display='none';resetWPMTracking(content.innerText)}break;case 'nextSlide':if(currentSlide<slides.length-1){currentSlide++;showSlide(currentSlide)}break;case 'prevSlide':if(currentSlide>0){currentSlide--;showSlide(currentSlide)}break;case 'ping':break}}
-function resetWPMTracking(text){wpmTracking={started:false,startTime:0,totalWords:text.split(/\s+/).filter(w=>w.trim()).length,contentHeight:0,maxScroll:0,lastScrollProgress:0,currentWPM:0,elapsed:0};setTimeout(()=>{const content=document.getElementById('prompterContent');wpmTracking.contentHeight=content.scrollHeight;wpmTracking.maxScroll=wpmTracking.contentHeight-window.innerHeight;console.log('WPM Reset:',wpmTracking.totalWords,'words')},200)}
-function calculateWPM(){if(displayMode!=='scroll'||wpmTracking.maxScroll<=0)return;const scrollProgress=Math.min(Math.max(-scrollY/wpmTracking.maxScroll,0),1);const wordsRead=Math.floor(wpmTracking.totalWords*scrollProgress);if(!wpmTracking.started&&scrollProgress>.01){wpmTracking.started=true;wpmTracking.startTime=Date.now();wpmTracking.lastScrollProgress=scrollProgress}if(wpmTracking.started){const now=Date.now();wpmTracking.elapsed=(now-wpmTracking.startTime)/1000;wpmTracking.currentWPM=wpmTracking.elapsed>0?Math.round((wordsRead/wpmTracking.elapsed)*60):0;if(conn&&conn.open)conn.send({type:'wpmUpdate',elapsed:wpmTracking.elapsed,currentWPM:wpmTracking.currentWPM});if(scrollProgress>=.98&&scrollProgress>wpmTracking.lastScrollProgress){showFinalStats()}wpmTracking.lastScrollProgress=scrollProgress}}
-function showFinalStats(){const stats=document.getElementById('wpmStats');const avgWPM=wpmTracking.currentWPM;stats.innerHTML=`<div style="font-size:1.2rem;margin-bottom:10px">SESSION COMPLETE</div><div>Average: ${avgWPM} WPM</div><div style="font-size:0.9rem;opacity:0.8">Total: ${wpmTracking.totalWords} words in ${Math.floor(wpmTracking.elapsed/60)}:${String(Math.floor(wpmTracking.elapsed%60)).padStart(2,'0')}</div>`;stats.style.display='block'}
-function updateSlides(text){slides=text.split(/\n\n+/).filter(s=>s.trim());currentSlide=0;showSlide(0)}
-function showSlide(index){if(slides.length===0)return;document.getElementById('slideContent').innerText=slides[index]||'';document.getElementById('slideCounter').innerText=`${index+1} / ${slides.length}`}
-function nextSlide(){if(currentSlide<slides.length-1){currentSlide++;showSlide(currentSlide)}}
-function prevSlide(){if(currentSlide>0){currentSlide--;showSlide(currentSlide)}}
-function displayLoop(){if(displayMode==='scroll'){if(Math.abs(speed)>.1)scrollY-=speed;updateTransform();calculateWPM()}requestAnimationFrame(displayLoop)}
-function updateTransform(){const content=document.getElementById('prompterContent'),scale=isMirrored?'scaleX(-1)':'scaleX(1)';content.style.transform=`${scale} translateY(${scrollY}px)`}
-function toggleLocalFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else if(document.exitFullscreen)document.exitFullscreen()}
-function setupControllerEvents(){const pad=document.getElementById('scrollPad'),stickHead=document.getElementById('stickHead'),stickBase=document.getElementById('stickBase');pad.addEventListener('touchstart',e=>{e.preventDefault();if(e.touches.length===2){isTouching=false;pinchDistStart=Math.hypot(e.touches[0].pageX-e.touches[1].pageX,e.touches[0].pageY-e.touches[1].pageY);return}isTouching=true;touchStartY=e.touches[0].clientY;const rect=pad.getBoundingClientRect(),relativeY=e.touches[0].clientY-rect.top;stickBase.style.display='block';stickBase.style.top=relativeY+'px';stickHead.style.display='block';stickHead.style.top=relativeY+'px'},{passive:false});pad.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===2){const dist=Math.hypot(e.touches[0].pageX-e.touches[1].pageX,e.touches[0].pageY-e.touches[1].pageY),delta=dist-pinchDistStart;if(Math.abs(delta)>10){if(delta>0)tempFontSize+=.1;else tempFontSize=Math.max(1,tempFontSize-.1);sendData({type:'fontSize',val:tempFontSize});pinchDistStart=dist}return}if(!isTouching)return;const currentY=e.touches[0].clientY,deltaY=touchStartY-currentY;let scrollSpeed=deltaY*.15;if(scrollSpeed>25)scrollSpeed=25;if(scrollSpeed<-25)scrollSpeed=-25;sendData({type:'speed',val:scrollSpeed});let visualOffset=-deltaY;if(visualOffset>40)visualOffset=40;if(visualOffset<-40)visualOffset=-40;stickHead.style.transform=`translate(-50%, calc(-50% + ${visualOffset}px))`},{passive:false});pad.addEventListener('touchend',e=>{e.preventDefault();if(e.touches.length===0){isTouching=false;sendData({type:'speed',val:0});stickHead.style.display='none';stickBase.style.display='none';stickHead.style.transform=`translate(-50%, -50%)`}})}
-function startTimer(){setInterval(()=>{if(wpmTracking.started){updatePadDisplay(wpmTracking.elapsed,wpmTracking.currentWPM)}},1000)}
-function updatePadDisplay(elapsed,wpm){const mins=Math.floor(elapsed/60);const secs=Math.floor(elapsed%60);document.getElementById('padTimer').innerText=`${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;document.getElementById('padWPM').innerText=wpm}
-function updateTextStats(){const text=document.getElementById('fullTextInput').value;const words=text.trim().split(/\s+/).filter(w=>w).length;const chars=text.length;const avgWPM=150;const minutes=words/avgWPM;const mins=Math.floor(minutes);const secs=Math.round((minutes-mins)*60);document.getElementById('wordCount').innerText=words;document.getElementById('avgTime').innerText=`${mins}:${String(secs).padStart(2,'0')}`;document.getElementById('charCount').innerText=chars}
-function openEditor(){document.getElementById('editModal').style.display='flex';updateTextStats()}
-function closeEditor(){document.getElementById('editModal').style.display='none';const text=document.getElementById('fullTextInput').value;updateTextPreview();sendData({type:'text',val:text});saveState()}
-function updateTextPreview(){const text=document.getElementById('fullTextInput').value,preview=text.split('\n')[0]||"No text...";document.getElementById('textPreview').innerText=preview}
-function clearText(){if(confirm('Clear all text?'))document.getElementById('fullTextInput').value=''}
-async function copyText(){const text=document.getElementById('fullTextInput').value;try{await navigator.clipboard.writeText(text);alert('Text copied!')}catch(err){alert('Failed to copy')}}
-async function pasteText(){try{const text=await navigator.clipboard.readText();document.getElementById('fullTextInput').value=text;updateTextStats()}catch(err){alert('Failed to paste')}}
-function toggleMode(){displayMode=displayMode==='scroll'?'slide':'scroll';const btn=document.getElementById('modeToggle');btn.innerHTML=displayMode==='slide'?'SCROLL':'SLIDE';sendData({type:'mode',val:displayMode});if(displayMode==='slide')switchToSlideMode();else switchToScrollMode()}
-function switchToSlideMode(){document.getElementById('scrollPad').style.display='none';document.getElementById('slideControls').style.display='flex';const text=document.getElementById('fullTextInput').value,localSlides=text.split(/\n\n+/).filter(s=>s.trim());document.getElementById('slideInfo').innerText=`Slide 1 / ${localSlides.length}`}
-function switchToScrollMode(){document.getElementById('scrollPad').style.display='flex';document.getElementById('slideControls').style.display='none'}
-function remoteNextSlide(){sendData({type:'nextSlide'});const text=document.getElementById('fullTextInput').value,localSlides=text.split(/\n\n+/).filter(s=>s.trim()),nextSlide=Math.min(currentSlide+1,localSlides.length-1);document.getElementById('slideInfo').innerText=`Slide ${nextSlide+1} / ${localSlides.length}`;currentSlide=nextSlide}
-function remotePrevSlide(){sendData({type:'prevSlide'});const text=document.getElementById('fullTextInput').value,localSlides=text.split(/\n\n+/).filter(s=>s.trim()),prevSlideNum=Math.max(currentSlide-1,0);document.getElementById('slideInfo').innerText=`Slide ${prevSlideNum+1} / ${localSlides.length}`;currentSlide=prevSlideNum}
-function updateFontSize(val){sendData({type:'fontSize',val:parseFloat(val)});saveState()}
-function updateFontStyle(val){sendData({type:'fontStyle',val});fontStyle=val;saveState()}
-function updateAlignment(val){sendData({type:'align',val});saveState()}
-function updateLetterSpacing(val){sendData({type:'letterSpacing',val:parseFloat(val)});saveState()}
-function updateLineHeight(val){sendData({type:'lineHeight',val:parseFloat(val)});saveState()}
-function sendAction(actionType){if(actionType==='mirror')document.getElementById('mirrorBtn').classList.toggle('active');sendData({type:actionType})}
-function cycleColor(){sendAction('color');colorIndex=(colorIndex+1)%colors.length;saveState()}
-function toggleMirror(){sendAction('mirror')}
-function saveProject(){const text=document.getElementById('fullTextInput').value,name=prompt("Project name:");if(!name)return;const projects=JSON.parse(localStorage.getItem('projects')||'[]');projects.push({name,text,date:new Date().toISOString(),words:text.split(/\s+/).filter(w=>w.trim()).length,settings:{fontSize,fontStyle,textAlign,letterSpacing,lineHeight,fontWeight}});localStorage.setItem('projects',JSON.stringify(projects));alert('Project saved!')}
-function openProjects(){document.getElementById('projectsModal').style.display='flex';loadProjects()}
-function closeProjects(){document.getElementById('projectsModal').style.display='none'}
-function loadProjects(){const projects=JSON.parse(localStorage.getItem('projects')||'[]'),list=document.getElementById('projectList');list.innerHTML=projects.length?'':'<div style="text-align:center;color:#666;padding:20px">No projects yet</div>';projects.reverse().forEach((p,i)=>{const div=document.createElement('div');div.className='project-item';div.innerHTML=`<div class="project-name">${p.name}</div><div class="project-preview">${p.text.substring(0,80)}...</div><div class="project-stats">${new Date(p.date).toLocaleDateString()} • ${p.words||0} words</div><div class="project-actions"><button onclick="useProject(${projects.length-1-i})">USE</button><button onclick="editProject(${projects.length-1-i})">EDIT</button><button onclick="deleteProject(${projects.length-1-i})">DELETE</button></div>`;list.appendChild(div)})}
-function useProject(i){const projects=JSON.parse(localStorage.getItem('projects')||'[]'),p=projects[i];document.getElementById('fullTextInput').value=p.text;if(p.settings){document.getElementById('fontSizeSlider').value=p.settings.fontSize||5;document.getElementById('fontStyleSelect').value=p.settings.fontStyle||'monospace';document.getElementById('alignSelect').value=p.settings.textAlign||'left';document.getElementById('letterSpaceSlider').value=p.settings.letterSpacing||.05;document.getElementById('lineHeightSlider').value=p.settings.lineHeight||1.6}updateTextPreview();closeProjects();sendData({type:'text',val:p.text})}
-function editProject(i){useProject(i);openEditor();closeProjects()}
-function deleteProject(i){if(!confirm('Delete this project?'))return;const projects=JSON.parse(localStorage.getItem('projects')||'[]');projects.splice(i,1);localStorage.setItem('projects',JSON.stringify(projects));loadProjects()}
-function showApiSetup(){document.getElementById('projectsModal').style.display='none';document.getElementById('apiModal').style.display='flex';const key=localStorage.getItem('geminiApiKey');if(key)document.getElementById('apiKeyInput').value=key}
-function closeApiSetup(){document.getElementById('apiModal').style.display='none';document.getElementById('projectsModal').style.display='flex'}
-async function generateAiScript(){const key=document.getElementById('apiKeyInput').value,topic=document.getElementById('topicInput').value,status=document.getElementById('apiStatus');if(!key){status.innerText='Please enter API key';status.className='status error';return}if(!topic){status.innerText='Please enter a topic';status.className='status error';return}localStorage.setItem('geminiApiKey',key);status.innerText='Generating...';status.className='status';try{const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:`Create a professional teleprompter script about "${topic}". Use clear, natural language suitable for speaking. Place a line break after each sentence for better readability. Avoid bullet points, tables, or complex formatting. Keep it conversational and easy to read aloud. Make it around 300-400 words.`}]}]})});const data=await res.json();if(data.candidates&&data.candidates[0]){const text=data.candidates[0].content.parts[0].text.replace(/\.\s+/g,'.\n\n').trim();document.getElementById('fullTextInput').value=text;updateTextPreview();closeApiSetup();openEditor();status.innerText='Script generated!';status.className='status'}else{status.innerText='Generation failed. Check API key.';status.className='status error'}}catch(err){status.innerText='Error: '+err.message;status.className='status error'}}
-document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('visibilitychange',async()=>{if(wakeLock!==null&&document.visibilityState==='visible')await requestWakeLock()});loadState();
-    </script>
+document.getElementById('generationMethod').addEventListener('change',function(){
+document.getElementById('apiKeySection').style.display=this.value==='ai'?'block':'none';
+});
+
+function loadState(){
+const savedState=localStorage.getItem(STATE_KEYS.CURRENT_STATE);
+const savedName=localStorage.getItem(STATE_KEYS.USER_NAME);
+const savedApiKey=localStorage.getItem(STATE_KEYS.API_KEY);
+if(savedName){
+document.getElementById('authorName').value=savedName;
+showGreeting(savedName);
+}
+if(savedApiKey)document.getElementById('apiKey').value=savedApiKey;
+}
+
+function saveState(state){
+localStorage.setItem(STATE_KEYS.CURRENT_STATE,state);
+}
+
+function showGreeting(name){
+const greetingElement=document.getElementById('greetingMessage');
+const greetings=[`Welcome back, ${name}! 👋`,`Hello ${name}! Ready to create? ✨`,`Good to see you again, ${name}! 🎉`,`Hey ${name}! Let's make something amazing! 🚀`];
+const randomGreeting=greetings[Math.floor(Math.random()*greetings.length)];
+greetingElement.textContent=randomGreeting;
+greetingElement.style.display='block';
+}
+
+function toggleTheme(){
+document.body.classList.toggle('dark-theme');
+localStorage.setItem(STATE_KEYS.THEME,document.body.classList.contains('dark-theme')?'dark':'light');
+const themeIcons=document.querySelectorAll('.theme-toggle i');
+themeIcons.forEach(icon=>{
+if(document.body.classList.contains('dark-theme')){
+icon.className='fas fa-sun';
+}else{
+icon.className='fas fa-moon';
+}
+});
+if(conn&&conn.open)sendRemoteData({type:'theme'});
+}
+
+function loadTheme(){
+const savedTheme=localStorage.getItem(STATE_KEYS.THEME);
+if(savedTheme==='dark'){
+document.body.classList.add('dark-theme');
+document.querySelectorAll('.theme-toggle i').forEach(icon=>{
+icon.className='fas fa-sun';
+});
+}
+}
+
+function showCreateNew(){
+document.getElementById('inputSection').style.display='block';
+document.getElementById('heroSection').style.display='none';
+saveState(APP_STATES.CREATE_NEW);
+}
+
+function closeModal(modalId){
+document.getElementById(modalId).style.display='none';
+if(modalId==='navInstructionsModal')localStorage.setItem(STATE_KEYS.SEEN_INSTRUCTIONS,'true');
+}
+
+async function generateContent(){
+const topic=document.getElementById('topicName').value.trim();
+const author=document.getElementById('authorName').value.trim();
+const method=document.getElementById('generationMethod').value;
+if(!topic){
+alert('Please enter a presentation topic');
+return;
+}
+localStorage.setItem(STATE_KEYS.TOPIC,topic);
+localStorage.setItem(STATE_KEYS.AUTHOR,author);
+if(author)localStorage.setItem(STATE_KEYS.USER_NAME,author);
+if(method==='ai'){
+const apiKey=document.getElementById('apiKey').value.trim();
+if(!apiKey){
+alert('Please enter your Gemini API key');
+return;
+}
+localStorage.setItem(STATE_KEYS.API_KEY,apiKey);
+await generateAiPresentation(topic,author,apiKey);
+}else{
+generateTemplateContent(topic,author);
+document.getElementById('templateSection').style.display='block';
+localStorage.setItem(STATE_KEYS.TEMPLATE_VISIBLE,'true');
+saveState(APP_STATES.TEMPLATE_GENERATED);
+}
+}
+
+async function generateAiPresentation(topic,author,apiKey){
+const btn=event.target;
+btn.disabled=true;
+btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Generating...';
+try{
+const prompt=`Create a comprehensive presentation on "${topic}" in XML format. Follow this exact structure:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<presentation>
+<topic>${topic}</topic>
+<author>${author||'Anonymous'}</author>
+<slide>
+<h1>${topic}</h1>
+<p>By ${author||'Anonymous'}</p>
+</slide>
+
+Create 8-12 slides with:
+- Use <h1>, <h2>, <h3> for headings
+- Use <p> for paragraphs
+- Use <ul><li></li></ul> for bullet points
+- Use <ol><li></li></ol> for numbered lists
+- Use <table><tr><th></th></tr><tr><td></td></tr></table> for tables
+- Use <span class="highlight">text</span> for highlights
+- Use <span class="important">text</span> for important text
+- Use <span class="success">text</span> for success text
+- Use <span class="info">text</span> for info text
+- Make 2 MCQ slides at the end
+- Use professional, engaging content
+
+Wrap each slide in <slide></slide> tags. Use proper XML escaping (&amp; for &, &lt; for <, &gt; for >).`;
+
+const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+});
+const data=await res.json();
+if(data.candidates&&data.candidates[0]){
+let xmlContent=data.candidates[0].content.parts[0].text;
+xmlContent=xmlContent.replace(/```xml\n?/g,'').replace(/```\n?/g,'').trim();
+if(!xmlContent.startsWith('<?xml')){
+xmlContent='<?xml version="1.0" encoding="UTF-8"?>\n'+xmlContent;
+}
+document.getElementById('xmlInput').value=xmlContent;
+localStorage.setItem(STATE_KEYS.XML_INPUT,xmlContent);
+document.getElementById('templateSection').style.display='block';
+btn.innerHTML='<i class="fas fa-check"></i> Generated! Create Presentation Below';
+setTimeout(()=>{
+btn.innerHTML='<i class="fas fa-magic"></i> Generate Presentation';
+btn.disabled=false;
+},3000);
+}else{
+throw new Error('Failed to generate content');
+}
+}catch(err){
+alert('Error generating presentation: '+err.message);
+btn.innerHTML='<i class="fas fa-magic"></i> Generate Presentation';
+btn.disabled=false;
+}
+}
+
+function generateTemplateContent(topic,author){
+const template=`Create a comprehensive presentation on "${topic}" in XML format. Follow this exact structure and guidelines:
+
+**IMPORTANT XML STRUCTURE REQUIREMENTS:**
+- Start with <?xml version="1.0" encoding="UTF-8"?>
+- Use <presentation> as root element
+- Include <topic>${topic}</topic>
+- Include <author>${author||'Anonymous'}</author>
+- Each slide must be wrapped in <slide> tags
+- Create as many slides as needed (no limit)
+
+**FORMATTING FEATURES AVAILABLE:**
+- Headings: <h1>, <h2>, <h3>
+- Paragraphs: <p>
+- Bullet points: <ul><li></li></ul>
+- Numbered lists: <ol><li></li></ol>
+- Tables: <table><tr><th></th></tr><tr><td></td></tr></table>
+- Text highlighting: <span class="highlight">important text</span>
+- Important text: <span class="important">critical info</span>
+- Success text: <span class="success">positive info</span>
+- Info text: <span class="info">additional info</span>
+
+**CONTENT GUIDELINES:**
+- Create a title slide with topic and author
+- Include introduction, main content slides, and conclusion
+- Use bullet points and lists effectively
+- Add tables when data presentation is helpful
+- Highlight key information using color classes
+- Make content engaging and well-structured
+- Use professional language appropriate for presentations
+- Make 2 MCQ slides in end one for question from the ppt and other explaining the correct answer
+
+**SPECIAL CHARACTERS:**
+- Use &amp; for &
+- Use &lt; for <
+- Use &gt; for >
+- Use &quot; for "
+- Use &#39; for '
+
+**EXAMPLE SLIDE STRUCTURE:**
+<slide>
+<h1>Slide Title</h1>
+<p>Introduction paragraph</p>
+<ul>
+<li>Bullet point 1</li>
+<li><span class="important">Important bullet point</span></li>
+<li>Bullet point 3</li>
+</ul>
+<table>
+<tr><th>Header 1</th><th>Header 2</th></tr>
+<tr><td>Data 1</td><td>Data 2</td></tr>
+</table>
+</slide>
+
+Please create a complete, professional presentation following these guidelines.`;
+document.getElementById('templateDisplay').textContent=template;
+}
+
+function copyTemplate(){
+const template=document.getElementById('templateDisplay').textContent;
+navigator.clipboard.writeText(template).then(()=>{
+document.getElementById('copySuccessModal').style.display='block';
+});
+}
+
+function createPresentation(){
+const xmlContent=document.getElementById('xmlInput').value.trim();
+if(!xmlContent){
+alert('Please paste the AI-generated XML content');
+return;
+}
+try{
+const parser=new DOMParser();
+const xmlDoc=parser.parseFromString(xmlContent,'text/xml');
+const parserError=xmlDoc.querySelector('parsererror');
+if(parserError)throw new Error('Invalid XML format');
+const slideElements=xmlDoc.querySelectorAll('slide');
+if(slideElements.length===0)throw new Error('No slides found in XML');
+const topicElement=xmlDoc.querySelector('topic');
+const authorElement=xmlDoc.querySelector('author');
+if(topicElement)localStorage.setItem(STATE_KEYS.TOPIC,topicElement.textContent);
+if(authorElement){
+localStorage.setItem(STATE_KEYS.AUTHOR,authorElement.textContent);
+localStorage.setItem(STATE_KEYS.USER_NAME,authorElement.textContent);
+}
+slides=Array.from(slideElements).map(slide=>slide.innerHTML);
+presentationData=xmlContent;
+localStorage.setItem(STATE_KEYS.PRESENTATION_DATA,xmlContent);
+localStorage.setItem(STATE_KEYS.CURRENT_SLIDE,'0');
+saveProject(xmlContent);
+startPresentation();
+}catch(error){
+alert('Error parsing XML: '+error.message+'\n\nPlease check your XML format and try again.');
+}
+}
+
+function saveProject(xmlContent){
+const projects=JSON.parse(localStorage.getItem(STATE_KEYS.PROJECTS)||'[]');
+const topic=localStorage.getItem(STATE_KEYS.TOPIC)||'Untitled';
+const author=localStorage.getItem(STATE_KEYS.AUTHOR)||'Anonymous';
+const existing=projects.findIndex(p=>p.topic===topic);
+const project={
+topic:topic,
+author:author,
+xml:xmlContent,
+date:new Date().toISOString(),
+slides:slides.length
+};
+if(existing>=0){
+projects[existing]=project;
+}else{
+projects.push(project);
+}
+localStorage.setItem(STATE_KEYS.PROJECTS,JSON.stringify(projects));
+}
+
+function openProjectsModal(){
+document.getElementById('projectsModal').style.display='block';
+loadProjects();
+}
+
+function loadProjects(){
+const projects=JSON.parse(localStorage.getItem(STATE_KEYS.PROJECTS)||'[]');
+const list=document.getElementById('projectList');
+list.innerHTML=projects.length?'':'<p style="text-align:center;color:var(--secondary-text);padding:20px">No projects yet</p>';
+projects.reverse().forEach((p,i)=>{
+const div=document.createElement('div');
+div.className='project-item';
+div.innerHTML=`
+<div class="project-name">${p.topic}</div>
+<div class="project-preview">By ${p.author} • ${p.slides} slides</div>
+<div class="project-stats">${new Date(p.date).toLocaleDateString()}</div>
+<div class="project-actions">
+<button onclick="loadProject(${projects.length-1-i})">Load</button>
+<button onclick="deleteProject(${projects.length-1-i})">Delete</button>
+</div>
+`;
+list.appendChild(div);
+});
+}
+
+function loadProject(index){
+const projects=JSON.parse(localStorage.getItem(STATE_KEYS.PROJECTS)||'[]');
+const project=projects[index];
+document.getElementById('xmlInput').value=project.xml;
+localStorage.setItem(STATE_KEYS.XML_INPUT,project.xml);
+document.getElementById('topicName').value=project.topic;
+document.getElementById('authorName').value=project.author;
+showCreateNew();
+document.getElementById('templateSection').style.display='block';
+closeModal('projectsModal');
+}
+
+function deleteProject(index){
+if(!confirm('Delete this project?'))return;
+const projects=JSON.parse(localStorage.getItem(STATE_KEYS.PROJECTS)||'[]');
+projects.splice(index,1);
+localStorage.setItem(STATE_KEYS.PROJECTS,JSON.stringify(projects));
+loadProjects();
+}
+
+function startPresentation(){
+const hasSeenInstructions=localStorage.getItem(STATE_KEYS.SEEN_INSTRUCTIONS);
+document.getElementById('mainContent').style.display='none';
+document.getElementById('mainHeader').style.display='none';
+document.getElementById('presentationView').style.display='block';
+const slidesContainer=document.getElementById('slidesContainer');
+slidesContainer.innerHTML='';
+slides.forEach((slideContent,index)=>{
+const slideDiv=document.createElement('div');
+slideDiv.className='slide';
+slideDiv.innerHTML=slideContent;
+if(index===currentSlide)slideDiv.classList.add('active');
+slidesContainer.appendChild(slideDiv);
+});
+updateProgressBar();
+setupSwipeGestures();
+setupDoubleTap();
+saveState(APP_STATES.PRESENTATION);
+if(!hasSeenInstructions)document.getElementById('navInstructionsModal').style.display='block';
+if(mode==='display'&&conn&&conn.open)sendRemoteData({type:'started',slides:slides.length});
+}
+
+function setupDoubleTap(){
+const presentationView=document.getElementById('presentationView');
+presentationView.addEventListener('touchend',(e)=>{
+const currentTime=new Date().getTime();
+const tapLength=currentTime-lastTap;
+if(tapLength<300&&tapLength>0){
+e.preventDefault();
+toggleControls();
+}
+lastTap=currentTime;
+});
+presentationView.addEventListener('dblclick',(e)=>{
+e.preventDefault();
+toggleControls();
+});
+}
+
+function toggleControls(){
+const controls=document.getElementById('controls');
+if(controls.classList.contains('visible')){
+controls.classList.remove('visible');
+}else{
+controls.classList.add('visible');
+setTimeout(()=>controls.classList.remove('visible'),3000);
+}
+}
+
+function setupSwipeGestures(){
+const presentationView=document.getElementById('presentationView');
+presentationView.addEventListener('touchstart',(e)=>{
+touchStartX=e.changedTouches[0].screenX;
+},{passive:true});
+presentationView.addEventListener('touchend',(e)=>{
+touchEndX=e.changedTouches[0].screenX;
+const diff=touchStartX-touchEndX;
+if(Math.abs(diff)>50){
+if(diff>0)nextSlide();
+else previousSlide();
+}
+},{passive:true});
+}
+
+function previousSlide(){
+if(currentSlide>0){
+document.querySelectorAll('.slide')[currentSlide].classList.remove('active');
+currentSlide--;
+document.querySelectorAll('.slide')[currentSlide].classList.add('active');
+updateProgressBar();
+localStorage.setItem(STATE_KEYS.CURRENT_SLIDE,currentSlide.toString());
+if(conn&&conn.open)sendRemoteData({type:'slideChange',slide:currentSlide});
+}
+}
+
+function nextSlide(){
+if(currentSlide<slides.length-1){
+document.querySelectorAll('.slide')[currentSlide].classList.remove('active');
+currentSlide++;
+document.querySelectorAll('.slide')[currentSlide].classList.add('active');
+updateProgressBar();
+localStorage.setItem(STATE_KEYS.CURRENT_SLIDE,currentSlide.toString());
+if(conn&&conn.open)sendRemoteData({type:'slideChange',slide:currentSlide});
+}else{
+document.getElementById('endOptions').style.display='block';
+}
+}
+
+function updateProgressBar(){
+const progress=((currentSlide+1)/slides.length)*100;
+document.getElementById('progressBar').style.width=progress+'%';
+}
+
+function toggleFullscreen(){
+if(!document.fullscreenElement)document.documentElement.requestFullscreen();
+else if(document.exitFullscreen)document.exitFullscreen();
+}
+
+function exitPresentation(){
+document.getElementById('presentationView').style.display='none';
+document.getElementById('mainContent').style.display='block';
+document.getElementById('mainHeader').style.display='block';
+document.getElementById('heroSection').style.display='block';
+document.getElementById('inputSection').style.display='none';
+document.getElementById('endOptions').style.display='none';
+saveState(APP_STATES.HOME);
+if(document.fullscreenElement)document.exitFullscreen();
+}
+
+function restartPresentation(){
+currentSlide=0;
+document.querySelectorAll('.slide').forEach((slide,index)=>{
+slide.classList.remove('active');
+if(index===0)slide.classList.add('active');
+});
+updateProgressBar();
+localStorage.setItem(STATE_KEYS.CURRENT_SLIDE,'0');
+document.getElementById('endOptions').style.display='none';
+}
+
+function downloadPresentation(){
+if(!presentationData){
+alert('No presentation data available');
+return;
+}
+const blob=new Blob([presentationData],{type:'application/xml'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;
+const topic=localStorage.getItem(STATE_KEYS.TOPIC)||'presentation';
+a.download=`${topic.replace(/[^a-z0-9]/gi,'_').toLowerCase()}_presentation.xml`;
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+}
+
+function sharePresentation(){
+const topic=localStorage.getItem(STATE_KEYS.TOPIC)||'';
+const shareText=`🎯 Check out Prastuti - A Completely Free AI PPT Making Tool!
+
+🚀 Create professional presentations in minutes with AI assistance
+✨ No registration required, completely free
+🎨 Beautiful themes and animations
+📱 Works on all devices
+
+Try it now: https://xchirxg.github.io/p/prastuti
+
+${topic?`I just created an amazing presentation on "${topic}" using Prastuti!`:'Perfect for students, professionals, and educators!'}
+
+#Prastuti #AI #Presentations #Free #Education`;
+if(navigator.share){
+navigator.share({
+title:'Prastuti - Free AI PPT Making Tool',
+text:shareText,
+url:'https://xchirxg.github.io/p/prastuti'
+}).catch(err=>{
+navigator.clipboard.writeText(shareText).then(()=>{
+alert('Prastuti link and promotion copied to clipboard! Share it with others! 🎉');
+});
+});
+}else{
+navigator.clipboard.writeText(shareText).then(()=>{
+alert('Prastuti link and promotion copied to clipboard! Share it with others! 🎉');
+}).catch(()=>{
+prompt('Copy this text to share Prastuti:',shareText);
+});
+}
+}
+
+function createNewPresentation(){
+document.getElementById('endOptions').style.display='none';
+exitPresentation();
+document.getElementById('topicName').value='';
+document.getElementById('xmlInput').value='';
+document.getElementById('templateSection').style.display='none';
+saveState(APP_STATES.HOME);
+}
+
+function showRemoteSetup(){
+document.getElementById('remoteSetupModal').style.display='block';
+document.getElementById('remoteConnectSection').style.display='none';
+document.getElementById('remoteStatus').innerText='Select your device role';
+}
+
+function showRemoteConnect(){
+document.getElementById('remoteConnectSection').style.display='block';
+document.getElementById('remoteStatus').innerText='Enter the code from Display';
+document.getElementById('roomCodeInput').focus();
+}
+
+function startDisplay(){
+mode='display';
+myRoomCode=Math.floor(1000+Math.random()*9000).toString();
+const fullId=ID_PREFIX+myRoomCode;
+document.getElementById('remoteStatus').innerText='Starting Display...';
+peer=new Peer(fullId);
+peer.on('open',id=>{
+document.getElementById('remoteStatus').innerText=`Display Code: ${myRoomCode}`;
+console.log('Host ID:',id);
+});
+peer.on('connection',c=>{
+if(conn)conn.close();
+conn=c;
+document.getElementById('remoteStatus').innerText='Remote Connected!';
+conn.on('data',handleRemoteData);
+conn.on('close',()=>{
+document.getElementById('remoteStatus').innerText='Remote Disconnected';
+conn=null;
+});
+setTimeout(()=>{
+if(conn&&conn.open){
+sendRemoteData({type:'syncAll',slides:slides.length,currentSlide:currentSlide,theme:document.body.classList.contains('dark-theme')?'dark':'light'});
+}
+},500);
+});
+peer.on('error',err=>{
+if(err.type==='unavailable-id')startDisplay();
+else alert("Network Error: "+err.type);
+});
+startHeartbeat();
+saveState(APP_STATES.REMOTE_DISPLAY);
+setTimeout(()=>closeModal('remoteSetupModal'),2000);
+}
+
+function connectToDisplay(){
+const val=document.getElementById('roomCodeInput').value;
+if(val.length<4){
+document.getElementById('remoteStatus').innerText='Please enter 4-digit code';
+document.getElementById('remoteStatus').className='status error';
+return;
+}
+mode='controller';
+document.getElementById('remoteStatus').innerText='Connecting...';
+const targetId=ID_PREFIX+val;
+peer=new Peer();
+peer.on('open',()=>{
+conn=peer.connect(targetId,{reliable:true});
+setupConnectionHandlers();
+});
+peer.on('error',err=>{
+document.getElementById('remoteStatus').innerText='Error: '+err.type;
+document.getElementById('remoteStatus').className='status error';
+if(err.type==='peer-unavailable')document.getElementById('remoteStatus').innerText='Display not found. Check code.';
+});
+}
+
+function setupConnectionHandlers(){
+conn.on('open',()=>{
+console.log("Connected");
+closeModal('remoteSetupModal');
+document.getElementById('mainContent').style.display='none';
+document.getElementById('mainHeader').style.display='none';
+document.getElementById('controllerView').style.display='flex';
+startHeartbeat();
+saveState(APP_STATES.REMOTE_CONTROLLER);
+});
+conn.on('data',data=>{
+if(data.type==='syncAll'){
+console.log('Synced with display');
+}
+});
+conn.on('close',()=>{
+console.log("Connection lost");
+setTimeout(()=>{
+if(peer&&!peer.destroyed){
+conn=peer.connect(conn.peer);
+setupConnectionHandlers();
+}
+},2000);
+});
+conn.on('error',err=>console.error(err));
+}
+
+function startHeartbeat(){
+if(heartbeatInterval)clearInterval(heartbeatInterval);
+heartbeatInterval=setInterval(()=>{
+if(conn&&conn.open)sendRemoteData({type:'ping'});
+},2000);
+}
+
+function sendRemoteData(data){
+if(conn&&conn.open)conn.send(data);
+}
+
+function handleRemoteData(data){
+switch(data.type){
+case 'prev':
+previousSlide();
+break;
+case 'next':
+nextSlide();
+break;
+case 'reset':
+restartPresentation();
+break;
+case 'fullscreen':
+toggleFullscreen();
+break;
+case 'theme':
+toggleTheme();
+break;
+case 'fontSize':
+const allSlides=document.querySelectorAll('.slide');
+allSlides.forEach(slide=>{
+slide.style.fontSize=data.value+'px';
+});
+break;
+case 'exit':
+exitPresentation();
+break;
+case 'ping':
+break;
+}
+}
+
+function remoteAction(action){
+if(action==='prev'||action==='next'||action==='reset'||action==='fullscreen'||action==='theme'||action==='exit'){
+sendRemoteData({type:action});
+}
+}
+
+function updateRemoteFontSize(value){
+document.getElementById('fontSizeValue').innerText=value+'px';
+sendRemoteData({type:'fontSize',value:parseInt(value)});
+}
+
+function disconnectRemote(){
+if(conn)conn.close();
+if(peer)peer.destroy();
+document.getElementById('controllerView').style.display='none';
+document.getElementById('mainContent').style.display='block';
+document.getElementById('mainHeader').style.display='block';
+document.getElementById('heroSection').style.display='block';
+saveState(APP_STATES.HOME);
+}
+
+document.addEventListener('keydown',(e)=>{
+if(document.getElementById('presentationView').style.display==='block'){
+switch(e.key){
+case 'ArrowRight':
+case ' ':
+e.preventDefault();
+nextSlide();
+break;
+case 'ArrowLeft':
+e.preventDefault();
+previousSlide();
+break;
+case 'F11':
+e.preventDefault();
+toggleFullscreen();
+break;
+case 'Escape':
+if(document.fullscreenElement){
+document.exitFullscreen();
+}else if(document.getElementById('endOptions').style.display==='block'){
+document.getElementById('endOptions').style.display='none';
+}else{
+exitPresentation();
+}
+break;
+}
+}
+});
+
+document.addEventListener('DOMContentLoaded',()=>{
+loadTheme();
+loadState();
+});
+</script>
 </body>
 </html>
