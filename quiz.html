@@ -147,7 +147,7 @@
                 </div>
                 <div class="controls-grid">
                     <button class="control-btn primary" onclick="askSelectedPlayer()">ASK SELECTED PLAYER</button>
-                    <button class="control-btn danger" onclick="passQuestion()">PASS (-5 POINTS)</button>
+                    <button class="control-btn danger" onclick="passQuestion()">PASS TO ANOTHER</button>
                     <button class="control-btn" onclick="revealAnswer()">REVEAL ANSWER</button>
                     <button class="control-btn" onclick="nextQuestion()">NEXT QUESTION</button>
                 </div>
@@ -526,16 +526,27 @@ function handlePlayerData(data) {
         opts.innerHTML = '';
         data.options.forEach((opt, i) => {
             const btn = document.createElement('button');
-            btn.className = 'option-btn';
+            btn.className = 'option-btn' + (data.isActive ? '' : ' disabled');
             btn.innerHTML = `<span class="option-label">${String.fromCharCode(65 + i)}</span>${opt}`;
-            btn.onclick = () => selectPlayerAnswer(i, btn);
+            if (data.isActive) {
+                btn.onclick = () => selectPlayerAnswer(i, btn);
+            }
             opts.appendChild(btn);
         });
-        if (data.timerEnabled) {
+        if (data.timerEnabled && data.isActive) {
             timerRemaining = data.timerDuration;
             document.getElementById('playerTimer').style.display = 'block';
             startPlayerTimer();
         }
+    } else if (data.type === 'enableAnswers') {
+        // Re-enable answers for passed question
+        document.getElementById('playerWaiting').style.display = 'none';
+        document.getElementById('playerQuestionView').style.display = 'block';
+        const opts = document.querySelectorAll('#playerOptions .option-btn');
+        opts.forEach((btn, i) => {
+            btn.classList.remove('disabled', 'selected');
+            btn.onclick = () => selectPlayerAnswer(i, btn);
+        });
     } else if (data.type === 'disableAnswers') {
         document.querySelectorAll('#playerOptions .option-btn').forEach(b => b.classList.add('disabled'));
         stopTimer();
@@ -833,15 +844,29 @@ function askSelectedPlayer() {
         return;
     }
     const q = currentQuiz.questions[currentQuestionIndex];
+    
+    // Show question to ALL players
+    broadcastToPlayers({
+        type: 'showQuestion',
+        questionNum: currentQuestionIndex + 1,
+        question: q.question,
+        options: q.options,
+        timerEnabled: currentQuiz.timerEnabled,
+        timerDuration: currentQuiz.timerDuration,
+        isActive: false
+    });
+    
+    // Enable only for selected player
     selectedPlayer.send({
         type: 'showQuestion',
         questionNum: currentQuestionIndex + 1,
         question: q.question,
         options: q.options,
         timerEnabled: currentQuiz.timerEnabled,
-        timerDuration: currentQuiz.timerDuration
+        timerDuration: currentQuiz.timerDuration,
+        isActive: true
     });
-    broadcastToPlayers({ type: 'disableAnswers' }, selectedPlayer);
+    
     broadcastToAudience({
         type: 'showQuestion',
         questionNum: currentQuestionIndex + 1,
@@ -850,6 +875,7 @@ function askSelectedPlayer() {
         timerEnabled: currentQuiz.timerEnabled,
         timerDuration: currentQuiz.timerDuration
     });
+    
     if (currentQuiz.timerEnabled) {
         timerRemaining = currentQuiz.timerDuration;
         setTimeout(() => {
@@ -865,8 +891,52 @@ function passQuestion() {
         alert('Select a player first!');
         return;
     }
-    selectedPlayer.metadata.score -= 5;
-    if (selectedPlayer.metadata.score < 0) selectedPlayer.metadata.score = 0;
+    
+    // Show modal to select next player
+    const otherPlayers = playerConns.filter(p => p !== selectedPlayer);
+    if (otherPlayers.length === 0) {
+        alert('No other players to pass to!');
+        return;
+    }
+    
+    let modalHTML = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:3000;display:flex;align-items:center;justify-content:center;" id="passModal">';
+    modalHTML += '<div style="background:var(--surface);padding:30px;border-radius:12px;max-width:400px;width:90%;">';
+    modalHTML += '<h3 style="color:var(--accent);margin-bottom:20px;text-align:center;">Pass Question To:</h3>';
+    
+    otherPlayers.forEach((p, i) => {
+        modalHTML += `<button onclick="passToPlayer(${playerConns.indexOf(p)})" style="width:100%;padding:15px;margin-bottom:10px;background:var(--surface);border:2px solid #444;color:#fff;border-radius:8px;font-size:1.1rem;cursor:pointer;">${p.metadata.name} (Score: ${p.metadata.score})</button>`;
+    });
+    
+    modalHTML += '<button onclick="closePassModal()" style="width:100%;padding:15px;background:transparent;border:2px solid #666;color:#666;border-radius:8px;font-size:1rem;cursor:pointer;margin-top:10px;">CANCEL</button>';
+    modalHTML += '</div></div>';
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+window.closePassModal = function() {
+    const modal = document.getElementById('passModal');
+    if (modal) modal.remove();
+}
+
+window.passToPlayer = function(playerIndex) {
+    const newPlayer = playerConns[playerIndex];
+    selectedPlayer = newPlayer;
+    playerAnswers = {};
+    
+    // Disable all players first
+    broadcastToPlayers({ type: 'disableAnswers' });
+    
+    // Enable only the new selected player
+    const q = currentQuiz.questions[currentQuestionIndex];
+    newPlayer.send({
+        type: 'enableAnswers',
+        questionNum: currentQuestionIndex + 1,
+        question: q.question,
+        options: q.options,
+        timerEnabled: currentQuiz.timerEnabled,
+        timerDuration: currentQuiz.timerDuration
+    });
+    
     updatePlayerList();
     broadcastToAudience({
         type: 'updateScoreboard',
@@ -876,9 +946,9 @@ function passQuestion() {
             current: p === selectedPlayer
         }))
     });
-    sounds.lose();
-    alert(`${selectedPlayer.metadata.name} passed! -5 points`);
-    nextQuestion();
+    
+    closePassModal();
+    alert(`Question passed to ${newPlayer.metadata.name}`);
 }
 
 function revealAnswer() {
@@ -901,6 +971,10 @@ function revealAnswer() {
             selectedPlayer.send({ type: 'updateScore', score: selectedPlayer.metadata.score });
             sounds.win();
         } else {
+            // Wrong answer: deduct 5 points
+            selectedPlayer.metadata.score -= 5;
+            if (selectedPlayer.metadata.score < 0) selectedPlayer.metadata.score = 0;
+            selectedPlayer.send({ type: 'updateScore', score: selectedPlayer.metadata.score });
             sounds.lose();
             startFlash('wrong');
         }
@@ -987,7 +1061,7 @@ async function generateQuiz() {
     status.className = 'status';
     try {
         const prompt = `Create a quiz about "${topic}" with exactly ${numQuestions} questions at ${difficulty} difficulty level. Return ONLY a valid JSON array with no markdown formatting, no backticks, no explanations. Each question must have this exact structure: {"question":"question text","options":["option1","option2","option3","option4"],"correctAnswer":0}. The correctAnswer is the index (0-3) of the correct option. Make questions clear, engaging, and appropriate for the difficulty level.`;
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
