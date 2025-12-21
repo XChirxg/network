@@ -1061,7 +1061,7 @@ async function generateQuiz() {
     status.className = 'status';
     try {
         const prompt = `Create a quiz about "${topic}" with exactly ${numQuestions} questions at ${difficulty} difficulty level. Return ONLY a valid JSON array with no markdown formatting, no backticks, no explanations. Each question must have this exact structure: {"question":"question text","options":["option1","option2","option3","option4"],"correctAnswer":0}. The correctAnswer is the index (0-3) of the correct option. Make questions clear, engaging, and appropriate for the difficulty level.`;
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
@@ -1099,3 +1099,4 @@ function importManualJson() {
     </script>
 </body>
 </html>
+
