@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Prompter V3</title>
+    <title>Pro Prompter</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <style>
         :root{--accent:#00ff88;--bg:#121212;--surface:#1e1e1e;--text:#fff;--pad-bg:#2a2a2a;--error:#ff4444}
@@ -196,21 +196,62 @@
             <button class="tool-btn" onclick="pasteText()">PASTE</button>
             <button class="tool-btn" onclick="toggleMode()" id="modeToggle">SLIDE</button>
         </div>
-        <textarea id="fullTextInput" placeholder="Type your text here..." oninput="updateTextStats()">Welcome to Pro Prompter.
+        <textarea id="fullTextInput" placeholder="Type your text here..." oninput="updateTextStats()">Speak it like you are thinking out loud, not like you are delivering a speech.
 
-This is a demonstration script.
+Pause where a thought ends, not where a line ends.
 
-Use the large pad on the Remote to scroll.
+Let silence do some of the work for you.
 
-Slide UP to scroll down.
+Do not rush to fill gaps with words.
 
-The further you slide, the faster it goes.
+If a sentence feels long, break it naturally while speaking.
 
-Pinch on the pad to change text size.
+Your voice does not need to be loud to sound confident.
 
-Tap Edit on the remote to change this text.
+Clarity matters more than volume.
 
-Happy Recording!</textarea>
+Imagine you are explaining this to one person, not an audience.
+
+Change your tone slightly when a new idea begins.
+
+Keep your pace slow enough that your mind stays ahead of your words.
+
+If you make a small mistake, continue without correcting it.
+
+Natural speech flows forward, it does not rewind.
+
+Breathe before important thoughts.
+
+Exhale while speaking to stay relaxed.
+
+Use your hands only when they help you think.
+
+If they distract you, keep them still.
+
+Look at ideas, not lines.
+
+Remember the meaning, not the wording.
+
+If a sentence comes out differently, let it.
+
+That means it is becoming yours.
+
+Practice once slowly.
+
+Practice once normally.
+
+Practice once without stopping at all.
+
+Record yourself and listen without judging.
+
+Notice rhythm, not perfection.
+
+Trust that your voice already knows how to speak.
+
+You are not performing.
+
+You are thinking clearly, out loud.
+</textarea>
         <div class="format-panel">
             <div class="format-row">
                 <label>Font Size:</label>
@@ -286,7 +327,7 @@ function connectToDisplay(){const val=document.getElementById('roomCodeInput').v
 function setupConnectionHandlers(){conn.on('open',()=>{console.log("Connected");document.getElementById('setupView').style.display='none';document.getElementById('controllerView').style.display='flex';setupControllerEvents();sendAction('sync');startHeartbeat();startTimer()});conn.on('data',data=>{if(data.type==='syncAll'){document.getElementById('fullTextInput').value=data.text;document.getElementById('fontSizeSlider').value=data.fontSize;document.getElementById('fontStyleSelect').value=data.fontStyle||'monospace';document.getElementById('alignSelect').value=data.align;document.getElementById('letterSpaceSlider').value=data.letterSpacing;document.getElementById('lineHeightSlider').value=data.lineHeight;tempFontSize=data.fontSize;colorIndex=data.colorIndex||0;if(data.mode==='slide'){displayMode='slide';switchToSlideMode()}updateTextPreview()}else if(data.type==='wpmUpdate'){updatePadDisplay(data.elapsed,data.currentWPM)}});conn.on('close',()=>{console.log("Connection lost");document.getElementById('textPreview').innerText="DISCONNECTED";setTimeout(()=>{if(peer&&!peer.destroyed){conn=peer.connect(conn.peer);setupConnectionHandlers()}},2000)});conn.on('error',err=>console.error(err))}
 function startHeartbeat(){if(heartbeatInterval)clearInterval(heartbeatInterval);heartbeatInterval=setInterval(()=>{if(conn&&conn.open)conn.send({type:'ping'})},2000)}
 function sendData(data){if(conn&&conn.open)conn.send(data)}
-function handleData(data){const content=document.getElementById('prompterContent'),slideContent=document.getElementById('slideContent');switch(data.type){case 'speed':speed=data.val;break;case 'text':content.innerText=data.val;scrollY=0;resetWPMTracking(data.val);if(displayMode==='slide')updateSlides(data.val);break;case 'fontSize':fontSize=data.val;content.style.fontSize=fontSize+'rem';slideContent.style.fontSize=fontSize+'rem';setTimeout(()=>resetWPMTracking(content.innerText),100);break;case 'fontStyle':fontStyle=data.val;content.style.fontFamily=fontStyle;slideContent.style.fontFamily=fontStyle;break;case 'align':textAlign=data.val;content.style.textAlign=textAlign;slideContent.style.textAlign=textAlign;break;case 'letterSpacing':letterSpacing=data.val;content.style.letterSpacing=letterSpacing+'em';slideContent.style.letterSpacing=letterSpacing+'em';break;case 'lineHeight':lineHeight=data.val;content.style.lineHeight=lineHeight;slideContent.style.lineHeight=lineHeight;break;case 'fontWeight':fontWeight=data.val;content.style.fontWeight=fontWeight;slideContent.style.fontWeight=fontWeight;break;case 'reset':scrollY=0;speed=0;currentSlide=0;resetWPMTracking(content.innerText);if(displayMode==='slide')showSlide(0);break;case 'mirror':isMirrored=!isMirrored;updateTransform();content.style.textAlign=isMirrored?'right':textAlign;break;case 'color':colorIndex=(colorIndex+1)%colors.length;content.style.color=colors[colorIndex];slideContent.style.color=colors[colorIndex];break;case 'hideUI':isUIHidden=!isUIHidden;const opacity=isUIHidden?'0':'1';document.getElementById('displayUI').style.opacity=opacity;document.querySelector('.marker-line').style.opacity=opacity;document.querySelector('.triangle-marker').style.opacity=opacity;document.getElementById('slideCounter').style.opacity=opacity;document.body.style.cursor=isUIHidden?'none':'default';break;case 'sync':conn.send({type:'syncAll',text:content.innerText,fontSize,fontStyle,align:textAlign,letterSpacing,lineHeight,fontWeight,mode:displayMode,colorIndex});break;case 'mode':displayMode=data.val;if(displayMode==='slide'){document.getElementById('prompterContent').style.display='none';document.getElementById('slideContent').style.display='flex';document.querySelector('.marker-line').style.display='none';document.querySelector('.triangle-marker').style.display='none';document.getElementById('slideCounter').style.display='block';document.getElementById('slideNav').style.display='flex';updateSlides(content.innerText);showSlide(0)}else{document.getElementById('prompterContent').style.display='block';document.getElementById('slideContent').style.display='none';document.querySelector('.marker-line').style.display='block';document.querySelector('.triangle-marker').style.display='block';document.getElementById('slideCounter').style.display='none';document.getElementById('slideNav').style.display='none';resetWPMTracking(content.innerText)}break;case 'nextSlide':if(currentSlide<slides.length-1){currentSlide++;showSlide(currentSlide)}break;case 'prevSlide':if(currentSlide>0){currentSlide--;showSlide(currentSlide)}break;case 'ping':break}}
+function handleData(data){const content=document.getElementById('prompterContent'),slideContent=document.getElementById('slideContent');switch(data.type){case 'speed':speed=data.val;break;case 'text':content.innerText=data.val;scrollY=0;resetWPMTracking(data.val);if(displayMode==='slide')updateSlides(data.val);break;case 'fontSize':fontSize=data.val;content.style.fontSize=fontSize+'rem';slideContent.style.fontSize=fontSize+'rem';setTimeout(()=>resetWPMTracking(content.innerText),100);break;case 'fontStyle':fontStyle=data.val;content.style.fontFamily=fontStyle;slideContent.style.fontFamily=fontStyle;break;case 'align':textAlign=data.val;content.style.textAlign=textAlign;slideContent.style.textAlign=textAlign;break;case 'letterSpacing':letterSpacing=data.val;content.style.letterSpacing=letterSpacing+'em';slideContent.style.letterSpacing=letterSpacing+'em';break;case 'lineHeight':lineHeight=data.val;content.style.lineHeight=lineHeight;slideContent.style.lineHeight=lineHeight;break;case 'fontWeight':fontWeight=data.val;content.style.fontWeight=fontWeight;slideContent.style.fontWeight=fontWeight;break;case 'reset':scrollY=0;speed=0;currentSlide=0;resetWPMTracking(content.innerText);document.getElementById('wpmStats').style.display='none';if(displayMode==='slide')showSlide(0);break;case 'mirror':isMirrored=!isMirrored;updateTransform();content.style.textAlign=isMirrored?'right':textAlign;break;case 'color':colorIndex=(colorIndex+1)%colors.length;content.style.color=colors[colorIndex];slideContent.style.color=colors[colorIndex];break;case 'hideUI':isUIHidden=!isUIHidden;const opacity=isUIHidden?'0':'1';document.getElementById('displayUI').style.opacity=opacity;document.querySelector('.marker-line').style.opacity=opacity;document.querySelector('.triangle-marker').style.opacity=opacity;document.getElementById('slideCounter').style.opacity=opacity;document.body.style.cursor=isUIHidden?'none':'default';break;case 'sync':conn.send({type:'syncAll',text:content.innerText,fontSize,fontStyle,align:textAlign,letterSpacing,lineHeight,fontWeight,mode:displayMode,colorIndex});break;case 'mode':displayMode=data.val;if(displayMode==='slide'){document.getElementById('prompterContent').style.display='none';document.getElementById('slideContent').style.display='flex';document.querySelector('.marker-line').style.display='none';document.querySelector('.triangle-marker').style.display='none';document.getElementById('slideCounter').style.display='block';document.getElementById('slideNav').style.display='flex';updateSlides(content.innerText);showSlide(0)}else{document.getElementById('prompterContent').style.display='block';document.getElementById('slideContent').style.display='none';document.querySelector('.marker-line').style.display='block';document.querySelector('.triangle-marker').style.display='block';document.getElementById('slideCounter').style.display='none';document.getElementById('slideNav').style.display='none';resetWPMTracking(content.innerText)}break;case 'nextSlide':if(currentSlide<slides.length-1){currentSlide++;showSlide(currentSlide)}break;case 'prevSlide':if(currentSlide>0){currentSlide--;showSlide(currentSlide)}break;case 'ping':break}}
 function resetWPMTracking(text){wpmTracking={started:false,startTime:0,totalWords:text.split(/\s+/).filter(w=>w.trim()).length,contentHeight:0,maxScroll:0,lastScrollProgress:0,currentWPM:0,elapsed:0};setTimeout(()=>{const content=document.getElementById('prompterContent');wpmTracking.contentHeight=content.scrollHeight;wpmTracking.maxScroll=wpmTracking.contentHeight-window.innerHeight;console.log('WPM Reset:',wpmTracking.totalWords,'words')},200)}
 function calculateWPM(){if(displayMode!=='scroll'||wpmTracking.maxScroll<=0)return;const scrollProgress=Math.min(Math.max(-scrollY/wpmTracking.maxScroll,0),1);const wordsRead=Math.floor(wpmTracking.totalWords*scrollProgress);if(!wpmTracking.started&&scrollProgress>.01){wpmTracking.started=true;wpmTracking.startTime=Date.now();wpmTracking.lastScrollProgress=scrollProgress}if(wpmTracking.started){const now=Date.now();wpmTracking.elapsed=(now-wpmTracking.startTime)/1000;wpmTracking.currentWPM=wpmTracking.elapsed>0?Math.round((wordsRead/wpmTracking.elapsed)*60):0;if(conn&&conn.open)conn.send({type:'wpmUpdate',elapsed:wpmTracking.elapsed,currentWPM:wpmTracking.currentWPM});if(scrollProgress>=.98&&scrollProgress>wpmTracking.lastScrollProgress){showFinalStats()}wpmTracking.lastScrollProgress=scrollProgress}}
 function showFinalStats(){const stats=document.getElementById('wpmStats');const avgWPM=wpmTracking.currentWPM;stats.innerHTML=`<div style="font-size:1.2rem;margin-bottom:10px">SESSION COMPLETE</div><div>Average: ${avgWPM} WPM</div><div style="font-size:0.9rem;opacity:0.8">Total: ${wpmTracking.totalWords} words in ${Math.floor(wpmTracking.elapsed/60)}:${String(Math.floor(wpmTracking.elapsed%60)).padStart(2,'0')}</div>`;stats.style.display='block'}
