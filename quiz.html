@@ -3,91 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quiz Master</title>
+    <title>Quiz Master Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <style>
-        :root{--accent:#00ff88;--bg:#0a0a0a;--surface:#1a1a1a;--text:#fff;--error:#ff4444;--warning:#ffaa00;--success:#00ff88}
+        :root{--accent:#00ff88;--bg:#0a0a0a;--surface:#1a1a1a;--text:#fff;--error:#ff4444;--warning:#ffaa00;--success:#00ff88;--purple:#667eea;--purple-dark:#764ba2}
         *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw}
         
-        /* Setup Screen */
-        .setup{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);z-index:1000;position:absolute;width:100%;transition:opacity .3s}
+        .setup{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;background:linear-gradient(135deg,var(--purple) 0%,var(--purple-dark) 100%);position:absolute;width:100%;transition:opacity .3s;z-index:1000}
         .setup h1{font-size:3rem;font-weight:900;letter-spacing:3px;margin-bottom:2rem;color:#fff;text-shadow:0 4px 20px rgba(0,0,0,.3)}
         .mode-select{display:flex;flex-direction:column;gap:15px;align-items:center;width:100%;max-width:350px;padding:0 20px}
-        .big-btn{padding:18px 35px;font-size:1.3rem;background:rgba(255,255,255,.95);border:none;color:#667eea;border-radius:12px;cursor:pointer;font-weight:700;transition:.2s;width:100%;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,.2)}
+        .big-btn{padding:18px 35px;font-size:1.3rem;background:rgba(255,255,255,.95);border:none;color:var(--purple);border-radius:12px;cursor:pointer;font-weight:700;transition:.2s;width:100%;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,.2)}
         .big-btn:active{transform:scale(.97)}
         .big-btn.secondary{background:rgba(255,255,255,.2);color:#fff;border:2px solid rgba(255,255,255,.4)}
         .input-group{display:none;flex-direction:column;gap:10px;width:100%}
-        .code-input{background:rgba(255,255,255,.95);border:none;color:#667eea;padding:18px;font-size:1.8rem;text-align:center;border-radius:12px;letter-spacing:8px;outline:none;font-weight:bold}
+        .code-input{background:rgba(255,255,255,.95);border:none;color:var(--purple);padding:18px;font-size:1.8rem;text-align:center;border-radius:12px;letter-spacing:8px;outline:none;font-weight:bold}
         .status{margin-top:20px;color:rgba(255,255,255,.8);letter-spacing:1px;font-size:1rem;min-height:24px;text-align:center;font-weight:500}
-        .dev-credit{margin-top:40px;font-size:.85rem;color:rgba(255,255,255,.6)}
-        .dev-credit a{color:#fff;text-decoration:none;font-weight:600}
 
-        /* Host Screen */
         #hostView{display:none;flex-direction:column;height:100%;background:var(--bg)}
-        .host-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,.3)}
-        .host-title{font-size:1.8rem;font-weight:800;color:#fff}
-        .room-code-box{background:rgba(0,0,0,.3);color:#fff;padding:12px 20px;border-radius:8px;font-family:monospace;font-size:1.4rem;font-weight:bold;letter-spacing:3px}
+        .host-header{background:linear-gradient(135deg,var(--purple) 0%,var(--purple-dark) 100%);padding:20px;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+        .host-title{font-size:1.8rem;font-weight:800;color:#fff;margin-bottom:15px}
+        .code-boxes{display:flex;gap:15px;flex-wrap:wrap}
+        .code-box{background:rgba(0,0,0,.3);color:#fff;padding:12px 20px;border-radius:8px;font-family:monospace;font-size:1.2rem;font-weight:bold}
         .host-content{flex:1;display:grid;grid-template-columns:2fr 1fr;gap:20px;padding:20px;overflow:hidden}
-        .question-panel{background:var(--surface);border-radius:12px;padding:25px;display:flex;flex-direction:column;gap:15px;box-shadow:0 4px 15px rgba(0,0,0,.2)}
-        .current-question{font-size:1.8rem;font-weight:700;color:var(--accent);margin-bottom:10px;line-height:1.4}
-        .answer-option{background:#0f0f0f;padding:15px 20px;border-radius:8px;margin:8px 0;font-size:1.1rem;border:2px solid transparent;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:12px}
+        .question-panel{background:var(--surface);border-radius:12px;padding:25px;overflow-y:auto;box-shadow:0 4px 15px rgba(0,0,0,.2)}
+        .current-question{font-size:1.8rem;font-weight:700;color:var(--accent);margin-bottom:15px;line-height:1.4}
+        .answer-option{background:#0f0f0f;padding:15px 20px;border-radius:8px;margin:8px 0;font-size:1.1rem;border:2px solid transparent;display:flex;align-items:center;gap:12px}
         .answer-option.correct{border-color:var(--success);background:rgba(0,255,136,.1)}
-        .answer-label{width:35px;height:35px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.1rem}
+        .answer-label{width:35px;height:35px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.1rem;flex-shrink:0}
         .answer-option.correct .answer-label{background:var(--success)}
-        .side-panel{display:flex;flex-direction:column;gap:15px}
+        .side-panel{display:flex;flex-direction:column;gap:15px;overflow-y:auto}
         .panel-box{background:var(--surface);border-radius:12px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,.2)}
         .panel-title{font-size:1.2rem;font-weight:700;color:var(--accent);margin-bottom:15px;border-bottom:2px solid rgba(0,255,136,.2);padding-bottom:10px}
-        .player-item{background:#0f0f0f;padding:12px 15px;border-radius:8px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}
+        .player-item{background:#0f0f0f;padding:12px 15px;border-radius:8px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:.2s}
+        .player-item:hover{background:#1a1a1a}
+        .player-item.selected{border:2px solid var(--accent)}
+        .player-item.asking{background:rgba(0,255,136,.15);border:2px solid var(--accent)}
         .player-name{font-weight:600;font-size:1rem}
         .player-score{background:var(--accent);color:#000;padding:4px 12px;border-radius:20px;font-weight:bold;font-size:.9rem}
-        .control-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;padding:15px;border-radius:10px;color:#fff;font-weight:700;cursor:pointer;font-size:1rem;transition:.2s;box-shadow:0 4px 12px rgba(102,126,234,.3)}
+        .control-btn{background:linear-gradient(135deg,var(--purple) 0%,var(--purple-dark) 100%);border:none;padding:15px;border-radius:10px;color:#fff;font-weight:700;cursor:pointer;font-size:1rem;transition:.2s;box-shadow:0 4px 12px rgba(102,126,234,.3);margin-top:10px}
         .control-btn:active{transform:scale(.98)}
-        .control-btn.danger{background:linear-gradient(135deg,#ff4444 0%,#cc0000 100%)}
-        .control-btn.success{background:linear-gradient(135deg,#00ff88 0%,#00cc6a 100%);color:#000}
-        .timer-controls{display:flex;gap:10px;align-items:center;margin-top:10px}
-        .timer-input{background:#0f0f0f;border:1px solid #333;color:#fff;padding:10px;border-radius:6px;width:80px;text-align:center;font-size:1rem;font-weight:bold}
-        .toggle-switch{position:relative;width:60px;height:30px;background:#333;border-radius:15px;cursor:pointer;transition:.3s}
+        .control-btn:disabled{opacity:.5;cursor:not-allowed}
+        .control-btn.danger{background:linear-gradient(135deg,var(--error) 0%,#cc0000 100%)}
+        .control-btn.success{background:linear-gradient(135deg,var(--success) 0%,#00cc6a 100%);color:#000}
+        .timer-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+        .timer-input{background:#0f0f0f;border:1px solid #333;color:#fff;padding:10px;border-radius:6px;text-align:center;font-size:1rem;font-weight:bold;width:100%}
+        .toggle-switch{width:60px;height:30px;background:#333;border-radius:15px;cursor:pointer;transition:.3s;position:relative}
         .toggle-switch.active{background:var(--accent)}
         .toggle-slider{position:absolute;top:3px;left:3px;width:24px;height:24px;background:#fff;border-radius:50%;transition:.3s}
         .toggle-switch.active .toggle-slider{left:33px}
+        .mode-selector{display:flex;gap:10px;margin-top:10px}
+        .mode-btn{flex:1;padding:10px;background:#0f0f0f;border:2px solid #333;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;transition:.2s}
+        .mode-btn.active{border-color:var(--accent);background:rgba(0,255,136,.1)}
 
-        /* Player Screen */
         #playerView{display:none;flex-direction:column;height:100%;background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%)}
         .player-header{padding:25px;text-align:center;background:rgba(0,0,0,.3)}
         .player-info{font-size:1.3rem;color:#fff;font-weight:600;margin-bottom:10px}
         .player-score-display{font-size:2.5rem;font-weight:900;color:var(--accent);text-shadow:0 0 20px rgba(0,255,136,.5)}
-        .player-content{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px}
+        .player-content{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px;overflow-y:auto}
+        .player-timer{font-size:4rem;font-weight:900;color:#fff;text-shadow:0 0 30px rgba(255,170,0,.8);margin-bottom:30px}
+        .player-timer.warning{color:var(--error);animation:pulse 1s infinite}
         .player-question{font-size:2rem;font-weight:700;color:#fff;text-align:center;margin-bottom:40px;line-height:1.5;text-shadow:0 2px 10px rgba(0,0,0,.3)}
         .player-answers{width:100%;max-width:600px;display:flex;flex-direction:column;gap:15px}
         .player-answer-btn{padding:20px;background:rgba(255,255,255,.95);border:none;border-radius:12px;font-size:1.3rem;font-weight:700;color:#1e3c72;cursor:pointer;transition:.2s;box-shadow:0 4px 15px rgba(0,0,0,.2);text-align:left;display:flex;align-items:center;gap:15px}
         .player-answer-btn:active{transform:scale(.98)}
         .player-answer-btn:disabled{opacity:.5;cursor:not-allowed}
-        .player-answer-btn.selected{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff}
+        .player-answer-btn.selected{background:linear-gradient(135deg,var(--purple) 0%,var(--purple-dark) 100%);color:#fff}
+        .player-answer-btn.correct{background:linear-gradient(135deg,var(--success) 0%,#00cc6a 100%);color:#000}
+        .player-answer-btn.wrong{background:linear-gradient(135deg,var(--error) 0%,#cc0000 100%);color:#fff}
         .waiting-message{font-size:1.8rem;color:rgba(255,255,255,.7);text-align:center;font-weight:600}
-        .player-timer{font-size:4rem;font-weight:900;color:#fff;text-shadow:0 0 30px rgba(255,170,0,.8);margin-bottom:30px}
 
-        /* Audience Screen */
         #audienceView{display:none;flex-direction:column;height:100%;background:linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)}
         .audience-header{background:rgba(0,0,0,.4);padding:30px;text-align:center;backdrop-filter:blur(10px)}
         .audience-title{font-size:2.5rem;font-weight:900;color:#fff;text-shadow:0 4px 20px rgba(0,0,0,.5);margin-bottom:15px}
         .audience-subtitle{font-size:1.3rem;color:rgba(255,255,255,.7);font-weight:600}
-        .audience-content{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px}
-        .audience-question{font-size:3rem;font-weight:800;color:#fff;text-align:center;margin-bottom:50px;line-height:1.4;text-shadow:0 4px 20px rgba(0,0,0,.3);max-width:90%}
-        .audience-timer{font-size:8rem;font-weight:900;color:var(--accent);text-shadow:0 0 40px rgba(0,255,136,.6);margin-bottom:50px;font-family:'Courier New',monospace}
+        .audience-content{flex:1;display:flex;flex-direction:column;align-items:center;padding:40px;overflow-y:auto}
+        .audience-question-box{width:100%;max-width:1000px;background:rgba(0,0,0,.4);border-radius:20px;padding:40px;backdrop-filter:blur(10px);margin-bottom:30px}
+        .audience-question{font-size:2.5rem;font-weight:800;color:#fff;text-align:center;margin-bottom:30px;line-height:1.4;text-shadow:0 4px 20px rgba(0,0,0,.3)}
+        .audience-answers{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:30px}
+        .audience-answer{background:rgba(255,255,255,.1);padding:20px;border-radius:12px;font-size:1.3rem;font-weight:600;border:2px solid transparent;transition:.3s}
+        .audience-answer.correct{border-color:var(--success);background:rgba(0,255,136,.2);animation:correctPulse .5s}
+        .audience-timer{font-size:6rem;font-weight:900;color:var(--accent);text-shadow:0 0 40px rgba(0,255,136,.6);margin-bottom:30px;font-family:'Courier New',monospace}
         .audience-timer.warning{color:var(--warning);animation:pulse 1s infinite}
+        .current-player{font-size:1.8rem;color:var(--accent);margin-bottom:20px;font-weight:700}
         .leaderboard{width:100%;max-width:800px;background:rgba(0,0,0,.4);border-radius:20px;padding:30px;backdrop-filter:blur(10px)}
         .leaderboard-title{font-size:2rem;font-weight:800;color:var(--accent);margin-bottom:25px;text-align:center}
         .leaderboard-item{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;margin:10px 0;background:rgba(255,255,255,.1);border-radius:12px;font-size:1.4rem;font-weight:600;transition:.3s}
-        .leaderboard-item:hover{background:rgba(255,255,255,.15);transform:translateX(5px)}
+        .leaderboard-item.highlight{background:rgba(0,255,136,.2);transform:scale(1.05)}
         .leaderboard-rank{background:var(--accent);color:#000;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;margin-right:15px}
         .leaderboard-score{background:rgba(0,255,136,.2);padding:8px 20px;border-radius:20px;color:var(--accent);font-weight:800}
 
-        /* Question Manager Modal */
-        #questionModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:2000;flex-direction:column}
-        .modal-header{padding:20px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+        #questionModal,#aiModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:2000;flex-direction:column}
+        .modal-header{padding:20px;background:linear-gradient(135deg,var(--purple) 0%,var(--purple-dark) 100%);display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,.3)}
         .modal-title{font-size:1.8rem;font-weight:800;color:#fff}
-        .modal-btn{background:rgba(255,255,255,.95);color:#667eea;padding:10px 25px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem}
+        .modal-btn{background:rgba(255,255,255,.95);color:var(--purple);padding:10px 25px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem}
         .modal-content{flex:1;overflow-y:auto;padding:25px}
         .question-form{background:var(--surface);border-radius:12px;padding:25px;margin-bottom:20px;box-shadow:0 4px 15px rgba(0,0,0,.2)}
         .form-group{margin-bottom:20px}
@@ -107,21 +116,26 @@
         .question-actions{display:flex;gap:10px}
         .action-btn{padding:8px 16px;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:.9rem}
         .action-btn.use{background:var(--accent);color:#000}
-        .action-btn.edit{background:#667eea;color:#fff}
         .action-btn.delete{background:var(--error);color:#fff}
+        .json-box{background:#0f0f0f;border:1px solid #333;color:#fff;padding:15px;border-radius:8px;font-family:monospace;font-size:.9rem;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;margin-top:10px}
 
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        @keyframes correctPulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
         
         .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:15px}
         .stat-item{background:#0f0f0f;padding:12px;border-radius:8px;text-align:center}
         .stat-value{font-size:1.5rem;font-weight:800;color:var(--accent)}
         .stat-label{font-size:.85rem;color:#888;margin-top:4px}
+
+        @media(max-width:768px){
+            .host-content{grid-template-columns:1fr}
+            .audience-answers{grid-template-columns:1fr}
+        }
     </style>
 </head>
 <body>
-    <!-- Setup Screen -->
     <div class="setup" id="setupView">
-        <h1>QUIZ MASTER</h1>
+        <h1>QUIZ MASTER PRO</h1>
         <div class="mode-select" id="initialBtns">
             <button class="big-btn" onclick="startHost()">HOST QUIZ</button>
             <button class="big-btn" onclick="showPlayerInput()">JOIN AS PLAYER</button>
@@ -129,49 +143,60 @@
         </div>
         <div class="mode-select input-group" id="playerInputGroup">
             <input type="text" id="playerNameInput" class="code-input" placeholder="YOUR NAME" style="font-size:1.2rem;letter-spacing:2px">
-            <input type="number" id="playerCodeInput" class="code-input" placeholder="0000" pattern="\d*">
+            <input type="text" id="playerCodeInput" class="code-input" placeholder="PLAYER CODE" maxlength="6">
             <button class="big-btn" onclick="joinAsPlayer()">JOIN</button>
             <button class="big-btn secondary" onclick="backToMain()">BACK</button>
         </div>
         <div class="mode-select input-group" id="audienceInputGroup">
-            <input type="number" id="audienceCodeInput" class="code-input" placeholder="0000" pattern="\d*">
+            <input type="text" id="audienceCodeInput" class="code-input" placeholder="AUDIENCE CODE" maxlength="6">
             <button class="big-btn" onclick="joinAsAudience()">JOIN</button>
             <button class="big-btn secondary" onclick="backToMain()">BACK</button>
         </div>
         <div class="status" id="statusText">Select Mode</div>
-        <div class="dev-credit">Developed by <a href="https://ChiragSharma.web.app" target="_blank">xchirxg</a></div>
     </div>
 
-    <!-- Host View -->
     <div id="hostView">
         <div class="host-header">
             <div class="host-title">QUIZ MASTER HOST</div>
-            <div class="room-code-box" id="hostCodeBox">CODE: ----</div>
+            <div class="code-boxes">
+                <div class="code-box">PLAYER: <span id="playerCode">------</span></div>
+                <div class="code-box">AUDIENCE: <span id="audienceCode">------</span></div>
+            </div>
         </div>
         <div class="host-content">
             <div class="question-panel">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                    <h2 style="color:var(--accent);font-size:1.4rem">CURRENT QUESTION</h2>
-                    <button class="modal-btn" onclick="openQuestionManager()">MANAGE QUESTIONS</button>
+                    <h2 style="color:var(--accent);font-size:1.4rem">QUESTION</h2>
+                    <button class="modal-btn" onclick="openQuestionManager()">MANAGE</button>
                 </div>
-                <div class="current-question" id="hostQuestion">No question loaded. Click "Manage Questions" to add questions.</div>
+                <div class="current-question" id="hostQuestion">No question loaded</div>
                 <div id="hostAnswers"></div>
+                
                 <div class="timer-controls">
-                    <div style="flex:1">
-                        <label class="form-label">Timer (seconds)</label>
+                    <div>
+                        <label class="form-label">Timer (sec)</label>
                         <input type="number" id="timerInput" class="timer-input" value="30" min="5" max="300">
                     </div>
-                    <div style="flex:1">
-                        <label class="form-label">Enable Timer</label>
+                    <div>
+                        <label class="form-label">Enable</label>
                         <div class="toggle-switch" id="timerToggle" onclick="toggleTimer()">
                             <div class="toggle-slider"></div>
                         </div>
                     </div>
                 </div>
-                <button class="control-btn" onclick="showQuestion()" style="margin-top:15px">SHOW QUESTION</button>
-                <button class="control-btn success" onclick="revealAnswer()" style="margin-top:10px">REVEAL ANSWER</button>
-                <button class="control-btn" onclick="nextQuestion()" style="margin-top:10px">NEXT QUESTION</button>
-                <button class="control-btn danger" onclick="resetQuiz()" style="margin-top:10px">RESET QUIZ</button>
+
+                <div style="margin-top:15px">
+                    <label class="form-label">Ask Mode</label>
+                    <div class="mode-selector">
+                        <button class="mode-btn active" onclick="setAskMode('one')" id="modeOne">ONE PLAYER</button>
+                        <button class="mode-btn" onclick="setAskMode('all')" id="modeAll">ALL (FASTEST)</button>
+                    </div>
+                </div>
+
+                <button class="control-btn" onclick="showQuestion()" id="showBtn">SHOW QUESTION</button>
+                <button class="control-btn success" onclick="revealAnswer()" id="revealBtn" disabled>REVEAL ANSWER</button>
+                <button class="control-btn" onclick="nextQuestion()">NEXT QUESTION</button>
+                <button class="control-btn danger" onclick="resetQuiz()">RESET QUIZ</button>
             </div>
             <div class="side-panel">
                 <div class="panel-box" style="flex:1;overflow-y:auto">
@@ -179,7 +204,7 @@
                     <div id="playersList"></div>
                 </div>
                 <div class="panel-box">
-                    <div class="panel-title">QUIZ STATS</div>
+                    <div class="panel-title">STATS</div>
                     <div class="stats-grid">
                         <div class="stat-item">
                             <div class="stat-value" id="totalQuestions">0</div>
@@ -189,13 +214,16 @@
                             <div class="stat-value" id="currentQuestionNum">0</div>
                             <div class="stat-label">Current</div>
                         </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="audienceCount">0</div>
+                            <div class="stat-label">Audience</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Player View -->
     <div id="playerView">
         <div class="player-header">
             <div class="player-info" id="playerNameDisplay">PLAYER</div>
@@ -203,20 +231,23 @@
         </div>
         <div class="player-content">
             <div class="player-timer" id="playerTimer" style="display:none"></div>
-            <div class="player-question" id="playerQuestion">Waiting for host to start...</div>
+            <div class="player-question" id="playerQuestion">Waiting for host...</div>
             <div class="player-answers" id="playerAnswers"></div>
         </div>
     </div>
 
-    <!-- Audience View -->
     <div id="audienceView">
         <div class="audience-header">
             <div class="audience-title">QUIZ MASTER</div>
-            <div class="audience-subtitle" id="audienceSubtitle">Waiting for quiz to begin...</div>
+            <div class="audience-subtitle" id="audienceSubtitle">Waiting to begin...</div>
         </div>
         <div class="audience-content">
             <div class="audience-timer" id="audienceTimer" style="display:none"></div>
-            <div class="audience-question" id="audienceQuestion" style="display:none"></div>
+            <div class="current-player" id="currentPlayerDisplay" style="display:none"></div>
+            <div class="audience-question-box" id="audienceQuestionBox" style="display:none">
+                <div class="audience-question" id="audienceQuestion"></div>
+                <div class="audience-answers" id="audienceAnswers"></div>
+            </div>
             <div class="leaderboard" id="audienceLeaderboard" style="display:none">
                 <div class="leaderboard-title">LEADERBOARD</div>
                 <div id="audienceLeaderboardList"></div>
@@ -224,7 +255,6 @@
         </div>
     </div>
 
-    <!-- Question Manager Modal -->
     <div id="questionModal">
         <div class="modal-header">
             <div class="modal-title">QUESTION MANAGER</div>
@@ -235,13 +265,13 @@
         </div>
         <div class="modal-content">
             <div class="question-form">
-                <h3 style="color:var(--accent);margin-bottom:20px;font-size:1.3rem">ADD NEW QUESTION</h3>
+                <h3 style="color:var(--accent);margin-bottom:20px;font-size:1.3rem">ADD QUESTION</h3>
                 <div class="form-group">
                     <label class="form-label">Question</label>
-                    <textarea class="form-input form-textarea" id="newQuestionText" placeholder="Enter your question..."></textarea>
+                    <textarea class="form-input form-textarea" id="newQuestionText" placeholder="Enter question..."></textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Answers (check the correct one)</label>
+                    <label class="form-label">Answers (check correct)</label>
                     <div class="answer-inputs" id="newAnswerInputs">
                         <div class="answer-input-row">
                             <input type="checkbox" class="correct-checkbox" name="correctAnswer" value="0">
@@ -268,43 +298,55 @@
         </div>
     </div>
 
-    <!-- AI Generator Modal -->
-    <div id="aiModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:3000;flex-direction:column">
+    <div id="aiModal">
         <div class="modal-header">
-            <div class="modal-title">AI QUIZ GENERATOR</div>
+            <div class="modal-title">AI GENERATOR</div>
             <button class="modal-btn" onclick="closeAiGenerator()">CLOSE</button>
         </div>
         <div class="modal-content">
             <div class="question-form">
                 <div class="form-group">
                     <label class="form-label">Gemini API Key</label>
-                    <input type="text" class="form-input" id="apiKeyInput" placeholder="Enter your Gemini API key">
+                    <input type="text" class="form-input" id="apiKeyInput" placeholder="Enter API key">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Topic</label>
-                    <input type="text" class="form-input" id="topicInput" placeholder="e.g., World History, Science, Movies">
+                    <input type="text" class="form-input" id="topicInput" placeholder="e.g., History, Science">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Number of Questions</label>
+                    <label class="form-label">Questions</label>
                     <input type="number" class="form-input" id="numQuestionsInput" value="5" min="1" max="20">
                 </div>
-                <button class="control-btn" onclick="generateQuestions()">GENERATE QUESTIONS</button>
+                <button class="control-btn" onclick="generateQuestions()">GENERATE</button>
                 <div class="status" id="aiStatus" style="margin-top:15px"></div>
+                
+                <div id="manualJsonSection" style="display:none;margin-top:30px">
+                    <h3 style="color:var(--accent);margin-bottom:15px">Manual JSON Import</h3>
+                    <p style="color:#888;margin-bottom:10px;font-size:.9rem">Copy this prompt to your LLM, paste JSON response below:</p>
+                    <div class="json-box" id="jsonPrompt"></div>
+                    <div class="form-group" style="margin-top:15px">
+                        <label class="form-label">Paste JSON Response</label>
+                        <textarea class="form-input form-textarea" id="jsonInput" placeholder='[{"question":"...","answers":[...],"correctAnswer":0}]'></textarea>
+                    </div>
+                    <button class="control-btn" onclick="importJson()">IMPORT JSON</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-const ID_PREFIX="QUIZMASTER-";
-let peer,conn,mode='',myRoomCode='',connections=[];
-let players=[],currentQuestionIndex=0,questions=[],timerEnabled=false,timerDuration=30,timerInterval,timeRemaining=0;
+const PREFIX="QM-";
+let peer,playerPeer,audiencePeer,mode='';
+let playerConns=[],audienceConns=[];
+let players=[],currentQIndex=0,questions=[],timerOn=false,timerSec=30,timerInt,timeLeft=0;
 let playerName='',playerScore=0,playerAnswered=false;
+let askMode='one',selectedPlayerId=null,questionActive=false;
+let sounds={};
 
-// Setup Functions
-function setStatus(msg,isError=false){
+function setStatus(msg,err=false){
     const el=document.getElementById('statusText');
     el.innerText=msg;
-    el.style.color=isError?'var(--error)':'rgba(255,255,255,.8)';
+    el.style.color=err?'var(--error)':'rgba(255,255,255,.8)';
 }
 
 function backToMain(){
@@ -317,118 +359,137 @@ function backToMain(){
 function showPlayerInput(){
     document.getElementById('initialBtns').style.display='none';
     document.getElementById('playerInputGroup').style.display='flex';
-    document.getElementById('playerNameInput').focus();
-    setStatus("Enter your name and room code");
+    setStatus("Enter name and player code");
 }
 
 function showAudienceInput(){
     document.getElementById('initialBtns').style.display='none';
     document.getElementById('audienceInputGroup').style.display='flex';
-    document.getElementById('audienceCodeInput').focus();
-    setStatus("Enter room code to join as audience");
+    setStatus("Enter audience code");
 }
 
-// Host Functions
+function generateCode(){return Math.random().toString(36).substr(2,6).toUpperCase()}
+
 function startHost(){
     mode='host';
-    setStatus("Starting Host...");
-    myRoomCode=Math.floor(1000+Math.random()*9000).toString();
-    const fullId=ID_PREFIX+myRoomCode;
+    const pCode=generateCode();
+    const aCode=generateCode();
     
     document.getElementById('setupView').style.display='none';
     document.getElementById('hostView').style.display='flex';
-    document.getElementById('hostCodeBox').innerText="CODE: "+myRoomCode;
+    document.getElementById('playerCode').innerText=pCode;
+    document.getElementById('audienceCode').innerText=aCode;
     
-    peer=new Peer(fullId);
-    peer.on('open',id=>console.log('Host ID:',id));
-    peer.on('connection',handleNewConnection);
-    peer.on('error',err=>{
-        if(err.type==='unavailable-id')startHost();
-        else alert("Network Error: "+err.type);
+    playerPeer=new Peer(PREFIX+'P-'+pCode);
+    audiencePeer=new Peer(PREFIX+'A-'+aCode);
+    
+    playerPeer.on('open',()=>console.log('Player peer ready'));
+    playerPeer.on('connection',c=>{
+        playerConns.push(c);
+        setupPlayerConn(c);
+    });
+    
+    audiencePeer.on('open',()=>console.log('Audience peer ready'));
+    audiencePeer.on('connection',c=>{
+        audienceConns.push(c);
+        setupAudienceConn(c);
     });
     
     loadQuestions();
     updateHostDisplay();
+    createSounds();
 }
 
-function handleNewConnection(c){
-    connections.push(c);
-    c.on('data',data=>handleHostData(data,c));
+function setupPlayerConn(c){
+    c.on('data',data=>handlePlayerData(data,c));
     c.on('close',()=>{
-        connections=connections.filter(con=>con!==c);
-        if(data.playerName){
-            players=players.filter(p=>p.id!==c.peer);
-            updatePlayersDisplay();
-            broadcastToAudience({type:'leaderboard',players});
-        }
+        playerConns=playerConns.filter(x=>x!==c);
+        players=players.filter(p=>p.id!==c.peer);
+        updatePlayersDisplay();
+        broadcastLeaderboard();
     });
     
     setTimeout(()=>{
         if(c.open){
-            c.send({
-                type:'init',
-                questions:questions.map(q=>({question:q.question,answers:q.answers})),
-                currentQuestion:currentQuestionIndex,
-                timerEnabled,
-                timerDuration
-            });
+            c.send({type:'init',questions:questions.map(q=>({question:q.question,answers:q.answers}))});
         }
     },500);
 }
 
-function handleHostData(data,conn){
+function setupAudienceConn(c){
+    c.on('close',()=>{
+        audienceConns=audienceConns.filter(x=>x!==c);
+        updateAudienceCount();
+    });
+    
+    setTimeout(()=>{
+        if(c.open){
+            c.send({type:'init'});
+            updateAudienceCount();
+        }
+    },500);
+}
+
+function handlePlayerData(data,conn){
     if(data.type==='join'){
-        if(data.role==='player'){
-            const existingPlayer=players.find(p=>p.id===conn.peer);
-            if(!existingPlayer){
-                players.push({
-                    id:conn.peer,
-                    name:data.name,
-                    score:0,
-                    answered:false,
-                    connection:conn
-                });
-                updatePlayersDisplay();
-                broadcastToAudience({type:'leaderboard',players});
-            }
+        const existing=players.find(p=>p.id===conn.peer);
+        if(!existing){
+            players.push({id:conn.peer,name:data.name,score:0,answered:false,conn});
+            updatePlayersDisplay();
+            broadcastLeaderboard();
         }
     }else if(data.type==='answer'){
         const player=players.find(p=>p.id===conn.peer);
-        if(player&&!player.answered&&questions[currentQuestionIndex]){
-            player.answered=true;
-            const correct=questions[currentQuestionIndex].correctAnswer===data.answerIndex;
-            if(correct){
-                const points=timerEnabled?Math.max(10,Math.floor((timeRemaining/timerDuration)*100)):50;
-                player.score+=points;
-            }
-            conn.send({type:'result',correct,score:player.score});
-            updatePlayersDisplay();
-            broadcastToAudience({type:'leaderboard',players});
+        if(!player||player.answered||!questionActive)return;
+        
+        if(askMode==='one'&&player.id!==selectedPlayerId)return;
+        
+        player.answered=true;
+        const correct=questions[currentQIndex].correctAnswer===data.answerIndex;
+        
+        if(correct){
+            const points=timerOn?Math.max(10,Math.floor((timeLeft/timerSec)*100)):50;
+            player.score+=points;
+            playSound('correct');
+        }else{
+            playSound('wrong');
+        }
+        
+        conn.send({type:'result',correct,score:player.score});
+        updatePlayersDisplay();
+        broadcastLeaderboard();
+        
+        if(askMode==='all'&&correct){
+            revealAnswer();
         }
     }
 }
 
 function updatePlayersDisplay(){
     const list=document.getElementById('playersList');
-    const sortedPlayers=[...players].sort((a,b)=>b.score-a.score);
-    list.innerHTML=sortedPlayers.map(p=>`
-        <div class="player-item">
-            <div class="player-name">${p.name}</div>
+    const sorted=[...players].sort((a,b)=>b.score-a.score);
+    list.innerHTML=sorted.map(p=>`
+        <div class="player-item ${p.id===selectedPlayerId?'selected':''} ${p.answered?'':''}">
+            <div class="player-name">${p.name}${p.answered?' ✓':''}</div>
             <div class="player-score">${p.score}</div>
         </div>
     `).join('');
     document.getElementById('playerCount').innerText=players.length;
 }
 
+function updateAudienceCount(){
+    document.getElementById('audienceCount').innerText=audienceConns.length;
+}
+
 function updateHostDisplay(){
     if(questions.length===0){
-        document.getElementById('hostQuestion').innerText="No questions loaded. Click 'Manage Questions' to add.";
+        document.getElementById('hostQuestion').innerText="No questions. Click MANAGE";
         document.getElementById('hostAnswers').innerHTML='';
         document.getElementById('totalQuestions').innerText='0';
         document.getElementById('currentQuestionNum').innerText='0';
         return;
     }
-    const q=questions[currentQuestionIndex];
+    const q=questions[currentQIndex];
     document.getElementById('hostQuestion').innerText=q.question;
     document.getElementById('hostAnswers').innerHTML=q.answers.map((ans,i)=>`
         <div class="answer-option ${i===q.correctAnswer?'correct':''}">
@@ -437,67 +498,116 @@ function updateHostDisplay(){
         </div>
     `).join('');
     document.getElementById('totalQuestions').innerText=questions.length;
-    document.getElementById('currentQuestionNum').innerText=(currentQuestionIndex+1);
+    document.getElementById('currentQuestionNum').innerText=(currentQIndex+1);
+}
+
+function setAskMode(m){
+    askMode=m;
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(m==='one'?'modeOne':'modeAll').classList.add('active');
 }
 
 function showQuestion(){
-    if(!questions[currentQuestionIndex])return;
+    if(!questions[currentQIndex])return;
+    
+    if(askMode==='one'){
+        if(!selectedPlayerId){
+            const active=players.filter(p=>p.score>=0);
+            if(active.length===0){alert('No players');return}
+            selectedPlayerId=active[Math.floor(Math.random()*active.length)].id;
+        }
+    }else{
+        selectedPlayerId=null;
+    }
+    
+    questionActive=true;
     players.forEach(p=>p.answered=false);
     updatePlayersDisplay();
+    document.getElementById('showBtn').disabled=true;
+    document.getElementById('revealBtn').disabled=false;
     
-    const q=questions[currentQuestionIndex];
-    broadcast({
-        type:'showQuestion',
-        question:q.question,
-        answers:q.answers,
-        timerEnabled,
-        timerDuration
+    const q=questions[currentQIndex];
+    const targetPlayer=askMode==='one'?players.find(p=>p.id===selectedPlayerId):null;
+    
+    playerConns.forEach(c=>{
+        const canAnswer=askMode==='all'||c.peer===selectedPlayerId;
+        c.send({type:'showQuestion',question:q.question,answers:q.answers,canAnswer,timerOn,timerSec});
     });
     
-    if(timerEnabled){
-        startTimer();
-    }
+    audienceConns.forEach(c=>{
+        c.send({
+            type:'showQuestion',
+            question:q.question,
+            answers:q.answers,
+            currentPlayer:targetPlayer?targetPlayer.name:'ALL PLAYERS',
+            mode:askMode,
+            timerOn,
+            timerSec
+        });
+    });
+    
+    playSound('question');
+    
+    if(timerOn)startTimer();
 }
 
 function revealAnswer(){
-    if(!questions[currentQuestionIndex])return;
+    if(!questions[currentQIndex])return;
+    questionActive=false;
     stopTimer();
-    broadcast({type:'revealAnswer',correctAnswer:questions[currentQuestionIndex].correctAnswer});
-    broadcastToAudience({type:'leaderboard',players});
+    document.getElementById('showBtn').disabled=false;
+    document.getElementById('revealBtn').disabled=true;
+    
+    playerConns.forEach(c=>c.send({type:'reveal',correctAnswer:questions[currentQIndex].correctAnswer}));
+    audienceConns.forEach(c=>c.send({type:'reveal',correctAnswer:questions[currentQIndex].correctAnswer}));
+    
+    playSound('reveal');
+    setTimeout(()=>broadcastLeaderboard(),1000);
 }
 
 function nextQuestion(){
-    if(currentQuestionIndex<questions.length-1){
-        currentQuestionIndex++;
+    if(currentQIndex<questions.length-1){
+        currentQIndex++;
+        selectedPlayerId=null;
+        questionActive=false;
         updateHostDisplay();
         stopTimer();
-        broadcast({type:'clearQuestion'});
+        document.getElementById('showBtn').disabled=false;
+        document.getElementById('revealBtn').disabled=true;
+        
+        playerConns.forEach(c=>c.send({type:'clear'}));
+        audienceConns.forEach(c=>c.send({type:'clear'}));
     }
 }
 
 function resetQuiz(){
-    if(!confirm('Reset entire quiz? This will clear all scores.'))return;
-    currentQuestionIndex=0;
+    if(!confirm('Reset quiz and scores?'))return;
+    currentQIndex=0;
+    selectedPlayerId=null;
+    questionActive=false;
     players.forEach(p=>{p.score=0;p.answered=false});
     updatePlayersDisplay();
     updateHostDisplay();
     stopTimer();
-    broadcast({type:'reset'});
-    broadcastToAudience({type:'reset'});
+    document.getElementById('showBtn').disabled=false;
+    document.getElementById('revealBtn').disabled=true;
+    
+    playerConns.forEach(c=>c.send({type:'reset'}));
+    audienceConns.forEach(c=>c.send({type:'reset'}));
 }
 
 function startTimer(){
     stopTimer();
-    timeRemaining=timerDuration;
-    broadcast({type:'startTimer',duration:timerDuration});
-    broadcastToAudience({type:'startTimer',duration:timerDuration});
+    timeLeft=timerSec;
+    playerConns.forEach(c=>c.send({type:'startTimer',time:timeLeft}));
+    audienceConns.forEach(c=>c.send({type:'startTimer',time:timeLeft}));
     
-    timerInterval=setInterval(()=>{
-        timeRemaining--;
-        broadcast({type:'timerTick',time:timeRemaining});
-        broadcastToAudience({type:'timerTick',time:timeRemaining});
+    timerInt=setInterval(()=>{
+        timeLeft--;
+        playerConns.forEach(c=>c.send({type:'timerTick',time:timeLeft}));
+        audienceConns.forEach(c=>c.send({type:'timerTick',time:timeLeft}));
         
-        if(timeRemaining<=0){
+        if(timeLeft<=0){
             stopTimer();
             revealAnswer();
         }
@@ -505,203 +615,190 @@ function startTimer(){
 }
 
 function stopTimer(){
-    if(timerInterval){
-        clearInterval(timerInterval);
-        timerInterval=null;
+    if(timerInt){
+        clearInterval(timerInt);
+        timerInt=null;
     }
-    broadcast({type:'stopTimer'});
-    broadcastToAudience({type:'stopTimer'});
+    playerConns.forEach(c=>c.send({type:'stopTimer'}));
+    audienceConns.forEach(c=>c.send({type:'stopTimer'}));
 }
 
 function toggleTimer(){
-    timerEnabled=!timerEnabled;
+    timerOn=!timerOn;
     const toggle=document.getElementById('timerToggle');
-    if(timerEnabled){
+    if(timerOn){
         toggle.classList.add('active');
-        timerDuration=parseInt(document.getElementById('timerInput').value)||30;
+        timerSec=parseInt(document.getElementById('timerInput').value)||30;
     }else{
         toggle.classList.remove('active');
     }
 }
 
-function broadcast(data){
-    connections.forEach(c=>{
-        if(c.open)c.send(data);
-    });
+function broadcastLeaderboard(){
+    const sorted=[...players].sort((a,b)=>b.score-a.score);
+    audienceConns.forEach(c=>c.send({type:'leaderboard',players:sorted}));
 }
 
-function broadcastToAudience(data){
-    connections.forEach(c=>{
-        if(c.open)c.send(data);
-    });
-}
-
-// Player Functions
 function joinAsPlayer(){
     const name=document.getElementById('playerNameInput').value.trim();
-    const code=document.getElementById('playerCodeInput').value;
+    const code=document.getElementById('playerCodeInput').value.toUpperCase();
     
-    if(!name){
-        setStatus("Please enter your name",true);
-        return;
-    }
-    if(code.length<4){
-        setStatus("Please enter 4-digit code",true);
-        return;
-    }
+    if(!name){setStatus("Enter name",true);return}
+    if(code.length<6){setStatus("Enter 6-char code",true);return}
     
     mode='player';
     playerName=name;
     setStatus("Connecting...");
     
-    const targetId=ID_PREFIX+code;
     peer=new Peer();
     peer.on('open',()=>{
-        conn=peer.connect(targetId,{reliable:true});
-        setupPlayerConnection();
+        const conn=peer.connect(PREFIX+'P-'+code,{reliable:true});
+        setupPlayerClientConn(conn);
     });
     peer.on('error',err=>{
         setStatus("Error: "+err.type,true);
-        if(err.type==='peer-unavailable')setStatus("Quiz not found. Check code.",true);
     });
 }
 
-function setupPlayerConnection(){
+function setupPlayerClientConn(conn){
     conn.on('open',()=>{
         document.getElementById('setupView').style.display='none';
         document.getElementById('playerView').style.display='flex';
         document.getElementById('playerNameDisplay').innerText=playerName;
-        conn.send({type:'join',role:'player',name:playerName});
+        conn.send({type:'join',name:playerName});
     });
     
-    conn.on('data',handlePlayerData);
+    conn.on('data',data=>handlePlayerClientData(data));
     conn.on('close',()=>{
-        document.getElementById('playerQuestion').innerText="Disconnected from quiz";
+        document.getElementById('playerQuestion').innerText="Disconnected";
     });
+    
+    window.playerConn=conn;
 }
 
-function handlePlayerData(data){
+function handlePlayerClientData(data){
     switch(data.type){
-        case 'init':
-            break;
         case 'showQuestion':
             playerAnswered=false;
             document.getElementById('playerQuestion').innerText=data.question;
             document.getElementById('playerAnswers').innerHTML=data.answers.map((ans,i)=>`
-                <button class="player-answer-btn" onclick="submitAnswer(${i})">
+                <button class="player-answer-btn" onclick="submitAnswer(${i})" ${data.canAnswer?'':'disabled'}>
                     <div class="answer-label">${String.fromCharCode(65+i)}</div>
                     <div>${ans}</div>
                 </button>
             `).join('');
             
-            if(data.timerEnabled){
+            if(!data.canAnswer){
+                document.getElementById('playerQuestion').innerText="Wait for your turn...";
+            }
+            
+            if(data.timerOn){
                 document.getElementById('playerTimer').style.display='block';
-                document.getElementById('playerTimer').innerText=data.timerDuration;
+                document.getElementById('playerTimer').innerText=data.timerSec;
+                document.getElementById('playerTimer').classList.remove('warning');
             }else{
                 document.getElementById('playerTimer').style.display='none';
             }
             break;
         case 'startTimer':
             document.getElementById('playerTimer').style.display='block';
-            document.getElementById('playerTimer').innerText=data.duration;
+            document.getElementById('playerTimer').innerText=data.time;
+            document.getElementById('playerTimer').classList.remove('warning');
             break;
         case 'timerTick':
             document.getElementById('playerTimer').innerText=data.time;
-            if(data.time<=5){
-                document.getElementById('playerTimer').style.color='var(--error)';
-            }
+            if(data.time<=5)document.getElementById('playerTimer').classList.add('warning');
             break;
         case 'stopTimer':
             document.getElementById('playerTimer').style.display='none';
             break;
-        case 'revealAnswer':
+        case 'reveal':
             document.getElementById('playerAnswers').querySelectorAll('.player-answer-btn').forEach((btn,i)=>{
                 btn.disabled=true;
-                if(i===data.correctAnswer){
-                    btn.style.background='linear-gradient(135deg,#00ff88 0%,#00cc6a 100%)';
-                    btn.style.color='#000';
-                }
+                if(i===data.correctAnswer)btn.classList.add('correct');
+                else if(btn.classList.contains('selected'))btn.classList.add('wrong');
             });
             break;
         case 'result':
             playerScore=data.score;
             document.getElementById('playerScoreDisplay').innerText=playerScore;
             break;
-        case 'clearQuestion':
-            document.getElementById('playerQuestion').innerText="Waiting for next question...";
+        case 'clear':
+            document.getElementById('playerQuestion').innerText="Next question coming...";
             document.getElementById('playerAnswers').innerHTML='';
             document.getElementById('playerTimer').style.display='none';
-            document.getElementById('playerTimer').style.color='#fff';
             break;
         case 'reset':
             playerScore=0;
             document.getElementById('playerScoreDisplay').innerText='0';
-            document.getElementById('playerQuestion').innerText="Quiz reset. Waiting for host...";
+            document.getElementById('playerQuestion').innerText="Quiz reset";
             document.getElementById('playerAnswers').innerHTML='';
             break;
     }
 }
 
-function submitAnswer(index){
+function submitAnswer(idx){
     if(playerAnswered)return;
     playerAnswered=true;
     
     document.getElementById('playerAnswers').querySelectorAll('.player-answer-btn').forEach((btn,i)=>{
         btn.disabled=true;
-        if(i===index)btn.classList.add('selected');
+        if(i===idx)btn.classList.add('selected');
     });
     
-    conn.send({type:'answer',answerIndex:index});
+    window.playerConn.send({type:'answer',answerIndex:idx});
 }
 
-// Audience Functions
 function joinAsAudience(){
-    const code=document.getElementById('audienceCodeInput').value;
+    const code=document.getElementById('audienceCodeInput').value.toUpperCase();
     
-    if(code.length<4){
-        setStatus("Please enter 4-digit code",true);
-        return;
-    }
+    if(code.length<6){setStatus("Enter 6-char code",true);return}
     
     mode='audience';
     setStatus("Connecting...");
     
-    const targetId=ID_PREFIX+code;
     peer=new Peer();
     peer.on('open',()=>{
-        conn=peer.connect(targetId,{reliable:true});
-        setupAudienceConnection();
+        const conn=peer.connect(PREFIX+'A-'+code,{reliable:true});
+        setupAudienceClientConn(conn);
     });
     peer.on('error',err=>{
         setStatus("Error: "+err.type,true);
-        if(err.type==='peer-unavailable')setStatus("Quiz not found. Check code.",true);
     });
 }
 
-function setupAudienceConnection(){
+function setupAudienceClientConn(conn){
     conn.on('open',()=>{
         document.getElementById('setupView').style.display='none';
         document.getElementById('audienceView').style.display='flex';
-        conn.send({type:'join',role:'audience'});
     });
     
-    conn.on('data',handleAudienceData);
+    conn.on('data',data=>handleAudienceClientData(data));
     conn.on('close',()=>{
-        document.getElementById('audienceSubtitle').innerText="Disconnected from quiz";
+        document.getElementById('audienceSubtitle').innerText="Disconnected";
     });
 }
 
-function handleAudienceData(data){
+function handleAudienceClientData(data){
     switch(data.type){
         case 'showQuestion':
-            document.getElementById('audienceQuestion').innerText=data.question;
-            document.getElementById('audienceQuestion').style.display='block';
+            document.getElementById('audienceQuestionBox').style.display='block';
             document.getElementById('audienceLeaderboard').style.display='none';
-            document.getElementById('audienceSubtitle').innerText='Answer the question!';
+            document.getElementById('audienceQuestion').innerText=data.question;
+            document.getElementById('audienceAnswers').innerHTML=data.answers.map((ans,i)=>`
+                <div class="audience-answer">
+                    <div class="answer-label">${String.fromCharCode(65+i)}</div>
+                    <div>${ans}</div>
+                </div>
+            `).join('');
             
-            if(data.timerEnabled){
+            document.getElementById('currentPlayerDisplay').style.display='block';
+            document.getElementById('currentPlayerDisplay').innerText="🎯 "+data.currentPlayer;
+            document.getElementById('audienceSubtitle').innerText=data.mode==='one'?'Single Player':'Fastest Finger First!';
+            
+            if(data.timerOn){
                 document.getElementById('audienceTimer').style.display='block';
-                document.getElementById('audienceTimer').innerText=data.timerDuration;
+                document.getElementById('audienceTimer').innerText=data.timerSec;
                 document.getElementById('audienceTimer').classList.remove('warning');
             }else{
                 document.getElementById('audienceTimer').style.display='none';
@@ -709,27 +806,30 @@ function handleAudienceData(data){
             break;
         case 'startTimer':
             document.getElementById('audienceTimer').style.display='block';
-            document.getElementById('audienceTimer').innerText=data.duration;
+            document.getElementById('audienceTimer').innerText=data.time;
             document.getElementById('audienceTimer').classList.remove('warning');
             break;
         case 'timerTick':
             document.getElementById('audienceTimer').innerText=data.time;
-            if(data.time<=5){
-                document.getElementById('audienceTimer').classList.add('warning');
-            }
+            if(data.time<=5)document.getElementById('audienceTimer').classList.add('warning');
             break;
         case 'stopTimer':
             document.getElementById('audienceTimer').style.display='none';
             break;
+        case 'reveal':
+            document.getElementById('audienceAnswers').querySelectorAll('.audience-answer').forEach((div,i)=>{
+                if(i===data.correctAnswer)div.classList.add('correct');
+            });
+            break;
         case 'leaderboard':
-            document.getElementById('audienceQuestion').style.display='none';
+            document.getElementById('audienceQuestionBox').style.display='none';
+            document.getElementById('currentPlayerDisplay').style.display='none';
             document.getElementById('audienceTimer').style.display='none';
             document.getElementById('audienceLeaderboard').style.display='block';
             document.getElementById('audienceSubtitle').innerText='Current Standings';
             
-            const sorted=[...data.players].sort((a,b)=>b.score-a.score);
-            document.getElementById('audienceLeaderboardList').innerHTML=sorted.map((p,i)=>`
-                <div class="leaderboard-item">
+            document.getElementById('audienceLeaderboardList').innerHTML=data.players.map((p,i)=>`
+                <div class="leaderboard-item ${i===0?'highlight':''}">
                     <div style="display:flex;align-items:center">
                         <div class="leaderboard-rank">${i+1}</div>
                         <div>${p.name}</div>
@@ -738,21 +838,22 @@ function handleAudienceData(data){
                 </div>
             `).join('');
             break;
-        case 'clearQuestion':
-            document.getElementById('audienceQuestion').style.display='none';
+        case 'clear':
+            document.getElementById('audienceQuestionBox').style.display='none';
+            document.getElementById('currentPlayerDisplay').style.display='none';
             document.getElementById('audienceTimer').style.display='none';
-            document.getElementById('audienceSubtitle').innerText='Next question coming...';
+            document.getElementById('audienceSubtitle').innerText='Next question...';
             break;
         case 'reset':
-            document.getElementById('audienceQuestion').style.display='none';
+            document.getElementById('audienceQuestionBox').style.display='none';
+            document.getElementById('currentPlayerDisplay').style.display='none';
             document.getElementById('audienceTimer').style.display='none';
             document.getElementById('audienceLeaderboard').style.display='none';
-            document.getElementById('audienceSubtitle').innerText='Quiz reset. Waiting to begin...';
+            document.getElementById('audienceSubtitle').innerText='Quiz reset';
             break;
     }
 }
 
-// Question Management
 function openQuestionManager(){
     document.getElementById('questionModal').style.display='flex';
     loadSavedQuestions();
@@ -769,25 +870,13 @@ function addQuestion(){
     const correctCheckboxes=document.querySelectorAll('#newAnswerInputs input[type="checkbox"]');
     let correctAnswer=-1;
     
-    correctCheckboxes.forEach((cb,i)=>{
-        if(cb.checked)correctAnswer=i;
-    });
+    correctCheckboxes.forEach((cb,i)=>{if(cb.checked)correctAnswer=i});
     
-    if(!questionText){
-        alert('Please enter a question');
-        return;
-    }
-    if(answers.length<2){
-        alert('Please enter at least 2 answers');
-        return;
-    }
-    if(correctAnswer===-1){
-        alert('Please select the correct answer');
-        return;
-    }
+    if(!questionText){alert('Enter question');return}
+    if(answers.length<2){alert('Enter at least 2 answers');return}
+    if(correctAnswer===-1){alert('Select correct answer');return}
     
-    const newQuestion={question:questionText,answers,correctAnswer};
-    questions.push(newQuestion);
+    questions.push({question:questionText,answers,correctAnswer});
     saveQuestions();
     loadSavedQuestions();
     updateHostDisplay();
@@ -795,14 +884,12 @@ function addQuestion(){
     document.getElementById('newQuestionText').value='';
     answerInputs.forEach(inp=>inp.value='');
     correctCheckboxes.forEach(cb=>cb.checked=false);
-    
-    alert('Question added!');
 }
 
 function loadSavedQuestions(){
     const list=document.getElementById('savedQuestionsList');
     if(questions.length===0){
-        list.innerHTML='<div style="text-align:center;color:#666;padding:20px">No questions yet. Add your first question above!</div>';
+        list.innerHTML='<div style="text-align:center;color:#666;padding:20px">No questions yet</div>';
         return;
     }
     
@@ -815,27 +902,25 @@ function loadSavedQuestions(){
                 `).join('')}
             </div>
             <div class="question-actions">
-                <button class="action-btn use" onclick="useQuestion(${i})">USE THIS</button>
+                <button class="action-btn use" onclick="useQuestion(${i})">USE</button>
                 <button class="action-btn delete" onclick="deleteQuestion(${i})">DELETE</button>
             </div>
         </div>
     `).join('');
 }
 
-function useQuestion(index){
-    currentQuestionIndex=index;
+function useQuestion(idx){
+    currentQIndex=idx;
     updateHostDisplay();
     closeQuestionManager();
 }
 
-function deleteQuestion(index){
-    if(!confirm('Delete this question?'))return;
-    questions.splice(index,1);
+function deleteQuestion(idx){
+    if(!confirm('Delete question?'))return;
+    questions.splice(idx,1);
     saveQuestions();
     loadSavedQuestions();
-    if(currentQuestionIndex>=questions.length){
-        currentQuestionIndex=Math.max(0,questions.length-1);
-    }
+    if(currentQIndex>=questions.length)currentQIndex=Math.max(0,questions.length-1);
     updateHostDisplay();
 }
 
@@ -845,18 +930,14 @@ function saveQuestions(){
 
 function loadQuestions(){
     const saved=localStorage.getItem('quizQuestions');
-    if(saved){
-        questions=JSON.parse(saved);
-    }
+    if(saved)questions=JSON.parse(saved);
 }
 
-// AI Generation
 function showAiGenerator(){
     document.getElementById('questionModal').style.display='none';
     document.getElementById('aiModal').style.display='flex';
-    
-    const savedKey=localStorage.getItem('geminiApiKey');
-    if(savedKey)document.getElementById('apiKeyInput').value=savedKey;
+    const saved=localStorage.getItem('geminiApiKey');
+    if(saved)document.getElementById('apiKeyInput').value=saved;
 }
 
 function closeAiGenerator(){
@@ -867,44 +948,23 @@ function closeAiGenerator(){
 async function generateQuestions(){
     const key=document.getElementById('apiKeyInput').value.trim();
     const topic=document.getElementById('topicInput').value.trim();
-    const numQuestions=parseInt(document.getElementById('numQuestionsInput').value)||5;
+    const num=parseInt(document.getElementById('numQuestionsInput').value)||5;
     const status=document.getElementById('aiStatus');
     
-    if(!key){
-        status.innerText='Please enter API key';
-        status.style.color='var(--error)';
-        return;
-    }
-    if(!topic){
-        status.innerText='Please enter a topic';
-        status.style.color='var(--error)';
-        return;
-    }
+    if(!key){status.innerText='Enter API key';status.style.color='var(--error)';return}
+    if(!topic){status.innerText='Enter topic';status.style.color='var(--error)';return}
     
     localStorage.setItem('geminiApiKey',key);
-    status.innerText='Generating questions...';
+    status.innerText='Generating...';
     status.style.color='var(--accent)';
+    
+    const prompt=`Generate ${num} quiz questions about "${topic}". Return ONLY valid JSON: [{"question":"...","answers":["A","B","C","D"],"correctAnswer":0}]`;
     
     try{
         const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{
             method:'POST',
             headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({
-                contents:[{
-                    parts:[{
-                        text:`Generate exactly ${numQuestions} multiple-choice quiz questions about "${topic}". 
-                        Return ONLY a valid JSON array with this exact structure, no additional text:
-                        [{"question":"Question text here?","answers":["Answer 1","Answer 2","Answer 3","Answer 4"],"correctAnswer":0}]
-                        
-                        Rules:
-                        - Each question must have exactly 4 answers
-                        - correctAnswer is the index (0-3) of the correct answer
-                        - Make questions challenging but fair
-                        - Ensure variety in difficulty
-                        - No markdown, no code blocks, just pure JSON`
-                    }]
-                }]
-            })
+            body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
         });
         
         const data=await res.json();
@@ -916,7 +976,7 @@ async function generateQuestions(){
             if(Array.isArray(generated)){
                 questions.push(...generated);
                 saveQuestions();
-                status.innerText=`Successfully generated ${generated.length} questions!`;
+                status.innerText=`Added ${generated.length} questions!`;
                 status.style.color='var(--success)';
                 
                 setTimeout(()=>{
@@ -928,19 +988,109 @@ async function generateQuestions(){
                 throw new Error('Invalid format');
             }
         }else{
-            status.innerText='Generation failed. Check API key.';
-            status.style.color='var(--error)';
+            throw new Error('API error');
         }
     }catch(err){
-        status.innerText='Error: '+err.message;
+        status.innerText='Failed. Try manual import below';
+        status.style.color='var(--error)';
+        showManualImport(prompt);
+    }
+}
+
+function showManualImport(prompt){
+    document.getElementById('manualJsonSection').style.display='block';
+    document.getElementById('jsonPrompt').innerText=prompt;
+}
+
+function importJson(){
+    const jsonText=document.getElementById('jsonInput').value.trim();
+    const status=document.getElementById('aiStatus');
+    
+    try{
+        let text=jsonText.replace(/```json/g,'').replace(/```/g,'').trim();
+        const imported=JSON.parse(text);
+        
+        if(Array.isArray(imported)){
+            questions.push(...imported);
+            saveQuestions();
+            status.innerText=`Imported ${imported.length} questions!`;
+            status.style.color='var(--success)';
+            
+            setTimeout(()=>{
+                closeAiGenerator();
+                loadSavedQuestions();
+                updateHostDisplay();
+            },2000);
+        }else{
+            throw new Error('Must be array');
+        }
+    }catch(err){
+        status.innerText='Invalid JSON: '+err.message;
         status.style.color='var(--error)';
     }
 }
 
-// Prevent context menu
+function createSounds(){
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    
+    sounds.question=()=>{
+        const osc=ctx.createOscillator();
+        const gain=ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value=800;
+        gain.gain.setValueAtTime(0.3,ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.3);
+        osc.start();
+        osc.stop(ctx.currentTime+0.3);
+    };
+    
+    sounds.correct=()=>{
+        [523,659,784].forEach((f,i)=>{
+            const osc=ctx.createOscillator();
+            const gain=ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value=f;
+            gain.gain.setValueAtTime(0.2,ctx.currentTime+i*0.1);
+            gain.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+i*0.1+0.2);
+            osc.start(ctx.currentTime+i*0.1);
+            osc.stop(ctx.currentTime+i*0.1+0.2);
+        });
+    };
+    
+    sounds.wrong=()=>{
+        const osc=ctx.createOscillator();
+        const gain=ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value=200;
+        gain.gain.setValueAtTime(0.3,ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.5);
+        osc.start();
+        osc.stop(ctx.currentTime+0.5);
+    };
+    
+    sounds.reveal=()=>{
+        const osc=ctx.createOscillator();
+        const gain=ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(400,ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800,ctx.currentTime+0.4);
+        gain.gain.setValueAtTime(0.3,ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.4);
+        osc.start();
+        osc.stop(ctx.currentTime+0.4);
+    };
+}
+
+function playSound(type){
+    if(sounds[type])sounds[type]();
+}
+
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
-// Handle checkbox behavior
 document.addEventListener('change',e=>{
     if(e.target.type==='checkbox'&&e.target.name==='correctAnswer'){
         document.querySelectorAll('input[name="correctAnswer"]').forEach(cb=>{
@@ -948,6 +1098,5 @@ document.addEventListener('change',e=>{
         });
     }
 });
-    </script>
-</body>
-</html>
+
+</script></body></html>
