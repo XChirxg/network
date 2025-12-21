@@ -6,9 +6,11 @@
     <title>Quiz Master Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <style>
-        :root{--accent:#00ff88;--bg:#121212;--surface:#1e1e1e;--text:#fff;--error:#ff4444;--warning:#ffaa00}
+        :root{--accent:#00ff88;--bg:#121212;--surface:#1e1e1e;--text:#fff;--error:#ff4444;--warning:#ffaa00;--selected:#4444ff}
         *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-        body{font-family:-apple-system,monospace;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw}
+        body{font-family:-apple-system,monospace;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw;transition:background-color 0.3s}
+        body.wrong-flash{background-color:#330000 !important}
+        body.selected-flash{background-color:#001133 !important}
         .icon{width:20px;height:20px;fill:currentColor;pointer-events:none}
         .setup{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;background:var(--bg);z-index:1000;position:absolute;width:100%;transition:opacity .3s}
         .setup h1{font-size:2.5rem;letter-spacing:5px;margin-bottom:2rem;color:var(--accent);text-align:center}
@@ -33,19 +35,23 @@
         .option-btn{background:var(--surface);border:2px solid #444;color:#fff;padding:20px;border-radius:8px;font-size:1.2rem;text-align:left;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
         .option-btn:active{transform:scale(.98)}
         .option-btn.selected{border-color:var(--accent);background:rgba(0,255,136,.1)}
+        .option-btn.player-selected{border-color:var(--selected);background:rgba(68,68,255,.2)}
         .option-btn.correct{border-color:#00ff00;background:rgba(0,255,0,.2)}
         .option-btn.wrong{border-color:var(--error);background:rgba(255,68,68,.2)}
         .option-btn.disabled{opacity:.5;cursor:not-allowed}
         .option-label{display:inline-block;width:35px;height:35px;background:var(--accent);color:#000;border-radius:50%;text-align:center;line-height:35px;font-weight:bold;margin-right:12px;font-size:1rem}
         .player-list{display:grid;grid-template-columns:1fr;gap:12px;margin-top:20px}
-        .player-card{background:var(--surface);padding:15px;border-radius:8px;border:2px solid #444;display:flex;justify-content:space-between;align-items:center}
+        .player-card{background:var(--surface);padding:15px;border-radius:8px;border:2px solid #444;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:.2s}
+        .player-card:hover{border-color:var(--accent)}
         .player-card.active{border-color:var(--accent);background:rgba(0,255,136,.1)}
+        .player-card.selected-to-answer{border-color:#ff0;background:rgba(255,255,0,.2)}
         .player-name{font-size:1.1rem;font-weight:bold}
         .player-score{font-size:1.3rem;color:var(--accent);font-weight:bold;font-family:monospace}
         .controls-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:20px}
         .control-btn{padding:15px;background:var(--surface);border:2px solid #444;color:#fff;border-radius:8px;font-size:1rem;font-weight:bold;cursor:pointer;transition:.2s}
         .control-btn:active{transform:scale(.98);background:var(--accent);color:#000}
         .control-btn.primary{border-color:var(--accent);color:var(--accent)}
+        .control-btn.danger{border-color:var(--error);color:var(--error)}
         .timer-display{font-size:3rem;color:var(--accent);text-align:center;padding:30px;font-weight:bold;font-family:monospace}
         .timer-display.warning{color:var(--warning);animation:pulse .5s infinite}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
@@ -71,20 +77,21 @@
         .quiz-item-actions{display:flex;gap:10px}
         .quiz-item-actions button{padding:8px 16px;background:transparent;border:1px solid #444;color:#fff;border-radius:4px;cursor:pointer;font-size:.85rem}
         .quiz-item-actions button:active{background:#444}
-        .audience-header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);padding:30px 20px;text-align:center;border-bottom:3px solid var(--accent)}
-        .audience-title{font-size:2.5rem;color:var(--accent);margin-bottom:10px;font-weight:bold;letter-spacing:3px}
-        .current-player{font-size:1.3rem;color:#fff;margin-top:15px;padding:15px;background:rgba(0,255,136,.1);border-radius:8px;border:1px solid var(--accent)}
-        .scoreboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;padding:20px;background:rgba(0,0,0,.3)}
-        .scoreboard-item{background:var(--surface);padding:20px;border-radius:12px;border:2px solid #444;text-align:center;transition:.3s}
-        .scoreboard-item.leader{border-color:var(--accent);background:rgba(0,255,136,.1);transform:scale(1.05)}
-        .scoreboard-name{font-size:1.2rem;margin-bottom:10px;font-weight:bold}
-        .scoreboard-score{font-size:2rem;color:var(--accent);font-weight:bold;font-family:monospace}
-        .audience-question{padding:30px 20px}
-        .audience-options{display:grid;grid-template-columns:1fr;gap:20px;max-width:800px;margin:30px auto}
-        .audience-option{background:var(--surface);padding:30px;border-radius:12px;border:3px solid #444;font-size:1.5rem;text-align:center;transition:.3s}
-        .audience-option.highlight{border-color:var(--accent);background:rgba(0,255,136,.1);transform:scale(1.02)}
-        .bottom-bar{padding:15px;background:var(--surface);border-top:1px solid #333;display:flex;justify-content:center;gap:15px;flex-wrap:wrap}
-        .json-input{background:var(--surface);border:1px solid #444;color:#fff;padding:15px;border-radius:8px;font-size:.9rem;font-family:monospace;min-height:150px;white-space:pre-wrap;word-wrap:break-word}
+        .audience-container{display:flex;flex-direction:column;height:100vh}
+        .audience-main{flex:1;display:flex;flex-direction:column;padding:30px;overflow-y:auto}
+        .audience-question-big{font-size:3rem;line-height:1.3;margin-bottom:30px;color:var(--accent);font-weight:bold;text-align:center}
+        .audience-options-big{display:grid;grid-template-columns:repeat(2,1fr);gap:25px;margin-bottom:30px}
+        .audience-option-big{background:var(--surface);padding:40px;border-radius:16px;border:4px solid #444;font-size:1.8rem;text-align:center;transition:.3s;position:relative}
+        .audience-option-big.player-selected{border-color:var(--selected);background:rgba(68,68,255,.3);animation:selectedPulse 1s infinite}
+        .audience-option-big.correct{border-color:#00ff00;background:rgba(0,255,0,.3)}
+        .audience-option-big.wrong{border-color:var(--error);background:rgba(255,68,68,.3)}
+        @keyframes selectedPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+        .audience-sidebar{background:var(--surface);padding:20px;border-top:2px solid #333;max-height:200px;overflow-y:auto}
+        .audience-sidebar-content{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+        .mini-player{background:rgba(0,0,0,.5);padding:10px 15px;border-radius:6px;border:1px solid #444;font-size:.9rem}
+        .mini-player.current{border-color:var(--accent);background:rgba(0,255,136,.1)}
+        .fullscreen-btn{position:fixed;top:20px;right:20px;background:rgba(0,0,0,.8);color:var(--accent);border:2px solid var(--accent);padding:10px 20px;border-radius:8px;cursor:pointer;z-index:1000;font-weight:bold}
+        .fullscreen-btn:active{background:var(--accent);color:#000}
         .toggle-switch{position:relative;display:inline-block;width:60px;height:30px}
         .toggle-switch input{opacity:0;width:0;height:0}
         .toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#444;border-radius:30px;transition:.3s}
@@ -119,8 +126,7 @@
 
     <div id="hostView">
         <div class="top-bar">
-            <div class="code-display">PLAYER: <span id="hostPlayerCode">----</span></div>
-            <div class="code-display">AUDIENCE: <span id="hostAudienceCode">----</span></div>
+            <div class="code-display">GAME CODE: <span id="hostGameCode">----</span></div>
             <button class="save-btn" onclick="openQuizManager()">MANAGE</button>
         </div>
         <div class="content-area" id="hostContent">
@@ -128,6 +134,7 @@
                 <div class="quiz-title" id="hostQuizTitle">No Quiz Loaded</div>
                 <div class="quiz-stats"><span id="hostQuizStats">Load or create a quiz to begin</span></div>
             </div>
+            <h3 style="color:var(--accent);margin-bottom:15px">SELECT PLAYER TO ANSWER</h3>
             <div class="player-list" id="hostPlayerList"></div>
             <div id="hostQuestionView" style="display:none">
                 <div class="question-box">
@@ -139,8 +146,8 @@
                     </div>
                 </div>
                 <div class="controls-grid">
-                    <button class="control-btn primary" onclick="askOne()">ASK ONE PLAYER</button>
-                    <button class="control-btn primary" onclick="askAll()">ASK ALL (FASTEST)</button>
+                    <button class="control-btn primary" onclick="askSelectedPlayer()">ASK SELECTED PLAYER</button>
+                    <button class="control-btn danger" onclick="passQuestion()">PASS (-5 POINTS)</button>
                     <button class="control-btn" onclick="revealAnswer()">REVEAL ANSWER</button>
                     <button class="control-btn" onclick="nextQuestion()">NEXT QUESTION</button>
                 </div>
@@ -154,7 +161,7 @@
             <div class="code-display" id="playerNameDisplay"></div>
         </div>
         <div class="content-area">
-            <div class="waiting-msg" id="playerWaiting">Waiting for host to start the quiz...</div>
+            <div class="waiting-msg" id="playerWaiting">Waiting for host to select you...</div>
             <div id="playerQuestionView" style="display:none">
                 <div class="question-box">
                     <div style="color:#888;font-size:.9rem;margin-bottom:10px">QUESTION <span id="playerQNum">1</span></div>
@@ -167,16 +174,20 @@
     </div>
 
     <div id="audienceView">
-        <div class="audience-header">
-            <div class="audience-title" id="audienceQuizTitle">QUIZ MASTER</div>
-            <div class="current-player" id="audienceCurrentPlayer" style="display:none"></div>
-        </div>
-        <div class="scoreboard" id="audienceScoreboard"></div>
-        <div class="audience-question" id="audienceQuestionArea" style="display:none">
-            <div style="text-align:center;color:#888;font-size:1rem;margin-bottom:10px">QUESTION <span id="audienceQNum">1</span></div>
-            <div class="question-text" style="text-align:center;max-width:900px;margin:0 auto 20px" id="audienceQuestion"></div>
-            <div id="audienceTimer" class="timer-display" style="display:none"></div>
-            <div class="audience-options" id="audienceOptions"></div>
+        <button class="fullscreen-btn" onclick="toggleFullscreen()">FULLSCREEN (F11)</button>
+        <div class="audience-container">
+            <div class="audience-main" id="audienceMain">
+                <div class="waiting-msg" id="audienceWaiting">Waiting for quiz to start...</div>
+                <div id="audienceQuestionArea" style="display:none">
+                    <div style="text-align:center;color:#888;font-size:1.2rem;margin-bottom:20px">QUESTION <span id="audienceQNum">1</span></div>
+                    <div class="audience-question-big" id="audienceQuestion"></div>
+                    <div id="audienceTimer" class="timer-display" style="display:none"></div>
+                    <div class="audience-options-big" id="audienceOptions"></div>
+                </div>
+            </div>
+            <div class="audience-sidebar">
+                <div class="audience-sidebar-content" id="audienceScoreboard"></div>
+            </div>
         </div>
     </div>
 
@@ -269,50 +280,748 @@
     </div>
 
     <script>
-const ID_PREFIX="QUIZ-V1-";let peer,mode='',myPlayerCode='',myAudienceCode='';
-let playerConns=[],audienceConns=[],currentQuiz=null,currentQuestionIndex=0,gameState='waiting';
-let timerInterval=null,timerRemaining=0,currentAskedPlayer=null,askAllMode=false;
-let playerAnswers={},myPlayerName='',myScore=0;
-const sounds={win:createBeep(800,200),lose:createBeep(200,300),lock:createBeep(400,100),reveal:createBeep(600,150)};
-function createBeep(freq,duration){const ctx=new(window.AudioContext||window.webkitAudioContext)();return()=>{const osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.frequency.value=freq;gain.gain.setValueAtTime(.3,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.01,ctx.currentTime+duration/1000);osc.start();osc.stop(ctx.currentTime+duration/1000)}}
-function setStatus(msg,isError=false){const el=document.getElementById('statusText');if(el){el.innerText=msg;el.className=isError?"status error":"status"}}
-function backToMain(){document.getElementById('initialBtns').style.display='flex';document.getElementById('playerInputGroup').style.display='none';document.getElementById('audienceInputGroup').style.display='none';setStatus("Select Mode")}
-function showPlayerInput(){document.getElementById('initialBtns').style.display='none';document.getElementById('playerInputGroup').style.display='flex';document.getElementById('playerCodeInput').focus();setStatus("Enter player code and your name")}
-function showAudienceInput(){document.getElementById('initialBtns').style.display='none';document.getElementById('audienceInputGroup').style.display='flex';document.getElementById('audienceCodeInput').focus();setStatus("Enter audience code")}
-function startHost(){mode='host';setStatus("Starting Host...");myPlayerCode=Math.floor(1000+Math.random()*9000).toString();myAudienceCode=Math.floor(1000+Math.random()*9000).toString();const playerId=ID_PREFIX+'P-'+myPlayerCode,audienceId=ID_PREFIX+'A-'+myAudienceCode;peer=new Peer(playerId);peer.on('open',()=>{console.log('Host started');document.getElementById('setupView').style.display='none';document.getElementById('hostView').style.display='flex';document.getElementById('hostPlayerCode').innerText=myPlayerCode;document.getElementById('hostAudienceCode').innerText=myAudienceCode;loadQuizList();new Peer(audienceId).on('connection',c=>{audienceConns.push(c);c.on('data',()=>{});c.on('close',()=>{audienceConns=audienceConns.filter(x=>x!==c);broadcastToAudience({type:'updateScoreboard',players:playerConns.map(p=>({name:p.metadata.name,score:p.metadata.score}))})})})});peer.on('connection',c=>{if(!c.metadata||!c.metadata.name)return;playerConns.push(c);c.metadata.score=0;updatePlayerList();broadcastToAudience({type:'updateScoreboard',players:playerConns.map(p=>({name:p.metadata.name,score:p.metadata.score}))});c.on('data',data=>handleHostData(data,c));c.on('close',()=>{playerConns=playerConns.filter(x=>x!==c);updatePlayerList();broadcastToAudience({type:'updateScoreboard',players:playerConns.map(p=>({name:p.metadata.name,score:p.metadata.score}))})})});peer.on('error',err=>{if(err.type==='unavailable-id')startHost();else alert("Error: "+err.type)})}
-function connectAsPlayer(){const code=document.getElementById('playerCodeInput').value,name=document.getElementById('playerNameInput').value.trim();if(code.length<4){setStatus("Enter 4-digit code",true);return}if(!name){setStatus("Enter your name",true);return}mode='player';myPlayerName=name;setStatus("Connecting...");const targetId=ID_PREFIX+'P-'+code;peer=new Peer();peer.on('open',()=>{const c=peer.connect(targetId,{reliable:true,metadata:{name}});c.on('open',()=>{document.getElementById('setupView').style.display='none';document.getElementById('playerView').style.display='flex';document.getElementById('playerNameDisplay').innerText=name;c.send({type:'join',name})});c.on('data',data=>handlePlayerData(data));c.on('close',()=>{alert("Connection lost");location.reload()})});peer.on('error',err=>setStatus("Connection failed: "+err.type,true))}
-function connectAsAudience(){const code=document.getElementById('audienceCodeInput').value;if(code.length<4){setStatus("Enter 4-digit code",true);return}mode='audience';setStatus("Connecting...");const targetId=ID_PREFIX+'A-'+code;peer=new Peer();peer.on('open',()=>{const c=peer.connect(targetId,{reliable:true});c.on('open',()=>{document.getElementById('setupView').style.display='none';document.getElementById('audienceView').style.display='flex'});c.on('data',data=>handleAudienceData(data));c.on('close',()=>{alert("Connection lost");location.reload()})});peer.on('error',err=>setStatus("Connection failed: "+err.type,true))}
-function updatePlayerList(){const list=document.getElementById('hostPlayerList');list.innerHTML='<h3 style="color:var(--accent);margin-bottom:15px">CONNECTED PLAYERS</h3>';playerConns.forEach((c,i)=>{const div=document.createElement('div');div.className='player-card';div.innerHTML=`<div><div class="player-name">${c.metadata.name}</div><div style="font-size:.85rem;color:#888">Player ${i+1}</div></div><div class="player-score">${c.metadata.score}</div>`;list.appendChild(div)})}
-function broadcastToPlayers(data,exclude=null){playerConns.forEach(c=>{if(c!==exclude&&c.open)c.send(data)})}
-function broadcastToAudience(data){audienceConns.forEach(c=>{if(c.open)c.send(data)})}
-function handleHostData(data,conn){if(data.type==='answer'){if(!playerAnswers[conn.metadata.name]){playerAnswers[conn.metadata.name]=data.answer;if(askAllMode){const isCorrect=data.answer===currentQuiz.questions[currentQuestionIndex].correctAnswer;if(isCorrect){stopTimer();conn.metadata.score+=10;updatePlayerList();revealAnswer();broadcastToAudience({type:'playerAnswered',name:conn.metadata.name,correct:true});sounds.win()}}}}}
-function handlePlayerData(data){if(data.type==='showQuestion'){document.getElementById('playerWaiting').style.display='none';document.getElementById('playerQuestionView').style.display='block';document.getElementById('playerQNum').innerText=data.questionNum;document.getElementById('playerQuestion').innerText=data.question;const opts=document.getElementById('playerOptions');opts.innerHTML='';data.options.forEach((opt,i)=>{const btn=document.createElement('button');btn.className='option-btn';btn.innerHTML=`<span class="option-label">${String.fromCharCode(65+i)}</span>${opt}`;btn.onclick=()=>selectPlayerAnswer(i,btn);opts.appendChild(btn)});if(data.timerEnabled){timerRemaining=data.timerDuration;document.getElementById('playerTimer').style.display='block';startPlayerTimer()}}else if(data.type==='disableAnswers'){document.querySelectorAll('#playerOptions .option-btn').forEach(b=>b.classList.add('disabled'));stopTimer()}else if(data.type==='revealAnswer'){stopTimer();document.querySelectorAll('#playerOptions .option-btn').forEach((b,i)=>{if(i===data.correctAnswer)b.classList.add('correct');else b.classList.add('wrong')})}else if(data.type==='updateScore'){myScore=data.score;document.getElementById('playerScore').innerText=myScore}else if(data.type==='reset'){document.getElementById('playerWaiting').style.display='block';document.getElementById('playerQuestionView').style.display='none';myScore=0;document.getElementById('playerScore').innerText='0'}}
-function handleAudienceData(data){if(data.type==='quizInfo'){document.getElementById('audienceQuizTitle').innerText=data.title}else if(data.type==='updateScoreboard'){const board=document.getElementById('audienceScoreboard');board.innerHTML='';const sorted=[...data.players].sort((a,b)=>b.score-a.score);sorted.forEach((p,i)=>{const div=document.createElement('div');div.className='scoreboard-item';if(i===0&&p.score>0)div.classList.add('leader');div.innerHTML=`<div class="scoreboard-name">${p.name}</div><div class="scoreboard-score">${p.score}</div>`;board.appendChild(div)})}else if(data.type==='showQuestion'){document.getElementById('audienceQuestionArea').style.display='block';document.getElementById('audienceQNum').innerText=data.questionNum;document.getElementById('audienceQuestion').innerText=data.question;const opts=document.getElementById('audienceOptions');opts.innerHTML='';data.options.forEach((opt,i)=>{const div=document.createElement('div');div.className='audience-option';div.innerHTML=`<span style="display:inline-block;width:50px;height:50px;background:var(--accent);color:#000;border-radius:50%;text-align:center;line-height:50px;font-weight:bold;margin-right:15px;font-size:1.3rem">${String.fromCharCode(65+i)}</span>${opt}`;opts.appendChild(div)});if(data.timerEnabled){timerRemaining=data.timerDuration;document.getElementById('audienceTimer').style.display='block';startAudienceTimer()}sounds.reveal()}else if(data.type==='currentPlayer'){document.getElementById('audienceCurrentPlayer').style.display='block';document.getElementById('audienceCurrentPlayer').innerText=`Current Player: ${data.name}`}else if(data.type==='askAll'){document.getElementById('audienceCurrentPlayer').style.display='block';document.getElementById('audienceCurrentPlayer').innerText='FASTEST FINGER FIRST!'}else if(data.type==='revealAnswer'){stopTimer();const opts=document.querySelectorAll('#audienceOptions .audience-option');opts.forEach((opt,i)=>{if(i===data.correctAnswer)opt.classList.add('highlight')});sounds.reveal()}else if(data.type==='playerAnswered'){if(data.correct)sounds.win();else sounds.lose()}else if(data.type==='answerLocked'){sounds.lock()}}
-function selectPlayerAnswer(index,btn){if(btn.classList.contains('disabled'))return;document.querySelectorAll('#playerOptions .option-btn').forEach(b=>{b.classList.remove('selected');b.classList.add('disabled')});btn.classList.add('selected');peer.connections[Object.keys(peer.connections)[0]][0].send({type:'answer',answer:index});sounds.lock()}
-function startPlayerTimer(){if(timerInterval)clearInterval(timerInterval);timerInterval=setInterval(()=>{timerRemaining--;const el=document.getElementById('playerTimer');el.innerText=timerRemaining;if(timerRemaining<=5)el.classList.add('warning');else el.classList.remove('warning');if(timerRemaining<=0){stopTimer();document.querySelectorAll('#playerOptions .option-btn').forEach(b=>b.classList.add('disabled'))}},1000)}
-function startAudienceTimer(){if(timerInterval)clearInterval(timerInterval);timerInterval=setInterval(()=>{timerRemaining--;const el=document.getElementById('audienceTimer');el.innerText=timerRemaining;if(timerRemaining<=5)el.classList.add('warning');else el.classList.remove('warning');if(timerRemaining<=0)stopTimer()},1000)}
-function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null}document.getElementById('playerTimer').style.display='none';document.getElementById('audienceTimer').style.display='none'}
-function openQuizManager(){document.getElementById('quizManagerModal').style.display='flex';loadQuizList()}
-function closeQuizManager(){document.getElementById('quizManagerModal').style.display='none'}
-function loadQuizList(){const quizzes=JSON.parse(localStorage.getItem('quizzes')||'[]');const list=document.getElementById('quizList');list.innerHTML=quizzes.length?'':'<div style="text-align:center;color:#666;padding:40px">No quizzes yet. Create one!</div>';quizzes.forEach((q,i)=>{const div=document.createElement('div');div.className='quiz-item';div.innerHTML=`<div class="quiz-item-title">${q.title}</div><div class="quiz-item-info">${q.description||'No description'} • ${q.questions.length} questions • ${q.timerEnabled?q.timerDuration+'s timer':'No timer'}</div><div class="quiz-item-actions"><button onclick="loadQuiz(${i})">LOAD</button><button onclick="editQuiz(${i})">EDIT</button><button onclick="deleteQuiz(${i})">DELETE</button></div>`;list.appendChild(div)})}
-function loadQuiz(index){const quizzes=JSON.parse(localStorage.getItem('quizzes')||'[]');currentQuiz=quizzes[index];currentQuestionIndex=0;gameState='loaded';document.getElementById('hostQuizTitle').innerText=currentQuiz.title;document.getElementById('hostQuizStats').innerText=`${currentQuiz.questions.length} questions • ${currentQuiz.timerEnabled?currentQuiz.timerDuration+'s timer':'No timer'}`;document.getElementById('hostQuestionView').style.display='block';showHostQuestion();closeQuizManager();broadcastToAudience({type:'quizInfo',title:currentQuiz.title})}
-function editQuiz(index){const quizzes=JSON.parse(localStorage.getItem('quizzes')||'[]');const q=quizzes[index];document.getElementById('editorTitle').innerText='Edit Quiz';document.getElementById('quizTitleInput').value=q.title;document.getElementById('quizDescInput').value=q.description||'';document.getElementById('enableTimerToggle').checked=q.timerEnabled||false;document.getElementById('timerDurationInput').value=q.timerDuration||30;document.getElementById('questionsInput').value=JSON.stringify(q.questions,null,2);toggleTimerFields();closeQuizManager();document.getElementById('quizEditorModal').style.display='flex';window.editingQuizIndex=index}
-function deleteQuiz(index){if(!confirm('Delete this quiz?'))return;const quizzes=JSON.parse(localStorage.getItem('quizzes')||'[]');quizzes.splice(index,1);localStorage.setItem('quizzes',JSON.stringify(quizzes));loadQuizList()}
-function openQuizEditor(){document.getElementById('editorTitle').innerText='Create New Quiz';document.getElementById('quizTitleInput').value='';document.getElementById('quizDescInput').value='';document.getElementById('enableTimerToggle').checked=false;document.getElementById('timerDurationInput').value='30';document.getElementById('questionsInput').value='';window.editingQuizIndex=-1;closeQuizManager();document.getElementById('quizEditorModal').style.display='flex'}
-function closeQuizEditor(){document.getElementById('quizEditorModal').style.display='none';openQuizManager()}
-function toggleTimerFields(){const enabled=document.getElementById('enableTimerToggle').checked;document.getElementById('timerDurationGroup').style.display=enabled?'block':'none'}
-document.getElementById('enableTimerToggle').addEventListener('change',toggleTimerFields);
-function validateQuestions(){try{const json=document.getElementById('questionsInput').value;const parsed=JSON.parse(json);if(!Array.isArray(parsed)){alert('JSON must be an array of questions');return}for(let q of parsed){if(!q.question||!Array.isArray(q.options)||typeof q.correctAnswer!=='number'){alert('Invalid question format. Each question needs: question, options[], correctAnswer');return}if(q.options.length<2||q.options.length>6){alert('Each question must have 2-6 options');return}if(q.correctAnswer<0||q.correctAnswer>=q.options.length){alert('correctAnswer must be a valid option index');return}}alert(`✓ Valid! ${parsed.length} questions ready.`)}catch(e){alert('Invalid JSON: '+e.message)}}
-function saveQuiz(){try{const title=document.getElementById('quizTitleInput').value.trim();const desc=document.getElementById('quizDescInput').value.trim();const timerEnabled=document.getElementById('enableTimerToggle').checked;const timerDuration=parseInt(document.getElementById('timerDurationInput').value);const json=document.getElementById('questionsInput').value;const questions=JSON.parse(json);if(!title){alert('Enter quiz title');return}if(!Array.isArray(questions)||questions.length===0){alert('Enter valid questions');return}const quiz={title,description:desc,timerEnabled,timerDuration,questions,created:new Date().toISOString()};const quizzes=JSON.parse(localStorage.getItem('quizzes')||'[]');if(window.editingQuizIndex>=0)quizzes[window.editingQuizIndex]=quiz;else quizzes.push(quiz);localStorage.setItem('quizzes',JSON.stringify(quizzes));alert('Quiz saved!');closeQuizEditor()}catch(e){alert('Error: '+e.message)}}
-function showHostQuestion(){if(!currentQuiz||currentQuestionIndex>=currentQuiz.questions.length)return;const q=currentQuiz.questions[currentQuestionIndex];document.getElementById('hostQNum').innerText=(currentQuestionIndex+1)+' / '+currentQuiz.questions.length;document.getElementById('hostQuestion').innerText=q.question;const opts=document.getElementById('hostOptions');opts.innerHTML='';q.options.forEach((opt,i)=>{const div=document.createElement('div');div.className='option-btn disabled';div.innerHTML=`<span class="option-label">${String.fromCharCode(65+i)}</span>${opt}`;opts.appendChild(div)});document.getElementById('hostCorrectAnswer').innerText=String.fromCharCode(65+q.correctAnswer)+'. '+q.options[q.correctAnswer];playerAnswers={}}
-function askOne(){if(playerConns.length===0){alert('No players connected');return}currentAskedPlayer=playerConns[Math.floor(Math.random()*playerConns.length)];askAllMode=false;const q=currentQuiz.questions[currentQuestionIndex];currentAskedPlayer.send({type:'showQuestion',questionNum:currentQuestionIndex+1,question:q.question,options:q.options,timerEnabled:currentQuiz.timerEnabled,timerDuration:currentQuiz.timerDuration});broadcastToPlayers({type:'disableAnswers'},currentAskedPlayer);broadcastToAudience({type:'showQuestion',questionNum:currentQuestionIndex+1,question:q.question,options:q.options,timerEnabled:currentQuiz.timerEnabled,timerDuration:currentQuiz.timerDuration});broadcastToAudience({type:'currentPlayer',name:currentAskedPlayer.metadata.name});if(currentQuiz.timerEnabled){timerRemaining=currentQuiz.timerDuration;setTimeout(()=>{if(timerRemaining<=0&&!playerAnswers[currentAskedPlayer.metadata.name]){broadcastToPlayers({type:'disableAnswers'})}},currentQuiz.timerDuration*1000)}}
-function askAll(){if(playerConns.length===0){alert('No players connected');return}askAllMode=true;currentAskedPlayer=null;const q=currentQuiz.questions[currentQuestionIndex];broadcastToPlayers({type:'showQuestion',questionNum:currentQuestionIndex+1,question:q.question,options:q.options,timerEnabled:currentQuiz.timerEnabled,timerDuration:currentQuiz.timerDuration});broadcastToAudience({type:'showQuestion',questionNum:currentQuestionIndex+1,question:q.question,options:q.options,timerEnabled:currentQuiz.timerEnabled,timerDuration:currentQuiz.timerDuration});broadcastToAudience({type:'askAll'});if(currentQuiz.timerEnabled){timerRemaining=currentQuiz.timerDuration;setTimeout(()=>{if(timerRemaining<=0){broadcastToPlayers({type:'disableAnswers'})}},currentQuiz.timerDuration*1000)}}
-function revealAnswer(){if(!currentQuiz)return;const q=currentQuiz.questions[currentQuestionIndex];broadcastToPlayers({type:'revealAnswer',correctAnswer:q.correctAnswer});broadcastToAudience({type:'revealAnswer',correctAnswer:q.correctAnswer});if(currentAskedPlayer){const answer=playerAnswers[currentAskedPlayer.metadata.name];if(answer===q.correctAnswer){currentAskedPlayer.metadata.score+=10;currentAskedPlayer.send({type:'updateScore',score:currentAskedPlayer.metadata.score});updatePlayerList()}currentAskedPlayer=null}broadcastToAudience({type:'updateScoreboard',players:playerConns.map(p=>({name:p.metadata.name,score:p.metadata.score}))})}
-function nextQuestion(){currentQuestionIndex++;if(currentQuestionIndex>=currentQuiz.questions.length){alert('Quiz complete!');broadcastToAudience({type:'updateScoreboard',players:playerConns.map(p=>({name:p.metadata.name,score:p.metadata.score}))});return}showHostQuestion()}
-function openAiGenerator(){document.getElementById('quizEditorModal').style.display='none';document.getElementById('aiGeneratorModal').style.display='flex';const key=localStorage.getItem('geminiKey');if(key)document.getElementById('apiKeyInput').value=key;document.getElementById('aiStatus').innerText='';document.getElementById('manualJsonGroup').style.display='none'}
-function closeAiGenerator(){document.getElementById('aiGeneratorModal').style.display='none';document.getElementById('quizEditorModal').style.display='flex'}
-async function generateQuiz(){const key=document.getElementById('apiKeyInput').value.trim();const topic=document.getElementById('topicInput').value.trim();const numQuestions=parseInt(document.getElementById('numQuestionsInput').value);const difficulty=document.getElementById('difficultySelect').value;const status=document.getElementById('aiStatus');if(!key){status.innerText='Enter API key';status.className='status error';return}if(!topic){status.innerText='Enter topic';status.className='status error';return}localStorage.setItem('geminiKey',key);status.innerText='Generating quiz...';status.className='status';try{const prompt=`Create a quiz about "${topic}" with exactly ${numQuestions} questions at ${difficulty} difficulty level. Return ONLY a valid JSON array with no markdown formatting, no backticks, no explanations. Each question must have this exact structure: {"question":"question text","options":["option1","option2","option3","option4"],"correctAnswer":0}. The correctAnswer is the index (0-3) of the correct option. Make questions clear, engaging, and appropriate for the difficulty level.`;const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});const data=await res.json();if(data.candidates&&data.candidates[0]){let text=data.candidates[0].content.parts[0].text.trim();text=text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();const questions=JSON.parse(text);document.getElementById('questionsInput').value=JSON.stringify(questions,null,2);status.innerText='✓ Quiz generated! Review and save.';status.className='status';setTimeout(()=>closeAiGenerator(),1500)}else{throw new Error('Generation failed')}}catch(err){status.innerText='Error: '+err.message+'. Try manual paste below.';status.className='status error';document.getElementById('manualJsonGroup').style.display='block'}}
-function importManualJson(){try{const json=document.getElementById('manualJsonInput').value.trim();const parsed=JSON.parse(json);document.getElementById('questionsInput').value=JSON.stringify(parsed,null,2);alert('JSON imported!');closeAiGenerator()}catch(e){alert('Invalid JSON: '+e.message)}}
+let peer, mode = '', gameCode = '';
+let playerConns = [], audienceConns = [], currentQuiz = null, currentQuestionIndex = 0, gameState = 'waiting';
+let timerInterval = null, timerRemaining = 0, selectedPlayer = null, askAllMode = false;
+let playerAnswers = {}, myPlayerName = '', myScore = 0, myConn = null;
+let flashInterval = null;
+
+const sounds = {
+    win: createBeep(800, 200),
+    lose: createBeep(200, 300),
+    lock: createBeep(400, 100),
+    reveal: createBeep(600, 150)
+};
+
+function createBeep(freq, duration) {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return () => {
+        const osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(.01, ctx.currentTime + duration / 1000);
+        osc.start();
+        osc.stop(ctx.currentTime + duration / 1000);
+    }
+}
+
+function setStatus(msg, isError = false) {
+    const el = document.getElementById('statusText');
+    if (el) {
+        el.innerText = msg;
+        el.className = isError ? "status error" : "status";
+    }
+}
+
+function backToMain() {
+    document.getElementById('initialBtns').style.display = 'flex';
+    document.getElementById('playerInputGroup').style.display = 'none';
+    document.getElementById('audienceInputGroup').style.display = 'none';
+    setStatus("Select Mode");
+}
+
+function showPlayerInput() {
+    document.getElementById('initialBtns').style.display = 'none';
+    document.getElementById('playerInputGroup').style.display = 'flex';
+    document.getElementById('playerCodeInput').focus();
+    setStatus("Enter game code and your name");
+}
+
+function showAudienceInput() {
+    document.getElementById('initialBtns').style.display = 'none';
+    document.getElementById('audienceInputGroup').style.display = 'flex';
+    document.getElementById('audienceCodeInput').focus();
+    setStatus("Enter game code");
+}
+
+function startHost() {
+    mode = 'host';
+    setStatus("Creating Game...");
+    
+    const quizzes = JSON.parse(localStorage.getItem('quizzes') || '[]');
+    if (quizzes.length === 0) {
+        alert('Create a quiz first!');
+        location.reload();
+        return;
+    }
+    
+    gameCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const peerId = 'QUIZ-GAME-' + gameCode;
+    
+    peer = new Peer(peerId);
+    peer.on('open', () => {
+        console.log('Game created with code:', gameCode);
+        document.getElementById('setupView').style.display = 'none';
+        document.getElementById('hostView').style.display = 'flex';
+        document.getElementById('hostGameCode').innerText = gameCode;
+        loadQuizList();
+    });
+    
+    peer.on('connection', c => {
+        if (c.metadata && c.metadata.type === 'player') {
+            c.metadata.score = 0;
+            c.metadata.selected = false;
+            playerConns.push(c);
+            updatePlayerList();
+            broadcastToAudience({
+                type: 'updateScoreboard',
+                players: playerConns.map(p => ({
+                    name: p.metadata.name,
+                    score: p.metadata.score,
+                    current: p === selectedPlayer
+                }))
+            });
+            c.on('data', data => handleHostData(data, c));
+            c.on('close', () => {
+                playerConns = playerConns.filter(x => x !== c);
+                updatePlayerList();
+                broadcastToAudience({
+                    type: 'updateScoreboard',
+                    players: playerConns.map(p => ({
+                        name: p.metadata.name,
+                        score: p.metadata.score,
+                        current: p === selectedPlayer
+                    }))
+                });
+            });
+        } else if (c.metadata && c.metadata.type === 'audience') {
+            audienceConns.push(c);
+            c.on('data', () => {});
+            c.on('close', () => {
+                audienceConns = audienceConns.filter(x => x !== c);
+            });
+        }
+    });
+    
+    peer.on('error', err => {
+        if (err.type === 'unavailable-id') startHost();
+        else alert("Error: " + err.type);
+    });
+}
+
+function connectAsPlayer() {
+    const code = document.getElementById('playerCodeInput').value;
+    const name = document.getElementById('playerNameInput').value.trim();
+    if (code.length < 4) {
+        setStatus("Enter 4-digit code", true);
+        return;
+    }
+    if (!name) {
+        setStatus("Enter your name", true);
+        return;
+    }
+    mode = 'player';
+    myPlayerName = name;
+    setStatus("Connecting...");
+    const targetId = 'QUIZ-GAME-' + code;
+    peer = new Peer();
+    peer.on('open', () => {
+        const c = peer.connect(targetId, {
+            reliable: true,
+            metadata: { type: 'player', name }
+        });
+        myConn = c;
+        c.on('open', () => {
+            document.getElementById('setupView').style.display = 'none';
+            document.getElementById('playerView').style.display = 'flex';
+            document.getElementById('playerNameDisplay').innerText = name;
+        });
+        c.on('data', data => handlePlayerData(data));
+        c.on('close', () => {
+            alert("Connection lost");
+            location.reload();
+        });
+    });
+    peer.on('error', err => setStatus("Connection failed: " + err.type, true));
+}
+
+function connectAsAudience() {
+    const code = document.getElementById('audienceCodeInput').value;
+    if (code.length < 4) {
+        setStatus("Enter 4-digit code", true);
+        return;
+    }
+    mode = 'audience';
+    setStatus("Connecting...");
+    const targetId = 'QUIZ-GAME-' + code;
+    peer = new Peer();
+    peer.on('open', () => {
+        const c = peer.connect(targetId, {
+            reliable: true,
+            metadata: { type: 'audience' }
+        });
+        c.on('open', () => {
+            document.getElementById('setupView').style.display = 'none';
+            document.getElementById('audienceView').style.display = 'flex';
+        });
+        c.on('data', data => handleAudienceData(data));
+        c.on('close', () => {
+            alert("Connection lost");
+            location.reload();
+        });
+    });
+    peer.on('error', err => setStatus("Connection failed: " + err.type, true));
+}
+
+function updatePlayerList() {
+    const list = document.getElementById('hostPlayerList');
+    list.innerHTML = '';
+    playerConns.forEach((c, i) => {
+        const div = document.createElement('div');
+        div.className = 'player-card' + (c === selectedPlayer ? ' selected-to-answer' : '');
+        div.innerHTML = `<div><div class="player-name">${c.metadata.name}</div><div style="font-size:.85rem;color:#888">Player ${i + 1}</div></div><div class="player-score">${c.metadata.score}</div>`;
+        div.onclick = () => selectPlayerToAnswer(c);
+        list.appendChild(div);
+    });
+}
+
+function selectPlayerToAnswer(conn) {
+    selectedPlayer = conn;
+    updatePlayerList();
+    broadcastToAudience({
+        type: 'updateScoreboard',
+        players: playerConns.map(p => ({
+            name: p.metadata.name,
+            score: p.metadata.score,
+            current: p === selectedPlayer
+        }))
+    });
+}
+
+function broadcastToPlayers(data, exclude = null) {
+    playerConns.forEach(c => {
+        if (c !== exclude && c.open) c.send(data);
+    });
+}
+
+function broadcastToAudience(data) {
+    audienceConns.forEach(c => {
+        if (c.open) c.send(data);
+    });
+}
+
+function handleHostData(data, conn) {
+    if (data.type === 'answer') {
+        if (!playerAnswers[conn.metadata.name]) {
+            playerAnswers[conn.metadata.name] = data.answer;
+            broadcastToAudience({
+                type: 'playerSelected',
+                playerName: conn.metadata.name,
+                answer: data.answer
+            });
+            startFlash('selected');
+        }
+    }
+}
+
+function handlePlayerData(data) {
+    if (data.type === 'showQuestion') {
+        document.getElementById('playerWaiting').style.display = 'none';
+        document.getElementById('playerQuestionView').style.display = 'block';
+        document.getElementById('playerQNum').innerText = data.questionNum;
+        document.getElementById('playerQuestion').innerText = data.question;
+        const opts = document.getElementById('playerOptions');
+        opts.innerHTML = '';
+        data.options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerHTML = `<span class="option-label">${String.fromCharCode(65 + i)}</span>${opt}`;
+            btn.onclick = () => selectPlayerAnswer(i, btn);
+            opts.appendChild(btn);
+        });
+        if (data.timerEnabled) {
+            timerRemaining = data.timerDuration;
+            document.getElementById('playerTimer').style.display = 'block';
+            startPlayerTimer();
+        }
+    } else if (data.type === 'disableAnswers') {
+        document.querySelectorAll('#playerOptions .option-btn').forEach(b => b.classList.add('disabled'));
+        stopTimer();
+    } else if (data.type === 'revealAnswer') {
+        stopTimer();
+        document.querySelectorAll('#playerOptions .option-btn').forEach((b, i) => {
+            if (i === data.correctAnswer) b.classList.add('correct');
+            else b.classList.add('wrong');
+        });
+    } else if (data.type === 'updateScore') {
+        myScore = data.score;
+        document.getElementById('playerScore').innerText = myScore;
+    } else if (data.type === 'reset') {
+        document.getElementById('playerWaiting').style.display = 'block';
+        document.getElementById('playerQuestionView').style.display = 'none';
+        myScore = 0;
+        document.getElementById('playerScore').innerText = '0';
+    }
+}
+
+function handleAudienceData(data) {
+    if (data.type === 'quizInfo') {
+        document.getElementById('audienceWaiting').style.display = 'none';
+    } else if (data.type === 'updateScoreboard') {
+        const board = document.getElementById('audienceScoreboard');
+        board.innerHTML = '';
+        const sorted = [...data.players].sort((a, b) => b.score - a.score);
+        sorted.forEach((p, i) => {
+            const div = document.createElement('div');
+            div.className = 'mini-player' + (p.current ? ' current' : '');
+            div.innerHTML = `<strong>${p.name}</strong>: ${p.score}`;
+            board.appendChild(div);
+        });
+    } else if (data.type === 'showQuestion') {
+        document.getElementById('audienceWaiting').style.display = 'none';
+        document.getElementById('audienceQuestionArea').style.display = 'block';
+        document.getElementById('audienceQNum').innerText = data.questionNum;
+        document.getElementById('audienceQuestion').innerText = data.question;
+        const opts = document.getElementById('audienceOptions');
+        opts.innerHTML = '';
+        data.options.forEach((opt, i) => {
+            const div = document.createElement('div');
+            div.className = 'audience-option-big';
+            div.setAttribute('data-index', i);
+            div.innerHTML = `<span style="display:inline-block;width:60px;height:60px;background:var(--accent);color:#000;border-radius:50%;text-align:center;line-height:60px;font-weight:bold;margin-right:20px;font-size:1.5rem">${String.fromCharCode(65 + i)}</span>${opt}`;
+            opts.appendChild(div);
+        });
+        if (data.timerEnabled) {
+            timerRemaining = data.timerDuration;
+            document.getElementById('audienceTimer').style.display = 'block';
+            startAudienceTimer();
+        }
+        sounds.reveal();
+    } else if (data.type === 'playerSelected') {
+        const opts = document.querySelectorAll('#audienceOptions .audience-option-big');
+        opts.forEach((opt, i) => {
+            if (i === data.answer) {
+                opt.classList.add('player-selected');
+            }
+        });
+    } else if (data.type === 'revealAnswer') {
+        stopTimer();
+        const opts = document.querySelectorAll('#audienceOptions .audience-option-big');
+        opts.forEach((opt, i) => {
+            opt.classList.remove('player-selected');
+            if (i === data.correctAnswer) opt.classList.add('correct');
+            else if (opt.classList.contains('player-selected') || i === data.playerAnswer) opt.classList.add('wrong');
+        });
+        sounds.reveal();
+        if (!data.isCorrect) {
+            startFlash('wrong');
+        }
+    }
+}
+
+function selectPlayerAnswer(index, btn) {
+    if (btn.classList.contains('disabled')) return;
+    document.querySelectorAll('#playerOptions .option-btn').forEach(b => {
+        b.classList.remove('selected');
+        b.classList.add('disabled');
+    });
+    btn.classList.add('selected');
+    myConn.send({ type: 'answer', answer: index });
+    sounds.lock();
+}
+
+function startPlayerTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        timerRemaining--;
+        const el = document.getElementById('playerTimer');
+        el.innerText = timerRemaining;
+        if (timerRemaining <= 5) el.classList.add('warning');
+        else el.classList.remove('warning');
+        if (timerRemaining <= 0) {
+            stopTimer();
+            document.querySelectorAll('#playerOptions .option-btn').forEach(b => b.classList.add('disabled'));
+        }
+    }, 1000);
+}
+
+function startAudienceTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        timerRemaining--;
+        const el = document.getElementById('audienceTimer');
+        el.innerText = timerRemaining;
+        if (timerRemaining <= 5) el.classList.add('warning');
+        else el.classList.remove('warning');
+        if (timerRemaining <= 0) stopTimer();
+    }, 1000);
+}
+
+function stopTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    document.getElementById('playerTimer').style.display = 'none';
+    document.getElementById('audienceTimer').style.display = 'none';
+}
+
+function startFlash(type) {
+    if (flashInterval) clearInterval(flashInterval);
+    let count = 0;
+    const className = type === 'wrong' ? 'wrong-flash' : 'selected-flash';
+    flashInterval = setInterval(() => {
+        document.body.classList.toggle(className);
+        count++;
+        if (count >= 6) {
+            clearInterval(flashInterval);
+            document.body.classList.remove(className);
+            flashInterval = null;
+        }
+    }, 300);
+}
+
+function openQuizManager() {
+    document.getElementById('quizManagerModal').style.display = 'flex';
+    loadQuizList();
+}
+
+function closeQuizManager() {
+    document.getElementById('quizManagerModal').style.display = 'none';
+}
+
+function loadQuizList() {
+    const quizzes = JSON.parse(localStorage.getItem('quizzes') || '[]');
+    const list = document.getElementById('quizList');
+    list.innerHTML = quizzes.length ? '' : '<div style="text-align:center;color:#666;padding:40px">No quizzes yet. Create one!</div>';
+    quizzes.forEach((q, i) => {
+        const div = document.createElement('div');
+        div.className = 'quiz-item';
+        div.innerHTML = `<div class="quiz-item-title">${q.title}</div><div class="quiz-item-info">${q.description || 'No description'} • ${q.questions.length} questions • ${q.timerEnabled ? q.timerDuration + 's timer' : 'No timer'}</div><div class="quiz-item-actions"><button onclick="loadQuiz(${i})">LOAD</button><button onclick="editQuiz(${i})">EDIT</button><button onclick="deleteQuiz(${i})">DELETE</button></div>`;
+        list.appendChild(div);
+    });
+}
+
+function loadQuiz(index) {
+    const quizzes = JSON.parse(localStorage.getItem('quizzes') || '[]');
+    currentQuiz = quizzes[index];
+    currentQuestionIndex = 0;
+    gameState = 'loaded';
+    document.getElementById('hostQuizTitle').innerText = currentQuiz.title;
+    document.getElementById('hostQuizStats').innerText = `${currentQuiz.questions.length} questions • ${currentQuiz.timerEnabled ? currentQuiz.timerDuration + 's timer' : 'No timer'}`;
+    document.getElementById('hostQuestionView').style.display = 'block';
+    showHostQuestion();
+    closeQuizManager();
+    broadcastToAudience({ type: 'quizInfo', title: currentQuiz.title });
+}
+
+function editQuiz(index) {
+    const quizzes = JSON.parse(localStorage.getItem('quizzes') || '[]');
+    const q = quizzes[index];
+    document.getElementById('editorTitle').innerText = 'Edit Quiz';
+    document.getElementById('quizTitleInput').value = q.title;
+    document.getElementById('quizDescInput').value = q.description || '';
+    document.getElementById('enableTimerToggle').checked = q.timerEnabled || false;
+    document.getElementById('timerDurationInput').value = q.timerDuration || 30;
+    document.getElementById('questionsInput').value = JSON.stringify(q.questions, null, 2);
+    toggleTimerFields();
+    closeQuizManager();
+    document.getElementById('quizEditorModal').style.display = 'flex';
+    window.editingQuizIndex = index;
+}
+
+function deleteQuiz(index) {
+    if (!confirm('Delete this quiz?')) return;
+    const quizzes = JSON.parse(localStorage.getItem('quizzes') || '[]');
+    quizzes.splice(index, 1);
+    localStorage.setItem('quizzes', JSON.stringify(quizzes));
+    loadQuizList();
+}
+
+function openQuizEditor() {
+    document.getElementById('editorTitle').innerText = 'Create New Quiz';
+    document.getElementById('quizTitleInput').value = '';
+    document.getElementById('quizDescInput').value = '';
+    document.getElementById('enableTimerToggle').checked = false;
+    document.getElementById('timerDurationInput').value = '30';
+    document.getElementById('questionsInput').value = '';
+    window.editingQuizIndex = -1;
+    closeQuizManager();
+    document.getElementById('quizEditorModal').style.display = 'flex';
+}
+
+function closeQuizEditor() {
+    document.getElementById('quizEditorModal').style.display = 'none';
+    openQuizManager();
+}
+
+function toggleTimerFields() {
+    const enabled = document.getElementById('enableTimerToggle').checked;
+    document.getElementById('timerDurationGroup').style.display = enabled ? 'block' : 'none';
+}
+
+document.getElementById('enableTimerToggle').addEventListener('change', toggleTimerFields);
+
+function validateQuestions() {
+    try {
+        const json = document.getElementById('questionsInput').value;
+        const parsed = JSON.parse(json);
+        if (!Array.isArray(parsed)) {
+            alert('JSON must be an array of questions');
+            return;
+        }
+        for (let q of parsed) {
+            if (!q.question || !Array.isArray(q.options) || typeof q.correctAnswer !== 'number') {
+                alert('Invalid question format. Each question needs: question, options[], correctAnswer');
+                return;
+            }
+            if (q.options.length < 2 || q.options.length > 6) {
+                alert('Each question must have 2-6 options');
+                return;
+            }
+            if (q.correctAnswer < 0 || q.correctAnswer >= q.options.length) {
+                alert('correctAnswer must be a valid option index');
+                return;
+            }
+        }
+        alert(`✓ Valid! ${parsed.length} questions ready.`);
+    } catch (e) {
+        alert('Invalid JSON: ' + e.message);
+    }
+}
+
+function saveQuiz() {
+    try {
+        const title = document.getElementById('quizTitleInput').value.trim();
+        const desc = document.getElementById('quizDescInput').value.trim();
+        const timerEnabled = document.getElementById('enableTimerToggle').checked;
+        const timerDuration = parseInt(document.getElementById('timerDurationInput').value);
+        const json = document.getElementById('questionsInput').value;
+        const questions = JSON.parse(json);
+        if (!title) {
+            alert('Enter quiz title');
+            return;
+        }
+        if (!Array.isArray(questions) || questions.length === 0) {
+            alert('Enter valid questions');
+            return;
+        }
+        const quiz = { title, description: desc, timerEnabled, timerDuration, questions, created: new Date().toISOString() };
+        const quizzes = JSON.parse(localStorage.getItem('quizzes') || '[]');
+        if (window.editingQuizIndex >= 0) quizzes[window.editingQuizIndex] = quiz;
+        else quizzes.push(quiz);
+        localStorage.setItem('quizzes', JSON.stringify(quizzes));
+        alert('Quiz saved!');
+        closeQuizEditor();
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+function showHostQuestion() {
+    if (!currentQuiz || currentQuestionIndex >= currentQuiz.questions.length) return;
+    const q = currentQuiz.questions[currentQuestionIndex];
+    document.getElementById('hostQNum').innerText = (currentQuestionIndex + 1) + ' / ' + currentQuiz.questions.length;
+    document.getElementById('hostQuestion').innerText = q.question;
+    const opts = document.getElementById('hostOptions');
+    opts.innerHTML = '';
+    q.options.forEach((opt, i) => {
+        const div = document.createElement('div');
+        div.className = 'option-btn disabled';
+        div.innerHTML = `<span class="option-label">${String.fromCharCode(65 + i)}</span>${opt}`;
+        opts.appendChild(div);
+    });
+    document.getElementById('hostCorrectAnswer').innerText = String.fromCharCode(65 + q.correctAnswer) + '. ' + q.options[q.correctAnswer];
+    playerAnswers = {};
+}
+
+function askSelectedPlayer() {
+    if (!selectedPlayer) {
+        alert('Select a player first!');
+        return;
+    }
+    const q = currentQuiz.questions[currentQuestionIndex];
+    selectedPlayer.send({
+        type: 'showQuestion',
+        questionNum: currentQuestionIndex + 1,
+        question: q.question,
+        options: q.options,
+        timerEnabled: currentQuiz.timerEnabled,
+        timerDuration: currentQuiz.timerDuration
+    });
+    broadcastToPlayers({ type: 'disableAnswers' }, selectedPlayer);
+    broadcastToAudience({
+        type: 'showQuestion',
+        questionNum: currentQuestionIndex + 1,
+        question: q.question,
+        options: q.options,
+        timerEnabled: currentQuiz.timerEnabled,
+        timerDuration: currentQuiz.timerDuration
+    });
+    if (currentQuiz.timerEnabled) {
+        timerRemaining = currentQuiz.timerDuration;
+        setTimeout(() => {
+            if (timerRemaining <= 0 && !playerAnswers[selectedPlayer.metadata.name]) {
+                broadcastToPlayers({ type: 'disableAnswers' });
+            }
+        }, currentQuiz.timerDuration * 1000);
+    }
+}
+
+function passQuestion() {
+    if (!selectedPlayer) {
+        alert('Select a player first!');
+        return;
+    }
+    selectedPlayer.metadata.score -= 5;
+    if (selectedPlayer.metadata.score < 0) selectedPlayer.metadata.score = 0;
+    updatePlayerList();
+    broadcastToAudience({
+        type: 'updateScoreboard',
+        players: playerConns.map(p => ({
+            name: p.metadata.name,
+            score: p.metadata.score,
+            current: p === selectedPlayer
+        }))
+    });
+    sounds.lose();
+    alert(`${selectedPlayer.metadata.name} passed! -5 points`);
+    nextQuestion();
+}
+
+function revealAnswer() {
+    if (!currentQuiz) return;
+    const q = currentQuiz.questions[currentQuestionIndex];
+    const answer = playerAnswers[selectedPlayer.metadata.name];
+    const isCorrect = answer === q.correctAnswer;
+    
+    broadcastToPlayers({ type: 'revealAnswer', correctAnswer: q.correctAnswer });
+    broadcastToAudience({ 
+        type: 'revealAnswer', 
+        correctAnswer: q.correctAnswer,
+        playerAnswer: answer,
+        isCorrect: isCorrect
+    });
+    
+    if (selectedPlayer && answer !== undefined) {
+        if (isCorrect) {
+            selectedPlayer.metadata.score += 10;
+            selectedPlayer.send({ type: 'updateScore', score: selectedPlayer.metadata.score });
+            sounds.win();
+        } else {
+            sounds.lose();
+            startFlash('wrong');
+        }
+        updatePlayerList();
+    }
+    
+    broadcastToAudience({
+        type: 'updateScoreboard',
+        players: playerConns.map(p => ({
+            name: p.metadata.name,
+            score: p.metadata.score,
+            current: p === selectedPlayer
+        }))
+    });
+}
+
+function nextQuestion() {
+    currentQuestionIndex++;
+    selectedPlayer = null;
+    if (currentQuestionIndex >= currentQuiz.questions.length) {
+        alert('Quiz complete!');
+        broadcastToAudience({
+            type: 'updateScoreboard',
+            players: playerConns.map(p => ({
+                name: p.metadata.name,
+                score: p.metadata.score,
+                current: false
+            }))
+        });
+        return;
+    }
+    showHostQuestion();
+}
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            alert('Fullscreen failed: ' + err.message);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'F11') {
+        e.preventDefault();
+        toggleFullscreen();
+    }
+});
+
+function openAiGenerator() {
+    document.getElementById('quizEditorModal').style.display = 'none';
+    document.getElementById('aiGeneratorModal').style.display = 'flex';
+    const key = localStorage.getItem('geminiKey');
+    if (key) document.getElementById('apiKeyInput').value = key;
+    document.getElementById('aiStatus').innerText = '';
+    document.getElementById('manualJsonGroup').style.display = 'none';
+}
+
+function closeAiGenerator() {
+    document.getElementById('aiGeneratorModal').style.display = 'none';
+    document.getElementById('quizEditorModal').style.display = 'flex';
+}
+
+async function generateQuiz() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    const topic = document.getElementById('topicInput').value.trim();
+    const numQuestions = parseInt(document.getElementById('numQuestionsInput').value);
+    const difficulty = document.getElementById('difficultySelect').value;
+    const status = document.getElementById('aiStatus');
+    if (!key) {
+        status.innerText = 'Enter API key';
+        status.className = 'status error';
+        return;
+    }
+    if (!topic) {
+        status.innerText = 'Enter topic';
+        status.className = 'status error';
+        return;
+    }
+    localStorage.setItem('geminiKey', key);
+    status.innerText = 'Generating quiz...';
+    status.className = 'status';
+    try {
+        const prompt = `Create a quiz about "${topic}" with exactly ${numQuestions} questions at ${difficulty} difficulty level. Return ONLY a valid JSON array with no markdown formatting, no backticks, no explanations. Each question must have this exact structure: {"question":"question text","options":["option1","option2","option3","option4"],"correctAnswer":0}. The correctAnswer is the index (0-3) of the correct option. Make questions clear, engaging, and appropriate for the difficulty level.`;
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await res.json();
+        if (data.candidates && data.candidates[0]) {
+            let text = data.candidates[0].content.parts[0].text.trim();
+            text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const questions = JSON.parse(text);
+            document.getElementById('questionsInput').value = JSON.stringify(questions, null, 2);
+            status.innerText = '✓ Quiz generated! Review and save.';
+            status.className = 'status';
+            setTimeout(() => closeAiGenerator(), 1500);
+        } else {
+            throw new Error('Generation failed');
+        }
+    } catch (err) {
+        status.innerText = 'Error: ' + err.message + '. Try manual paste below.';
+        status.className = 'status error';
+        document.getElementById('manualJsonGroup').style.display = 'block';
+    }
+}
+
+function importManualJson() {
+    try {
+        const json = document.getElementById('manualJsonInput').value.trim();
+        const parsed = JSON.parse(json);
+        document.getElementById('questionsInput').value = JSON.stringify(parsed, null, 2);
+        alert('JSON imported!');
+        closeAiGenerator();
+    } catch (e) {
+        alert('Invalid JSON: ' + e.message);
+    }
+}
     </script>
 </body>
 </html>
