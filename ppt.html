@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Playfair+Display:wght@400;500;600;700;800&family=Source+Sans+Pro:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
-:root{--bg:#fff;--text:#000;--secondary:#666;--border:#ccc;--accent:#0066cc;--hover:#f5f5f5;--btn-bg:#000;--btn-text:#fff}
-.dark-theme{--bg:#000;--text:#fff;--secondary:#999;--border:#333;--accent:#4da6ff;--hover:#1a1a1a;--btn-bg:#fff;--btn-text:#000}
+:root{--bg:#000;--text:#fff;--secondary:#999;--border:#333;--accent:#4da6ff;--hover:#1a1a1a;--btn-bg:#fff;--btn-text:#000}
+.light-theme{--bg:#fff;--text:#000;--secondary:#666;--border:#ccc;--accent:#0066cc;--hover:#f5f5f5;--btn-bg:#000;--btn-text:#fff}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 body{font-family:'Source Sans Pro',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw;transition:all .3s}
 .container{max-width:1200px;margin:0 auto;padding:0 20px}
@@ -26,8 +26,12 @@ body{font-family:'Source Sans Pro',sans-serif;background:var(--bg);color:var(--t
 .dev-credit{margin-top:30px;font-size:.8rem;color:var(--secondary)}
 .dev-credit a{color:var(--accent);text-decoration:none}
 #displayView{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);touch-action:pan-y}
-.slide{display:none;padding:60px;height:100vh;overflow-y:auto}
+.starting-soon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:3rem;font-weight:bold;color:var(--accent);font-family:'Pacifico',cursive;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.slide{display:none;padding:60px;height:100vh;overflow-y:auto;transition:opacity .3s}
 .slide.active{display:block}
+.slide.blank{background:var(--bg)}
+.slide.blank *{opacity:0}
 .slide h1{font-family:'Playfair Display',serif;font-size:48px;margin-bottom:30px;text-align:center;font-weight:700}
 .slide h2{font-family:'Playfair Display',serif;font-size:36px;margin-bottom:24px;font-weight:600}
 .slide h3{font-family:'Playfair Display',serif;font-size:28px;margin-bottom:20px;font-weight:500}
@@ -43,6 +47,8 @@ body{font-family:'Source Sans Pro',sans-serif;background:var(--bg);color:var(--t
 .info{color:#2196f3;font-weight:700}
 .overlay-ui{position:fixed;top:20px;right:20px;z-index:100;display:flex;gap:10px;flex-direction:column;align-items:flex-end}
 .room-code-display{background:rgba(0,0,0,.7);color:var(--accent);padding:10px;border-radius:4px;border:1px solid var(--accent);font-family:monospace;font-size:1.2rem}
+.display-controls{position:fixed;bottom:20px;left:20px;display:flex;gap:10px;z-index:100}
+.display-btn{background:var(--accent);color:#fff;padding:10px;border:none;border-radius:50%;width:50px;height:50px;cursor:pointer;font-size:1.2rem}
 #controllerView{display:none;flex-direction:column;height:100vh;background:var(--bg)}
 .top-bar{padding:10px;background:var(--hover);display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
 .text-preview{flex:1;background:var(--bg);border:1px solid var(--border);padding:10px;color:var(--secondary);border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
@@ -52,11 +58,17 @@ body{font-family:'Source Sans Pro',sans-serif;background:var(--bg);color:var(--t
 .tool-btn:active{background:var(--hover)}
 .tool-btn.active{background:var(--accent);color:#fff;border:none}
 .icon{width:20px;height:20px;fill:currentColor;pointer-events:none}
+.slide-info{background:var(--hover);padding:15px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.slide-title{font-size:1rem;font-weight:bold;color:var(--accent)}
+.slide-meta{display:flex;justify-content:space-between;font-size:.85rem;color:var(--secondary)}
+.next-slide-info{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:.8rem;color:var(--secondary)}
 .nav-container{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:20px;padding:20px}
 .nav-btn{width:80vw;max-width:400px;height:80vw;max-height:400px;background:var(--accent);border:none;border-radius:20px;color:#fff;font-size:3rem;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(0,102,204,.3)}
 .nav-btn:active{transform:scale(.95)}
-.nav-btn.back{height:15vh;max-height:150px;font-size:2rem}
-#editModal,#projectsModal,#apiModal,#modeModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:2000;flex-direction:column}
+.nav-row{display:flex;gap:20px;width:100%;max-width:400px;justify-content:center}
+.nav-btn.back{width:45%;height:15vh;max-height:150px;font-size:2rem}
+.nav-btn.scroll{width:25%;height:15vh;max-height:150px;font-size:1.5rem}
+#editModal,#projectsModal,#apiModal,#modeModal,#displaySetupModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:2000;flex-direction:column}
 .modal-header{padding:15px;background:var(--hover);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
 .modal-header .title{font-weight:600;font-size:1.1rem}
 .save-btn{background:var(--accent);color:#fff;padding:8px 20px;border:none;border-radius:4px;font-weight:bold;cursor:pointer}
@@ -88,6 +100,7 @@ body{font-family:'Source Sans Pro',sans-serif;background:var(--bg);color:var(--t
 .mode-item p{font-size:.85rem;color:var(--secondary)}
 .file-input{display:none}
 .swipe-area{position:fixed;top:0;left:0;width:100%;height:100%;z-index:50;pointer-events:auto}
+.display-setup-content{padding:20px;display:flex;flex-direction:column;gap:15px;overflow-y:auto}
 </style>
 </head>
 <body>
@@ -106,9 +119,13 @@ body{font-family:'Source Sans Pro',sans-serif;background:var(--bg);color:var(--t
 <div class="dev-credit">Developed by <a href="https://ChiragSharma.web.app" target="_blank">xchirxg</a></div>
 </div>
 <div id="displayView">
+<div class="starting-soon" id="startingSoon">STARTING SOON...</div>
 <div class="overlay-ui" id="displayUI">
 <div class="room-code-display" id="displayCodeBox">CODE: ----</div>
 <button class="big-btn" style="font-size:.8rem;padding:8px" onclick="toggleLocalFullscreen()">FULLSCREEN</button>
+</div>
+<div class="display-controls" id="displayControls">
+<button class="display-btn" onclick="openDisplaySetup()">⚙️</button>
 </div>
 <div class="swipe-area" id="swipeArea"></div>
 <div id="slidesContainer"></div>
@@ -123,18 +140,26 @@ body{font-family:'Source Sans Pro',sans-serif;background:var(--bg);color:var(--t
 <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
 </button>
 </div>
+<div class="slide-info" id="slideInfo">
+<div class="slide-title" id="currentSlideTitle">No presentation loaded</div>
+<div class="slide-meta">
+<span id="slideNumber">Slide 0/0</span>
+<span id="slideTime">Time: 0:00</span>
+</div>
+<div class="next-slide-info" id="nextSlideInfo">Next: ---</div>
+</div>
 <div class="toolbar">
 <button class="tool-btn" onclick="sendAction('reset')">
 <svg class="icon" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
 <span>RESET</span>
 </button>
-<button class="tool-btn" onclick="toggleMirror()" id="mirrorBtn">
-<svg class="icon" viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
-<span>MIRROR</span>
+<button class="tool-btn" onclick="toggleTheme()" id="themeBtn">
+<svg class="icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z"/></svg>
+<span>THEME</span>
 </button>
-<button class="tool-btn" onclick="sendAction('sync')" style="color:var(--accent)">
-<svg class="icon" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-<span>SYNC</span>
+<button class="tool-btn" onclick="toggleHighlights()" id="highlightBtn">
+<svg class="icon" viewBox="0 0 24 24"><path d="M17.75 7L14 3.25l-10 10V17h3.75l10-10zm2.96-2.96c.39-.39.39-1.02 0-1.41L18.37.29c-.39-.39-1.02-.39-1.41 0L15 2.25 18.75 6l1.96-1.96z"/></svg>
+<span id="highlightText">SHOW</span>
 </button>
 <button class="tool-btn" onclick="sendAction('hideUI')">
 <svg class="icon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
@@ -143,32 +168,34 @@ body{font-family:'Source Sans Pro',sans-serif;background:var(--bg);color:var(--t
 </div>
 <div class="nav-container">
 <button class="nav-btn" onclick="sendAction('next')">▶</button>
+<div class="nav-row">
 <button class="nav-btn back" onclick="sendAction('prev')">◀</button>
+<button class="nav-btn scroll" onclick="sendAction('scrollUp')">▲</button>
+<button class="nav-btn scroll" onclick="sendAction('scrollDown')">▼</button>
+</div>
+<button class="nav-btn back" onclick="toggleBlank()" id="blankBtn">⬜</button>
 </div>
 </div>
 <div id="editModal">
 <div class="modal-header">
 <span class="title">Edit Script</span>
 <div style="display:flex;gap:10px">
-<button class="edit-btn" onclick="toggleTheme()" style="width:35px;height:35px">
-<svg class="icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z"/></svg>
-</button>
 <button class="save-btn" onclick="saveProject()">SAVE</button>
 <button class="save-btn" onclick="closeEditor()">DONE</button>
 </div>
 </div>
 <div class="text-stats">
 <div class="stat-box">
-<div class="stat-number" id="wordCount">0</div>
-<div class="stat-label">WORDS</div>
+<div class="stat-number" id="slideCount">0</div>
+<div class="stat-label">SLIDES</div>
 </div>
 <div class="stat-box">
 <div class="stat-number" id="avgTime">0:00</div>
 <div class="stat-label">AVG TIME (150 WPM)</div>
 </div>
 <div class="stat-box">
-<div class="stat-number" id="charCount">0</div>
-<div class="stat-label">CHARACTERS</div>
+<div class="stat-number" id="tableCount">0</div>
+<div class="stat-label">TABLES</div>
 </div>
 </div>
 <div class="editor-toolbar">
@@ -179,14 +206,6 @@ body{font-family:'Source Sans Pro',sans-serif;background:var(--bg);color:var(--t
 </div>
 <textarea id="fullTextInput" placeholder="Type your XML here or use AI Generate..." oninput="updateTextStats()"></textarea>
 <div class="format-panel">
-<div class="format-row">
-<label>Font Size:</label>
-<input type="range" id="fontSizeSlider" min="20" max="80" step="2" value="48" oninput="updateFontSize(this.value)">
-</div>
-<div class="format-row">
-<label>Letter Space:</label>
-<input type="range" id="letterSpaceSlider" min="0" max="0.5" step="0.01" value="0" oninput="updateLetterSpacing(this.value)">
-</div>
 <div class="format-row">
 <label>Line Height:</label>
 <input type="range" id="lineHeightSlider" min="1" max="3" step="0.1" value="1.7" oninput="updateLineHeight(this.value)">
@@ -240,12 +259,28 @@ body{font-family:'Source Sans Pro',sans-serif;background:var(--bg);color:var(--t
 </div>
 </div>
 </div>
+<div id="displaySetupModal">
+<div class="modal-header">
+<span class="title">Display Setup</span>
+<button class="save-btn" onclick="closeDisplaySetup()">CLOSE</button>
+</div>
+<div class="display-setup-content">
+<button class="big-btn" onclick="importFromDisplay()">IMPORT XML FILE</button>
+<button class="big-btn" onclick="showDisplayAiSetup()">CREATE WITH AI</button>
+<button class="big-btn" onclick="createXmlManually()">CREATE XML MANUALLY</button>
+<div class="status" id="displayStatus"></div>
+<textarea id="displayTextInput" placeholder="Paste or type your XML here..." style="min-height:200px;background:var(--hover);border:1px solid var(--border);color:var(--text);padding:15px;border-radius:4px;outline:none;font-family:monospace;display:none"></textarea>
+<button class="big-btn" id="loadDisplayBtn" onclick="loadDisplayXml()" style="display:none">LOAD PRESENTATION</button>
+</div>
+</div>
 <input type="file" id="fileInput" class="file-input" accept=".xml,.json,.txt" onchange="loadUploadedFile()">
 <input type="file" id="projectFileInput" class="file-input" accept=".xml" onchange="importProject()">
+<input type="file" id="displayFileInput" class="file-input" accept=".xml" onchange="loadDisplayFile()">
 <script>
 const ID_PREFIX="PRASTUTI-V1-";let peer,conn,mode='',myRoomCode='',heartbeatInterval,wakeLock=null;
-let scrollY=0,speed=0,isMirrored=false,fontSize=48,isUIHidden=false,textAlign='left',letterSpacing=0,lineHeight=1.7,currentMode='luxury';
-let slides=[],currentSlide=0,touchStartX=0,touchStartY=0,isTouching=false;
+let isMirrored=false,fontSize=48,isUIHidden=false,textAlign='left',letterSpacing=0,lineHeight=1.7,currentMode='luxury';
+let slides=[],currentSlide=0,touchStartX=0,touchStartY=0,isTouching=false,isBlank=false,highlightsVisible=true;
+let slideTimes=[],slideStartTime=null,totalPresentationTime=0;
 const modeStyles={luxury:{h1:"font-family:'Playfair Display',serif;font-weight:700",h2:"font-family:'Playfair Display',serif;font-weight:600",h3:"font-family:'Playfair Display',serif;font-weight:500",p:"font-family:'Source Sans Pro',sans-serif",li:"font-family:'Source Sans Pro',sans-serif",th:"font-family:'Poppins',sans-serif"},minimal:{h1:"font-family:'Poppins',sans-serif;font-weight:600",h2:"font-family:'Poppins',sans-serif;font-weight:500",h3:"font-family:'Poppins',sans-serif;font-weight:400",p:"font-family:'Source Sans Pro',sans-serif",li:"font-family:'Source Sans Pro',sans-serif",th:"font-family:'Poppins',sans-serif"},corporate:{h1:"font-family:Arial,sans-serif;font-weight:700",h2:"font-family:Arial,sans-serif;font-weight:600",h3:"font-family:Arial,sans-serif;font-weight:500",p:"font-family:Arial,sans-serif",li:"font-family:Arial,sans-serif",th:"font-family:Arial,sans-serif"},tech:{h1:"font-family:'Roboto Mono',monospace;font-weight:700",h2:"font-family:'Roboto Mono',monospace;font-weight:600",h3:"font-family:'Roboto Mono',monospace;font-weight:500",p:"font-family:'Roboto Mono',monospace",li:"font-family:'Roboto Mono',monospace",th:"font-family:'Roboto Mono',monospace"}};
 function loadState(){const s=localStorage.getItem('prastutiState');if(s){const d=JSON.parse(s);fontSize=d.fontSize||48;textAlign=d.textAlign||'left';letterSpacing=d.letterSpacing||0;lineHeight=d.lineHeight||1.7;currentMode=d.mode||'luxury'}}
 function saveState(){localStorage.setItem('prastutiState',JSON.stringify({fontSize,textAlign,letterSpacing,lineHeight,mode:currentMode}))}
@@ -253,37 +288,43 @@ function setStatus(msg,isError=false){const el=document.getElementById('statusTe
 function backToMain(){document.getElementById('initialBtns').style.display='flex';document.getElementById('remoteInputGroup').style.display='none';setStatus("Select Mode")}
 function showRemoteInput(){document.getElementById('initialBtns').style.display='none';document.getElementById('remoteInputGroup').style.display='flex';document.getElementById('roomCodeInput').focus();setStatus("Enter the code from Display")}
 async function requestWakeLock(){try{if('wakeLock'in navigator){wakeLock=await navigator.wakeLock.request('screen')}}catch(err){}}
-function startDisplay(){mode='display';setStatus("Starting Display...");requestWakeLock();loadState();myRoomCode=Math.floor(1000+Math.random()*9000).toString();const fullId=ID_PREFIX+myRoomCode;document.getElementById('setupView').style.display='none';document.getElementById('displayView').style.display='block';document.getElementById('displayCodeBox').innerText="CODE: "+myRoomCode;peer=new Peer(fullId);peer.on('open',id=>console.log('Host ID:',id));peer.on('connection',c=>{if(conn)conn.close();conn=c;setStatus("Remote Connected!");conn.on('data',handleData);conn.on('close',()=>{setStatus("Remote Disconnected");conn=null});setTimeout(()=>{const currentText=document.getElementById('slidesContainer').innerHTML;if(conn&&conn.open)conn.send({type:'syncAll',text:currentText,fontSize,align:textAlign,letterSpacing,lineHeight,mode:currentMode})},500)});peer.on('error',err=>{if(err.type==='unavailable-id')startDisplay();else alert("Network Error: "+err.type)});setupDisplayTouch()}
+function startDisplay(){mode='display';setStatus("Starting Display...");requestWakeLock();loadState();myRoomCode=Math.floor(1000+Math.random()*9000).toString();const fullId=ID_PREFIX+myRoomCode;document.getElementById('setupView').style.display='none';document.getElementById('displayView').style.display='block';document.getElementById('displayCodeBox').innerText="CODE: "+myRoomCode;peer=new Peer(fullId);peer.on('open',id=>console.log('Host ID:',id));peer.on('connection',c=>{if(conn)conn.close();conn=c;setStatus("Remote Connected!");document.getElementById('startingSoon').style.display='none';conn.on('data',handleData);conn.on('close',()=>{setStatus("Remote Disconnected");document.getElementById('startingSoon').style.display='block';conn=null});setTimeout(()=>{const currentText=document.getElementById('slidesContainer').innerHTML;if(conn&&conn.open)conn.send({type:'syncAll',text:currentText,fontSize,align:textAlign,letterSpacing,lineHeight,mode:currentMode,slideNum:currentSlide,totalSlides:slides.length})},500)});peer.on('error',err=>{if(err.type==='unavailable-id')startDisplay();else alert("Network Error: "+err.type)});setupDisplayTouch();setupKeyboardNav()}
+function setupKeyboardNav(){document.addEventListener('keydown',e=>{if(mode!=='display')return;if(e.key==='ArrowRight')nextSlide();else if(e.key==='ArrowLeft')previousSlide()})}
 function setupDisplayTouch(){const v=document.getElementById('swipeArea');v.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY},{passive:true});v.addEventListener('touchend',e=>{const x=e.changedTouches[0].clientX,y=e.changedTouches[0].clientY,dx=touchStartX-x,dy=touchStartY-y;if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){if(dx>0)nextSlide();else previousSlide()}},{passive:true})}
 function connectToDisplay(){const val=document.getElementById('roomCodeInput').value;if(val.length<4){setStatus("Please enter 4-digit code",true);return}mode='controller';setStatus("Connecting...");requestWakeLock();loadState();const targetId=ID_PREFIX+val;peer=new Peer();peer.on('open',()=>{conn=peer.connect(targetId,{reliable:true});setupConnectionHandlers()});peer.on('error',err=>{setStatus("Error: "+err.type,true);if(err.type==='peer-unavailable')setStatus("Display not found. Check code.",true)})}
-function setupConnectionHandlers(){conn.on('open',()=>{console.log("Connected");document.getElementById('setupView').style.display='none';document.getElementById('controllerView').style.display='flex';startHeartbeat();sendAction('sync')});conn.on('data',data=>{if(data.type==='syncAll'){document.getElementById('fullTextInput').value=data.text;document.getElementById('fontSizeSlider').value=data.fontSize;document.getElementById('letterSpaceSlider').value=data.letterSpacing;document.getElementById('lineHeightSlider').value=data.lineHeight;currentMode=data.mode||'luxury';updateTextPreview()}});conn.on('close',()=>{console.log("Connection lost");document.getElementById('textPreview').innerText="DISCONNECTED";setTimeout(()=>{if(peer&&!peer.destroyed){conn=peer.connect(conn.peer);setupConnectionHandlers()}},2000)});conn.on('error',err=>console.error(err))}
+function setupConnectionHandlers(){conn.on('open',()=>{console.log("Connected");document.getElementById('setupView').style.display='none';document.getElementById('controllerView').style.display='flex';startHeartbeat();sendAction('sync');startSlideTimer()});conn.on('data',data=>{if(data.type==='syncAll'){document.getElementById('fullTextInput').value=data.text;document.getElementById('lineHeightSlider').value=data.lineHeight;currentMode=data.mode||'luxury';updateTextPreview();updateSlideInfo(data.slideNum||0,data.totalSlides||0)}else if(data.type==='slideChange'){updateSlideInfo(data.slideNum,data.totalSlides);recordSlideTime()}});conn.on('close',()=>{console.log("Connection lost");document.getElementById('textPreview').innerText="DISCONNECTED";setTimeout(()=>{if(peer&&!peer.destroyed){conn=peer.connect(conn.peer);setupConnectionHandlers()}},2000)});conn.on('error',err=>console.error(err))}
 function startHeartbeat(){if(heartbeatInterval)clearInterval(heartbeatInterval);heartbeatInterval=setInterval(()=>{if(conn&&conn.open)conn.send({type:'ping'})},2000)}
 function sendData(data){if(conn&&conn.open)conn.send(data)}
-function handleData(data){const container=document.getElementById('slidesContainer');switch(data.type){case 'text':parseAndDisplaySlides(data.val);break;case 'fontSize':fontSize=data.val;applyStyles();break;case 'align':textAlign=data.val;applyStyles();break;case 'letterSpacing':letterSpacing=data.val;applyStyles();break;case 'lineHeight':lineHeight=data.val;applyStyles();break;case 'mode':currentMode=data.val;applyStyles();break;case 'reset':currentSlide=0;showSlide(0);break;case 'mirror':isMirrored=!isMirrored;container.style.transform=isMirrored?'scaleX(-1)':'scaleX(1)';break;case 'hideUI':isUIHidden=!isUIHidden;const opacity=isUIHidden?'0':'1';document.getElementById('displayUI').style.opacity=opacity;document.body.style.cursor=isUIHidden?'none':'default';break;case 'sync':conn.send({type:'syncAll',text:container.innerHTML,fontSize,align:textAlign,letterSpacing,lineHeight,mode:currentMode});break;case 'next':nextSlide();break;case 'prev':previousSlide();break;case 'ping':break}}
-function parseAndDisplaySlides(xmlText){try{const parser=new DOMParser();const xmlDoc=parser.parseFromString(xmlText,'text/xml');const parserError=xmlDoc.querySelector('parsererror');if(parserError)throw new Error('Invalid XML');const slideElements=xmlDoc.querySelectorAll('slide');if(slideElements.length===0)throw new Error('No slides found');const container=document.getElementById('slidesContainer');container.innerHTML='';slides=[];slideElements.forEach((slide,index)=>{const slideDiv=document.createElement('div');slideDiv.className='slide';slideDiv.innerHTML=slide.innerHTML;if(index===currentSlide)slideDiv.classList.add('active');container.appendChild(slideDiv);slides.push(slide.innerHTML)});applyStyles()}catch(error){console.error('Error parsing XML:',error)}}
+function handleData(data){const container=document.getElementById('slidesContainer');switch(data.type){case 'text':parseAndDisplaySlides(data.val);break;case 'lineHeight':lineHeight=data.val;applyStyles();break;case 'mode':currentMode=data.val;applyStyles();break;case 'theme':toggleTheme();break;case 'reset':currentSlide=0;showSlide(0);slideTimes=[];totalPresentationTime=0;break;case 'highlights':highlightsVisible=!highlightsVisible;toggleHighlightsDisplay();break;case 'hideUI':isUIHidden=!isUIHidden;const opacity=isUIHidden?'0':'1';document.getElementById('displayUI').style.opacity=opacity;document.body.style.cursor=isUIHidden?'none':'default';break;case 'sync':conn.send({type:'syncAll',text:container.innerHTML,fontSize,align:textAlign,letterSpacing,lineHeight,mode:currentMode,slideNum:currentSlide,totalSlides:slides.length});break;case 'next':nextSlide();break;case 'prev':previousSlide();break;case 'scrollUp':scrollDisplay(-100);break;case 'scrollDown':scrollDisplay(100);break;case 'blank':isBlank=!isBlank;toggleBlankDisplay();break;case 'ping':break}}
+function scrollDisplay(amount){const activeSlide=document.querySelector('.slide.active');if(activeSlide){activeSlide.scrollTop+=amount}}
+function parseAndDisplaySlides(xmlText){try{const parser=new DOMParser();const xmlDoc=parser.parseFromString(xmlText,'text/xml');const parserError=xmlDoc.querySelector('parsererror');if(parserError)throw new Error('Invalid XML');const slideElements=xmlDoc.querySelectorAll('slide');if(slideElements.length===0)throw new Error('No slides found');const container=document.getElementById('slidesContainer');container.innerHTML='';slides=[];slideTimes=[];slideElements.forEach((slide,index)=>{const slideDiv=document.createElement('div');slideDiv.className='slide';slideDiv.innerHTML=slide.innerHTML;if(index===currentSlide)slideDiv.classList.add('active');container.appendChild(slideDiv);slides.push(slide.innerHTML);slideTimes.push(0)});applyStyles();if(conn&&conn.open)conn.send({type:'slideChange',slideNum:currentSlide,totalSlides:slides.length});document.getElementById('startingSoon').style.display='none'}catch(error){console.error('Error parsing XML:',error)}}
 function applyStyles(){const allSlides=document.querySelectorAll('.slide');const style=modeStyles[currentMode];allSlides.forEach(slide=>{slide.style.fontSize=fontSize+'px';slide.style.textAlign=textAlign;slide.style.letterSpacing=letterSpacing+'em';slide.style.lineHeight=lineHeight;slide.querySelectorAll('h1').forEach(el=>el.style.cssText+=style.h1);slide.querySelectorAll('h2').forEach(el=>el.style.cssText+=style.h2);slide.querySelectorAll('h3').forEach(el=>el.style.cssText+=style.h3);slide.querySelectorAll('p').forEach(el=>el.style.cssText+=style.p);slide.querySelectorAll('li').forEach(el=>el.style.cssText+=style.li);slide.querySelectorAll('th').forEach(el=>el.style.cssText+=style.th)})}
-function nextSlide(){if(currentSlide<slides.length-1){document.querySelectorAll('.slide')[currentSlide].classList.remove('active');currentSlide++;document.querySelectorAll('.slide')[currentSlide].classList.add('active')}}
-function previousSlide(){if(currentSlide>0){document.querySelectorAll('.slide')[currentSlide].classList.remove('active');currentSlide--;document.querySelectorAll('.slide')[currentSlide].classList.add('active')}}
-function showSlide(index){document.querySelectorAll('.slide').forEach((slide,i)=>{slide.classList.remove('active');if(i===index)slide.classList.add('active')});currentSlide=index}
+function nextSlide(){if(currentSlide<slides.length-1){recordSlideTime();document.querySelectorAll('.slide')[currentSlide].classList.remove('active');currentSlide++;document.querySelectorAll('.slide')[currentSlide].classList.add('active');if(conn&&conn.open)conn.send({type:'slideChange',slideNum:currentSlide,totalSlides:slides.length});slideStartTime=Date.now();isBlank=false}}
+function previousSlide(){if(currentSlide>0){recordSlideTime();document.querySelectorAll('.slide')[currentSlide].classList.remove('active');currentSlide--;document.querySelectorAll('.slide')[currentSlide].classList.add('active');if(conn&&conn.open)conn.send({type:'slideChange',slideNum:currentSlide,totalSlides:slides.length});slideStartTime=Date.now();isBlank=false}}
+function showSlide(index){document.querySelectorAll('.slide').forEach((slide,i)=>{slide.classList.remove('active');if(i===index)slide.classList.add('active')});currentSlide=index;slideStartTime=Date.now()}
+function startSlideTimer(){slideStartTime=Date.now();setInterval(()=>{if(slideStartTime&&mode==='controller'){const elapsed=Math.floor((Date.now()-slideStartTime)/1000);const mins=Math.floor(elapsed/60);const secs=elapsed%60;document.getElementById('slideTime').innerText=`Time: ${mins}:${String(secs).padStart(2,'0')}`}},1000)}
+function recordSlideTime(){if(slideStartTime&&mode==='display'){const elapsed=(Date.now()-slideStartTime)/1000;if(slideTimes[currentSlide]!==undefined){slideTimes[currentSlide]+=elapsed}totalPresentationTime+=elapsed}}
+function updateSlideInfo(slideNum,totalSlides){currentSlide=slideNum;const parser=new DOMParser();const xmlDoc=parser.parseFromString(document.getElementById('fullTextInput').value,'text/xml');const slideElements=xmlDoc.querySelectorAll('slide');let title='Untitled Slide';if(slideElements[slideNum]){const h1=slideElements[slideNum].querySelector('h1');if(h1)title=h1.textContent}document.getElementById('currentSlideTitle').innerText=title;document.getElementById('slideNumber').innerText=`Slide ${slideNum+1}/${totalSlides}`;let nextTitle='---';if(slideNum<totalSlides-1&&slideElements[slideNum+1]){const nextH1=slideElements[slideNum+1].querySelector('h1');if(nextH1)nextTitle=nextH1.textContent}document.getElementById('nextSlideInfo').innerText=`Next: ${nextTitle}`}
 function toggleLocalFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else if(document.exitFullscreen)document.exitFullscreen()}
-function toggleTheme(){document.body.classList.toggle('dark-theme');saveState()}
-function updateTextStats(){const text=document.getElementById('fullTextInput').value;const words=text.trim().split(/\s+/).filter(w=>w).length;const chars=text.length;const avgWPM=150;const minutes=words/avgWPM;const mins=Math.floor(minutes);const secs=Math.round((minutes-mins)*60);document.getElementById('wordCount').innerText=words;document.getElementById('avgTime').innerText=`${mins}:${String(secs).padStart(2,'0')}`;document.getElementById('charCount').innerText=chars}
+function toggleTheme(){document.body.classList.toggle('light-theme');if(mode==='controller')sendData({type:'theme'});saveState()}
+function toggleHighlights(){highlightsVisible=!highlightsVisible;document.getElementById('highlightText').innerText=highlightsVisible?'HIDE':'SHOW';sendData({type:'highlights'})}
+function toggleHighlightsDisplay(){const allSlides=document.querySelectorAll('.slide');allSlides.forEach(slide=>{slide.querySelectorAll('.highlight, .important, .success, .info').forEach(el=>{el.style.display=highlightsVisible?'inline':'none'})})}
+function toggleBlank(){isBlank=!isBlank;document.getElementById('blankBtn').style.background=isBlank?'#f44336':'var(--accent)';sendData({type:'blank'})}
+function toggleBlankDisplay(){const activeSlide=document.querySelector('.slide.active');if(activeSlide){if(isBlank){activeSlide.classList.add('blank')}else{activeSlide.classList.remove('blank')}}}
+function updateTextStats(){const text=document.getElementById('fullTextInput').value;const parser=new DOMParser();const xmlDoc=parser.parseFromString(text,'text/xml');const slideCount=xmlDoc.querySelectorAll('slide').length;const tableCount=xmlDoc.querySelectorAll('table').length;const words=text.trim().split(/\s+/).filter(w=>w).length;const avgWPM=150;const minutes=words/avgWPM;const mins=Math.floor(minutes);const secs=Math.round((minutes-mins)*60);document.getElementById('slideCount').innerText=slideCount;document.getElementById('avgTime').innerText=`${mins}:${String(secs).padStart(2,'0')}`;document.getElementById('tableCount').innerText=tableCount}
 function openEditor(){document.getElementById('editModal').style.display='flex';updateTextStats()}
 function closeEditor(){document.getElementById('editModal').style.display='none';const text=document.getElementById('fullTextInput').value;updateTextPreview();sendData({type:'text',val:text});saveState()}
 function updateTextPreview(){const text=document.getElementById('fullTextInput').value;const preview=text?'Presentation loaded...':'Tap to create presentation...';document.getElementById('textPreview').innerText=preview}
 function clearText(){if(confirm('Clear all text?'))document.getElementById('fullTextInput').value=''}
 async function copyText(){const text=document.getElementById('fullTextInput').value;try{await navigator.clipboard.writeText(text);alert('Text copied!')}catch(err){alert('Failed to copy')}}
 async function pasteText(){try{const text=await navigator.clipboard.readText();document.getElementById('fullTextInput').value=text;updateTextStats()}catch(err){alert('Failed to paste')}}
-function updateFontSize(val){sendData({type:'fontSize',val:parseFloat(val)});saveState()}
-function updateLetterSpacing(val){sendData({type:'letterSpacing',val:parseFloat(val)});saveState()}
 function updateLineHeight(val){sendData({type:'lineHeight',val:parseFloat(val)});saveState()}
-function sendAction(actionType){if(actionType==='mirror')document.getElementById('mirrorBtn').classList.toggle('active');sendData({type:actionType})}
-function toggleMirror(){sendAction('mirror')}
-function saveProject(){const text=document.getElementById('fullTextInput').value;const name=prompt("Project name:");if(!name)return;const projects=JSON.parse(localStorage.getItem('prastutiProjects')||'[]');projects.push({name,text,date:new Date().toISOString(),settings:{fontSize,textAlign,letterSpacing,lineHeight,mode:currentMode}});localStorage.setItem('prastutiProjects',JSON.stringify(projects));if(conn&&conn.open)conn.send({type:'saveProject',name,text});alert('Project saved!')}
+function sendAction(actionType){sendData({type:actionType})}
+function saveProject(){const text=document.getElementById('fullTextInput').value;const name=prompt("Project name:");if(!name)return;const projects=JSON.parse(localStorage.getItem('prastutiProjects')||'[]');projects.push({name,text,date:new Date().toISOString(),settings:{fontSize,textAlign,letterSpacing,lineHeight,mode:currentMode}});localStorage.setItem('prastutiProjects',JSON.stringify(projects));alert('Project saved!')}
 function openProjects(){document.getElementById('projectsModal').style.display='flex';loadProjects()}
 function closeProjects(){document.getElementById('projectsModal').style.display='none'}
 function loadProjects(){const projects=JSON.parse(localStorage.getItem('prastutiProjects')||'[]');const list=document.getElementById('projectList');list.innerHTML=projects.length?'':'<div style="text-align:center;color:var(--secondary);padding:20px">No projects yet</div>';projects.reverse().forEach((p,i)=>{const div=document.createElement('div');div.className='project-item';const parser=new DOMParser();const xmlDoc=parser.parseFromString(p.text,'text/xml');const topicEl=xmlDoc.querySelector('topic');const topic=topicEl?topicEl.textContent:'Untitled';div.innerHTML=`<div class="project-name">${p.name}</div><div class="project-preview">${topic}</div><div class="project-stats">${new Date(p.date).toLocaleDateString()}</div><div class="project-actions"><button onclick="useProject(${projects.length-1-i})">USE</button><button onclick="shareProject(${projects.length-1-i})">SHARE</button><button onclick="deleteProject(${projects.length-1-i})">DELETE</button></div>`;list.appendChild(div)})}
-function useProject(i){const projects=JSON.parse(localStorage.getItem('prastutiProjects')||'[]');const p=projects[i];document.getElementById('fullTextInput').value=p.text;if(p.settings){document.getElementById('fontSizeSlider').value=p.settings.fontSize||48;document.getElementById('letterSpaceSlider').value=p.settings.letterSpacing||0;document.getElementById('lineHeightSlider').value=p.settings.lineHeight||1.7;currentMode=p.settings.mode||'luxury'}updateTextPreview();closeProjects();sendData({type:'text',val:p.text})}
+function useProject(i){const projects=JSON.parse(localStorage.getItem('prastutiProjects')||'[]');const p=projects[i];document.getElementById('fullTextInput').value=p.text;if(p.settings){document.getElementById('lineHeightSlider').value=p.settings.lineHeight||1.7;currentMode=p.settings.mode||'luxury'}updateTextPreview();closeProjects();sendData({type:'text',val:p.text})}
 function shareProject(i){const projects=JSON.parse(localStorage.getItem('prastutiProjects')||'[]');const p=projects[i];const blob=new Blob([p.text],{type:'application/xml'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${p.name.replace(/[^a-z0-9]/gi,'_').toLowerCase()}.xml`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)}
 function deleteProject(i){if(!confirm('Delete this project?'))return;const projects=JSON.parse(localStorage.getItem('prastutiProjects')||'[]');projects.splice(i,1);localStorage.setItem('prastutiProjects',JSON.stringify(projects));loadProjects()}
 function uploadProject(){document.getElementById('projectFileInput').click()}
@@ -314,6 +355,32 @@ function openModeSelector(){document.getElementById('modeModal').style.display='
 function closeModeSelector(){document.getElementById('modeModal').style.display='none'}
 function selectMode(modeName){currentMode=modeName;sendData({type:'mode',val:modeName});document.querySelectorAll('.mode-item').forEach(item=>{item.classList.remove('active');if(item.dataset.mode===modeName)item.classList.add('active')});saveState()}
 function loadUploadedFile(){const file=document.getElementById('fileInput').files[0];if(file){const reader=new FileReader();reader.onload=function(e){try{document.getElementById('fullTextInput').value=e.target.result;updateTextPreview();openEditor()}catch(error){alert('Error loading file')}};reader.readAsText(file)}}
+function openDisplaySetup(){document.getElementById('displaySetupModal').style.display='flex'}
+function closeDisplaySetup(){document.getElementById('displaySetupModal').style.display='none'}
+function importFromDisplay(){document.getElementById('displayFileInput').click()}
+function loadDisplayFile(){const file=document.getElementById('displayFileInput').files[0];if(file){const reader=new FileReader();reader.onload=function(e){try{parseAndDisplaySlides(e.target.result);closeDisplaySetup();alert('Presentation loaded!')}catch(error){alert('Error loading file')}};reader.readAsText(file)}}
+function showDisplayAiSetup(){document.getElementById('displayTextInput').style.display='none';document.getElementById('loadDisplayBtn').style.display='none';const key=prompt('Enter Gemini API Key:');const topic=prompt('Enter presentation topic:');if(!key||!topic)return;const status=document.getElementById('displayStatus');status.innerText='Generating...';status.className='status';fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:`Create a comprehensive presentation on "${topic}" in XML format. Follow this exact structure:
+
+Start with <?xml version="1.0" encoding="UTF-8"?>
+Use <presentation> as root element
+Include <topic>${topic}</topic>
+Include <author>AI Generated</author>
+Each slide must be wrapped in <slide> tags
+
+FORMATTING FEATURES:
+- Headings: <h1>, <h2>, <h3>
+- Paragraphs: <p>
+- Bullet points: <ul><li></li></ul>
+- Numbered lists: <ol><li></li></ol>
+- Tables: <table><tr><th></th></tr><tr><td></td></tr></table>
+- Highlighting: <span class="highlight">text</span>
+- Important: <span class="important">text</span>
+- Success: <span class="success">text</span>
+- Info: <span class="info">text</span>
+
+Create at least 8-10 slides with title slide, introduction, main content, and conclusion. Use professional language. Return ONLY the XML, no explanations.`}]}]})}).then(res=>res.json()).then(data=>{if(data.candidates&&data.candidates[0]){let text=data.candidates[0].content.parts[0].text.trim();text=text.replace(/```xml|```/g,'').trim();parseAndDisplaySlides(text);closeDisplaySetup();status.innerText='Generated!'}else{status.innerText='Generation failed';status.className='status error'}}).catch(err=>{status.innerText='Error: '+err.message;status.className='status error'})}
+function createXmlManually(){document.getElementById('displayTextInput').style.display='block';document.getElementById('loadDisplayBtn').style.display='block';document.getElementById('displayStatus').innerText=''}
+function loadDisplayXml(){const text=document.getElementById('displayTextInput').value;if(!text){alert('Please enter XML content');return}try{parseAndDisplaySlides(text);closeDisplaySetup();alert('Presentation loaded!')}catch(error){alert('Error loading XML: '+error.message)}}
 document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('visibilitychange',async()=>{if(wakeLock!==null&&document.visibilityState==='visible')await requestWakeLock()});loadState();
 </script>
 </body>
