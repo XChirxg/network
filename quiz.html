@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quiz Master</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <style>
+        :root{--accent:#00ff88;--bg:#0a0a0a;--surface:#1a1a1a;--text:#fff;--error:#ff4444;--warning:#ffaa00;--success:#00ff88}
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw}
+        
+        /* Setup Screen */
+        .setup{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);z-index:1000;position:absolute;width:100%;transition:opacity .3s}
+        .setup h1{font-size:3rem;font-weight:900;letter-spacing:3px;margin-bottom:2rem;color:#fff;text-shadow:0 4px 20px rgba(0,0,0,.3)}
+        .mode-select{display:flex;flex-direction:column;gap:15px;align-items:center;width:100%;max-width:350px;padding:0 20px}
+        .big-btn{padding:18px 35px;font-size:1.3rem;background:rgba(255,255,255,.95);border:none;color:#667eea;border-radius:12px;cursor:pointer;font-weight:700;transition:.2s;width:100%;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,.2)}
+        .big-btn:active{transform:scale(.97)}
+        .big-btn.secondary{background:rgba(255,255,255,.2);color:#fff;border:2px solid rgba(255,255,255,.4)}
+        .input-group{display:none;flex-direction:column;gap:10px;width:100%}
+        .code-input{background:rgba(255,255,255,.95);border:none;color:#667eea;padding:18px;font-size:1.8rem;text-align:center;border-radius:12px;letter-spacing:8px;outline:none;font-weight:bold}
+        .status{margin-top:20px;color:rgba(255,255,255,.8);letter-spacing:1px;font-size:1rem;min-height:24px;text-align:center;font-weight:500}
+        .dev-credit{margin-top:40px;font-size:.85rem;color:rgba(255,255,255,.6)}
+        .dev-credit a{color:#fff;text-decoration:none;font-weight:600}
+
+        /* Host Screen */
+        #hostView{display:none;flex-direction:column;height:100%;background:var(--bg)}
+        .host-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+        .host-title{font-size:1.8rem;font-weight:800;color:#fff}
+        .room-code-box{background:rgba(0,0,0,.3);color:#fff;padding:12px 20px;border-radius:8px;font-family:monospace;font-size:1.4rem;font-weight:bold;letter-spacing:3px}
+        .host-content{flex:1;display:grid;grid-template-columns:2fr 1fr;gap:20px;padding:20px;overflow:hidden}
+        .question-panel{background:var(--surface);border-radius:12px;padding:25px;display:flex;flex-direction:column;gap:15px;box-shadow:0 4px 15px rgba(0,0,0,.2)}
+        .current-question{font-size:1.8rem;font-weight:700;color:var(--accent);margin-bottom:10px;line-height:1.4}
+        .answer-option{background:#0f0f0f;padding:15px 20px;border-radius:8px;margin:8px 0;font-size:1.1rem;border:2px solid transparent;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:12px}
+        .answer-option.correct{border-color:var(--success);background:rgba(0,255,136,.1)}
+        .answer-label{width:35px;height:35px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.1rem}
+        .answer-option.correct .answer-label{background:var(--success)}
+        .side-panel{display:flex;flex-direction:column;gap:15px}
+        .panel-box{background:var(--surface);border-radius:12px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,.2)}
+        .panel-title{font-size:1.2rem;font-weight:700;color:var(--accent);margin-bottom:15px;border-bottom:2px solid rgba(0,255,136,.2);padding-bottom:10px}
+        .player-item{background:#0f0f0f;padding:12px 15px;border-radius:8px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}
+        .player-name{font-weight:600;font-size:1rem}
+        .player-score{background:var(--accent);color:#000;padding:4px 12px;border-radius:20px;font-weight:bold;font-size:.9rem}
+        .control-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;padding:15px;border-radius:10px;color:#fff;font-weight:700;cursor:pointer;font-size:1rem;transition:.2s;box-shadow:0 4px 12px rgba(102,126,234,.3)}
+        .control-btn:active{transform:scale(.98)}
+        .control-btn.danger{background:linear-gradient(135deg,#ff4444 0%,#cc0000 100%)}
+        .control-btn.success{background:linear-gradient(135deg,#00ff88 0%,#00cc6a 100%);color:#000}
+        .timer-controls{display:flex;gap:10px;align-items:center;margin-top:10px}
+        .timer-input{background:#0f0f0f;border:1px solid #333;color:#fff;padding:10px;border-radius:6px;width:80px;text-align:center;font-size:1rem;font-weight:bold}
+        .toggle-switch{position:relative;width:60px;height:30px;background:#333;border-radius:15px;cursor:pointer;transition:.3s}
+        .toggle-switch.active{background:var(--accent)}
+        .toggle-slider{position:absolute;top:3px;left:3px;width:24px;height:24px;background:#fff;border-radius:50%;transition:.3s}
+        .toggle-switch.active .toggle-slider{left:33px}
+
+        /* Player Screen */
+        #playerView{display:none;flex-direction:column;height:100%;background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%)}
+        .player-header{padding:25px;text-align:center;background:rgba(0,0,0,.3)}
+        .player-info{font-size:1.3rem;color:#fff;font-weight:600;margin-bottom:10px}
+        .player-score-display{font-size:2.5rem;font-weight:900;color:var(--accent);text-shadow:0 0 20px rgba(0,255,136,.5)}
+        .player-content{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px}
+        .player-question{font-size:2rem;font-weight:700;color:#fff;text-align:center;margin-bottom:40px;line-height:1.5;text-shadow:0 2px 10px rgba(0,0,0,.3)}
+        .player-answers{width:100%;max-width:600px;display:flex;flex-direction:column;gap:15px}
+        .player-answer-btn{padding:20px;background:rgba(255,255,255,.95);border:none;border-radius:12px;font-size:1.3rem;font-weight:700;color:#1e3c72;cursor:pointer;transition:.2s;box-shadow:0 4px 15px rgba(0,0,0,.2);text-align:left;display:flex;align-items:center;gap:15px}
+        .player-answer-btn:active{transform:scale(.98)}
+        .player-answer-btn:disabled{opacity:.5;cursor:not-allowed}
+        .player-answer-btn.selected{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff}
+        .waiting-message{font-size:1.8rem;color:rgba(255,255,255,.7);text-align:center;font-weight:600}
+        .player-timer{font-size:4rem;font-weight:900;color:#fff;text-shadow:0 0 30px rgba(255,170,0,.8);margin-bottom:30px}
+
+        /* Audience Screen */
+        #audienceView{display:none;flex-direction:column;height:100%;background:linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)}
+        .audience-header{background:rgba(0,0,0,.4);padding:30px;text-align:center;backdrop-filter:blur(10px)}
+        .audience-title{font-size:2.5rem;font-weight:900;color:#fff;text-shadow:0 4px 20px rgba(0,0,0,.5);margin-bottom:15px}
+        .audience-subtitle{font-size:1.3rem;color:rgba(255,255,255,.7);font-weight:600}
+        .audience-content{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px}
+        .audience-question{font-size:3rem;font-weight:800;color:#fff;text-align:center;margin-bottom:50px;line-height:1.4;text-shadow:0 4px 20px rgba(0,0,0,.3);max-width:90%}
+        .audience-timer{font-size:8rem;font-weight:900;color:var(--accent);text-shadow:0 0 40px rgba(0,255,136,.6);margin-bottom:50px;font-family:'Courier New',monospace}
+        .audience-timer.warning{color:var(--warning);animation:pulse 1s infinite}
+        .leaderboard{width:100%;max-width:800px;background:rgba(0,0,0,.4);border-radius:20px;padding:30px;backdrop-filter:blur(10px)}
+        .leaderboard-title{font-size:2rem;font-weight:800;color:var(--accent);margin-bottom:25px;text-align:center}
+        .leaderboard-item{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;margin:10px 0;background:rgba(255,255,255,.1);border-radius:12px;font-size:1.4rem;font-weight:600;transition:.3s}
+        .leaderboard-item:hover{background:rgba(255,255,255,.15);transform:translateX(5px)}
+        .leaderboard-rank{background:var(--accent);color:#000;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;margin-right:15px}
+        .leaderboard-score{background:rgba(0,255,136,.2);padding:8px 20px;border-radius:20px;color:var(--accent);font-weight:800}
+
+        /* Question Manager Modal */
+        #questionModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:2000;flex-direction:column}
+        .modal-header{padding:20px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+        .modal-title{font-size:1.8rem;font-weight:800;color:#fff}
+        .modal-btn{background:rgba(255,255,255,.95);color:#667eea;padding:10px 25px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem}
+        .modal-content{flex:1;overflow-y:auto;padding:25px}
+        .question-form{background:var(--surface);border-radius:12px;padding:25px;margin-bottom:20px;box-shadow:0 4px 15px rgba(0,0,0,.2)}
+        .form-group{margin-bottom:20px}
+        .form-label{display:block;margin-bottom:8px;font-weight:600;color:var(--accent);font-size:1rem}
+        .form-input{width:100%;background:#0f0f0f;border:1px solid #333;color:#fff;padding:12px;border-radius:8px;font-size:1rem;outline:none}
+        .form-input:focus{border-color:var(--accent)}
+        .form-textarea{min-height:100px;resize:vertical;font-family:inherit}
+        .answer-inputs{display:grid;gap:10px}
+        .answer-input-row{display:flex;gap:10px;align-items:center}
+        .correct-checkbox{width:24px;height:24px;cursor:pointer;accent-color:var(--accent)}
+        .question-list{display:flex;flex-direction:column;gap:15px}
+        .question-item{background:var(--surface);border-radius:12px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,.2)}
+        .question-text{font-size:1.2rem;font-weight:600;color:#fff;margin-bottom:15px}
+        .question-answers{display:grid;gap:8px;margin-bottom:15px}
+        .question-answer{padding:10px 15px;background:#0f0f0f;border-radius:6px;font-size:.95rem}
+        .question-answer.correct{border-left:4px solid var(--success)}
+        .question-actions{display:flex;gap:10px}
+        .action-btn{padding:8px 16px;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:.9rem}
+        .action-btn.use{background:var(--accent);color:#000}
+        .action-btn.edit{background:#667eea;color:#fff}
+        .action-btn.delete{background:var(--error);color:#fff}
+
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        
+        .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:15px}
+        .stat-item{background:#0f0f0f;padding:12px;border-radius:8px;text-align:center}
+        .stat-value{font-size:1.5rem;font-weight:800;color:var(--accent)}
+        .stat-label{font-size:.85rem;color:#888;margin-top:4px}
+    </style>
+</head>
+<body>
+    <!-- Setup Screen -->
+    <div class="setup" id="setupView">
+        <h1>QUIZ MASTER</h1>
+        <div class="mode-select" id="initialBtns">
+            <button class="big-btn" onclick="startHost()">HOST QUIZ</button>
+            <button class="big-btn" onclick="showPlayerInput()">JOIN AS PLAYER</button>
+            <button class="big-btn" onclick="showAudienceInput()">JOIN AS AUDIENCE</button>
+        </div>
+        <div class="mode-select input-group" id="playerInputGroup">
+            <input type="text" id="playerNameInput" class="code-input" placeholder="YOUR NAME" style="font-size:1.2rem;letter-spacing:2px">
+            <input type="number" id="playerCodeInput" class="code-input" placeholder="0000" pattern="\d*">
+            <button class="big-btn" onclick="joinAsPlayer()">JOIN</button>
+            <button class="big-btn secondary" onclick="backToMain()">BACK</button>
+        </div>
+        <div class="mode-select input-group" id="audienceInputGroup">
+            <input type="number" id="audienceCodeInput" class="code-input" placeholder="0000" pattern="\d*">
+            <button class="big-btn" onclick="joinAsAudience()">JOIN</button>
+            <button class="big-btn secondary" onclick="backToMain()">BACK</button>
+        </div>
+        <div class="status" id="statusText">Select Mode</div>
+        <div class="dev-credit">Developed by <a href="https://ChiragSharma.web.app" target="_blank">xchirxg</a></div>
+    </div>
+
+    <!-- Host View -->
+    <div id="hostView">
+        <div class="host-header">
+            <div class="host-title">QUIZ MASTER HOST</div>
+            <div class="room-code-box" id="hostCodeBox">CODE: ----</div>
+        </div>
+        <div class="host-content">
+            <div class="question-panel">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                    <h2 style="color:var(--accent);font-size:1.4rem">CURRENT QUESTION</h2>
+                    <button class="modal-btn" onclick="openQuestionManager()">MANAGE QUESTIONS</button>
+                </div>
+                <div class="current-question" id="hostQuestion">No question loaded. Click "Manage Questions" to add questions.</div>
+                <div id="hostAnswers"></div>
+                <div class="timer-controls">
+                    <div style="flex:1">
+                        <label class="form-label">Timer (seconds)</label>
+                        <input type="number" id="timerInput" class="timer-input" value="30" min="5" max="300">
+                    </div>
+                    <div style="flex:1">
+                        <label class="form-label">Enable Timer</label>
+                        <div class="toggle-switch" id="timerToggle" onclick="toggleTimer()">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                </div>
+                <button class="control-btn" onclick="showQuestion()" style="margin-top:15px">SHOW QUESTION</button>
+                <button class="control-btn success" onclick="revealAnswer()" style="margin-top:10px">REVEAL ANSWER</button>
+                <button class="control-btn" onclick="nextQuestion()" style="margin-top:10px">NEXT QUESTION</button>
+                <button class="control-btn danger" onclick="resetQuiz()" style="margin-top:10px">RESET QUIZ</button>
+            </div>
+            <div class="side-panel">
+                <div class="panel-box" style="flex:1;overflow-y:auto">
+                    <div class="panel-title">PLAYERS (<span id="playerCount">0</span>)</div>
+                    <div id="playersList"></div>
+                </div>
+                <div class="panel-box">
+                    <div class="panel-title">QUIZ STATS</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalQuestions">0</div>
+                            <div class="stat-label">Questions</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="currentQuestionNum">0</div>
+                            <div class="stat-label">Current</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player View -->
+    <div id="playerView">
+        <div class="player-header">
+            <div class="player-info" id="playerNameDisplay">PLAYER</div>
+            <div class="player-score-display"><span id="playerScoreDisplay">0</span> PTS</div>
+        </div>
+        <div class="player-content">
+            <div class="player-timer" id="playerTimer" style="display:none"></div>
+            <div class="player-question" id="playerQuestion">Waiting for host to start...</div>
+            <div class="player-answers" id="playerAnswers"></div>
+        </div>
+    </div>
+
+    <!-- Audience View -->
+    <div id="audienceView">
+        <div class="audience-header">
+            <div class="audience-title">QUIZ MASTER</div>
+            <div class="audience-subtitle" id="audienceSubtitle">Waiting for quiz to begin...</div>
+        </div>
+        <div class="audience-content">
+            <div class="audience-timer" id="audienceTimer" style="display:none"></div>
+            <div class="audience-question" id="audienceQuestion" style="display:none"></div>
+            <div class="leaderboard" id="audienceLeaderboard" style="display:none">
+                <div class="leaderboard-title">LEADERBOARD</div>
+                <div id="audienceLeaderboardList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Manager Modal -->
+    <div id="questionModal">
+        <div class="modal-header">
+            <div class="modal-title">QUESTION MANAGER</div>
+            <div style="display:flex;gap:10px">
+                <button class="modal-btn" onclick="showAiGenerator()">AI GENERATE</button>
+                <button class="modal-btn" onclick="closeQuestionManager()">CLOSE</button>
+            </div>
+        </div>
+        <div class="modal-content">
+            <div class="question-form">
+                <h3 style="color:var(--accent);margin-bottom:20px;font-size:1.3rem">ADD NEW QUESTION</h3>
+                <div class="form-group">
+                    <label class="form-label">Question</label>
+                    <textarea class="form-input form-textarea" id="newQuestionText" placeholder="Enter your question..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Answers (check the correct one)</label>
+                    <div class="answer-inputs" id="newAnswerInputs">
+                        <div class="answer-input-row">
+                            <input type="checkbox" class="correct-checkbox" name="correctAnswer" value="0">
+                            <input type="text" class="form-input" placeholder="Answer 1">
+                        </div>
+                        <div class="answer-input-row">
+                            <input type="checkbox" class="correct-checkbox" name="correctAnswer" value="1">
+                            <input type="text" class="form-input" placeholder="Answer 2">
+                        </div>
+                        <div class="answer-input-row">
+                            <input type="checkbox" class="correct-checkbox" name="correctAnswer" value="2">
+                            <input type="text" class="form-input" placeholder="Answer 3">
+                        </div>
+                        <div class="answer-input-row">
+                            <input type="checkbox" class="correct-checkbox" name="correctAnswer" value="3">
+                            <input type="text" class="form-input" placeholder="Answer 4">
+                        </div>
+                    </div>
+                </div>
+                <button class="control-btn" onclick="addQuestion()">ADD QUESTION</button>
+            </div>
+            <h3 style="color:var(--accent);margin:30px 0 20px;font-size:1.3rem">SAVED QUESTIONS</h3>
+            <div class="question-list" id="savedQuestionsList"></div>
+        </div>
+    </div>
+
+    <!-- AI Generator Modal -->
+    <div id="aiModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:3000;flex-direction:column">
+        <div class="modal-header">
+            <div class="modal-title">AI QUIZ GENERATOR</div>
+            <button class="modal-btn" onclick="closeAiGenerator()">CLOSE</button>
+        </div>
+        <div class="modal-content">
+            <div class="question-form">
+                <div class="form-group">
+                    <label class="form-label">Gemini API Key</label>
+                    <input type="text" class="form-input" id="apiKeyInput" placeholder="Enter your Gemini API key">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Topic</label>
+                    <input type="text" class="form-input" id="topicInput" placeholder="e.g., World History, Science, Movies">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Number of Questions</label>
+                    <input type="number" class="form-input" id="numQuestionsInput" value="5" min="1" max="20">
+                </div>
+                <button class="control-btn" onclick="generateQuestions()">GENERATE QUESTIONS</button>
+                <div class="status" id="aiStatus" style="margin-top:15px"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+const ID_PREFIX="QUIZMASTER-";
+let peer,conn,mode='',myRoomCode='',connections=[];
+let players=[],currentQuestionIndex=0,questions=[],timerEnabled=false,timerDuration=30,timerInterval,timeRemaining=0;
+let playerName='',playerScore=0,playerAnswered=false;
+
+// Setup Functions
+function setStatus(msg,isError=false){
+    const el=document.getElementById('statusText');
+    el.innerText=msg;
+    el.style.color=isError?'var(--error)':'rgba(255,255,255,.8)';
+}
+
+function backToMain(){
+    document.getElementById('initialBtns').style.display='flex';
+    document.getElementById('playerInputGroup').style.display='none';
+    document.getElementById('audienceInputGroup').style.display='none';
+    setStatus("Select Mode");
+}
+
+function showPlayerInput(){
+    document.getElementById('initialBtns').style.display='none';
+    document.getElementById('playerInputGroup').style.display='flex';
+    document.getElementById('playerNameInput').focus();
+    setStatus("Enter your name and room code");
+}
+
+function showAudienceInput(){
+    document.getElementById('initialBtns').style.display='none';
+    document.getElementById('audienceInputGroup').style.display='flex';
+    document.getElementById('audienceCodeInput').focus();
+    setStatus("Enter room code to join as audience");
+}
+
+// Host Functions
+function startHost(){
+    mode='host';
+    setStatus("Starting Host...");
+    myRoomCode=Math.floor(1000+Math.random()*9000).toString();
+    const fullId=ID_PREFIX+myRoomCode;
+    
+    document.getElementById('setupView').style.display='none';
+    document.getElementById('hostView').style.display='flex';
+    document.getElementById('hostCodeBox').innerText="CODE: "+myRoomCode;
+    
+    peer=new Peer(fullId);
+    peer.on('open',id=>console.log('Host ID:',id));
+    peer.on('connection',handleNewConnection);
+    peer.on('error',err=>{
+        if(err.type==='unavailable-id')startHost();
+        else alert("Network Error: "+err.type);
+    });
+    
+    loadQuestions();
+    updateHostDisplay();
+}
+
+function handleNewConnection(c){
+    connections.push(c);
+    c.on('data',data=>handleHostData(data,c));
+    c.on('close',()=>{
+        connections=connections.filter(con=>con!==c);
+        if(data.playerName){
+            players=players.filter(p=>p.id!==c.peer);
+            updatePlayersDisplay();
+            broadcastToAudience({type:'leaderboard',players});
+        }
+    });
+    
+    setTimeout(()=>{
+        if(c.open){
+            c.send({
+                type:'init',
+                questions:questions.map(q=>({question:q.question,answers:q.answers})),
+                currentQuestion:currentQuestionIndex,
+                timerEnabled,
+                timerDuration
+            });
+        }
+    },500);
+}
+
+function handleHostData(data,conn){
+    if(data.type==='join'){
+        if(data.role==='player'){
+            const existingPlayer=players.find(p=>p.id===conn.peer);
+            if(!existingPlayer){
+                players.push({
+                    id:conn.peer,
+                    name:data.name,
+                    score:0,
+                    answered:false,
+                    connection:conn
+                });
+                updatePlayersDisplay();
+                broadcastToAudience({type:'leaderboard',players});
+            }
+        }
+    }else if(data.type==='answer'){
+        const player=players.find(p=>p.id===conn.peer);
+        if(player&&!player.answered&&questions[currentQuestionIndex]){
+            player.answered=true;
+            const correct=questions[currentQuestionIndex].correctAnswer===data.answerIndex;
+            if(correct){
+                const points=timerEnabled?Math.max(10,Math.floor((timeRemaining/timerDuration)*100)):50;
+                player.score+=points;
+            }
+            conn.send({type:'result',correct,score:player.score});
+            updatePlayersDisplay();
+            broadcastToAudience({type:'leaderboard',players});
+        }
+    }
+}
+
+function updatePlayersDisplay(){
+    const list=document.getElementById('playersList');
+    const sortedPlayers=[...players].sort((a,b)=>b.score-a.score);
+    list.innerHTML=sortedPlayers.map(p=>`
+        <div class="player-item">
+            <div class="player-name">${p.name}</div>
+            <div class="player-score">${p.score}</div>
+        </div>
+    `).join('');
+    document.getElementById('playerCount').innerText=players.length;
+}
+
+function updateHostDisplay(){
+    if(questions.length===0){
+        document.getElementById('hostQuestion').innerText="No questions loaded. Click 'Manage Questions' to add.";
+        document.getElementById('hostAnswers').innerHTML='';
+        document.getElementById('totalQuestions').innerText='0';
+        document.getElementById('currentQuestionNum').innerText='0';
+        return;
+    }
+    const q=questions[currentQuestionIndex];
+    document.getElementById('hostQuestion').innerText=q.question;
+    document.getElementById('hostAnswers').innerHTML=q.answers.map((ans,i)=>`
+        <div class="answer-option ${i===q.correctAnswer?'correct':''}">
+            <div class="answer-label">${String.fromCharCode(65+i)}</div>
+            <div>${ans}</div>
+        </div>
+    `).join('');
+    document.getElementById('totalQuestions').innerText=questions.length;
+    document.getElementById('currentQuestionNum').innerText=(currentQuestionIndex+1);
+}
+
+function showQuestion(){
+    if(!questions[currentQuestionIndex])return;
+    players.forEach(p=>p.answered=false);
+    updatePlayersDisplay();
+    
+    const q=questions[currentQuestionIndex];
+    broadcast({
+        type:'showQuestion',
+        question:q.question,
+        answers:q.answers,
+        timerEnabled,
+        timerDuration
+    });
+    
+    if(timerEnabled){
+        startTimer();
+    }
+}
+
+function revealAnswer(){
+    if(!questions[currentQuestionIndex])return;
+    stopTimer();
+    broadcast({type:'revealAnswer',correctAnswer:questions[currentQuestionIndex].correctAnswer});
+    broadcastToAudience({type:'leaderboard',players});
+}
+
+function nextQuestion(){
+    if(currentQuestionIndex<questions.length-1){
+        currentQuestionIndex++;
+        updateHostDisplay();
+        stopTimer();
+        broadcast({type:'clearQuestion'});
+    }
+}
+
+function resetQuiz(){
+    if(!confirm('Reset entire quiz? This will clear all scores.'))return;
+    currentQuestionIndex=0;
+    players.forEach(p=>{p.score=0;p.answered=false});
+    updatePlayersDisplay();
+    updateHostDisplay();
+    stopTimer();
+    broadcast({type:'reset'});
+    broadcastToAudience({type:'reset'});
+}
+
+function startTimer(){
+    stopTimer();
+    timeRemaining=timerDuration;
+    broadcast({type:'startTimer',duration:timerDuration});
+    broadcastToAudience({type:'startTimer',duration:timerDuration});
+    
+    timerInterval=setInterval(()=>{
+        timeRemaining--;
+        broadcast({type:'timerTick',time:timeRemaining});
+        broadcastToAudience({type:'timerTick',time:timeRemaining});
+        
+        if(timeRemaining<=0){
+            stopTimer();
+            revealAnswer();
+        }
+    },1000);
+}
+
+function stopTimer(){
+    if(timerInterval){
+        clearInterval(timerInterval);
+        timerInterval=null;
+    }
+    broadcast({type:'stopTimer'});
+    broadcastToAudience({type:'stopTimer'});
+}
+
+function toggleTimer(){
+    timerEnabled=!timerEnabled;
+    const toggle=document.getElementById('timerToggle');
+    if(timerEnabled){
+        toggle.classList.add('active');
+        timerDuration=parseInt(document.getElementById('timerInput').value)||30;
+    }else{
+        toggle.classList.remove('active');
+    }
+}
+
+function broadcast(data){
+    connections.forEach(c=>{
+        if(c.open)c.send(data);
+    });
+}
+
+function broadcastToAudience(data){
+    connections.forEach(c=>{
+        if(c.open)c.send(data);
+    });
+}
+
+// Player Functions
+function joinAsPlayer(){
+    const name=document.getElementById('playerNameInput').value.trim();
+    const code=document.getElementById('playerCodeInput').value;
+    
+    if(!name){
+        setStatus("Please enter your name",true);
+        return;
+    }
+    if(code.length<4){
+        setStatus("Please enter 4-digit code",true);
+        return;
+    }
+    
+    mode='player';
+    playerName=name;
+    setStatus("Connecting...");
+    
+    const targetId=ID_PREFIX+code;
+    peer=new Peer();
+    peer.on('open',()=>{
+        conn=peer.connect(targetId,{reliable:true});
+        setupPlayerConnection();
+    });
+    peer.on('error',err=>{
+        setStatus("Error: "+err.type,true);
+        if(err.type==='peer-unavailable')setStatus("Quiz not found. Check code.",true);
+    });
+}
+
+function setupPlayerConnection(){
+    conn.on('open',()=>{
+        document.getElementById('setupView').style.display='none';
+        document.getElementById('playerView').style.display='flex';
+        document.getElementById('playerNameDisplay').innerText=playerName;
+        conn.send({type:'join',role:'player',name:playerName});
+    });
+    
+    conn.on('data',handlePlayerData);
+    conn.on('close',()=>{
+        document.getElementById('playerQuestion').innerText="Disconnected from quiz";
+    });
+}
+
+function handlePlayerData(data){
+    switch(data.type){
+        case 'init':
+            break;
+        case 'showQuestion':
+            playerAnswered=false;
+            document.getElementById('playerQuestion').innerText=data.question;
+            document.getElementById('playerAnswers').innerHTML=data.answers.map((ans,i)=>`
+                <button class="player-answer-btn" onclick="submitAnswer(${i})">
+                    <div class="answer-label">${String.fromCharCode(65+i)}</div>
+                    <div>${ans}</div>
+                </button>
+            `).join('');
+            
+            if(data.timerEnabled){
+                document.getElementById('playerTimer').style.display='block';
+                document.getElementById('playerTimer').innerText=data.timerDuration;
+            }else{
+                document.getElementById('playerTimer').style.display='none';
+            }
+            break;
+        case 'startTimer':
+            document.getElementById('playerTimer').style.display='block';
+            document.getElementById('playerTimer').innerText=data.duration;
+            break;
+        case 'timerTick':
+            document.getElementById('playerTimer').innerText=data.time;
+            if(data.time<=5){
+                document.getElementById('playerTimer').style.color='var(--error)';
+            }
+            break;
+        case 'stopTimer':
+            document.getElementById('playerTimer').style.display='none';
+            break;
+        case 'revealAnswer':
+            document.getElementById('playerAnswers').querySelectorAll('.player-answer-btn').forEach((btn,i)=>{
+                btn.disabled=true;
+                if(i===data.correctAnswer){
+                    btn.style.background='linear-gradient(135deg,#00ff88 0%,#00cc6a 100%)';
+                    btn.style.color='#000';
+                }
+            });
+            break;
+        case 'result':
+            playerScore=data.score;
+            document.getElementById('playerScoreDisplay').innerText=playerScore;
+            break;
+        case 'clearQuestion':
+            document.getElementById('playerQuestion').innerText="Waiting for next question...";
+            document.getElementById('playerAnswers').innerHTML='';
+            document.getElementById('playerTimer').style.display='none';
+            document.getElementById('playerTimer').style.color='#fff';
+            break;
+        case 'reset':
+            playerScore=0;
+            document.getElementById('playerScoreDisplay').innerText='0';
+            document.getElementById('playerQuestion').innerText="Quiz reset. Waiting for host...";
+            document.getElementById('playerAnswers').innerHTML='';
+            break;
+    }
+}
+
+function submitAnswer(index){
+    if(playerAnswered)return;
+    playerAnswered=true;
+    
+    document.getElementById('playerAnswers').querySelectorAll('.player-answer-btn').forEach((btn,i)=>{
+        btn.disabled=true;
+        if(i===index)btn.classList.add('selected');
+    });
+    
+    conn.send({type:'answer',answerIndex:index});
+}
+
+// Audience Functions
+function joinAsAudience(){
+    const code=document.getElementById('audienceCodeInput').value;
+    
+    if(code.length<4){
+        setStatus("Please enter 4-digit code",true);
+        return;
+    }
+    
+    mode='audience';
+    setStatus("Connecting...");
+    
+    const targetId=ID_PREFIX+code;
+    peer=new Peer();
+    peer.on('open',()=>{
+        conn=peer.connect(targetId,{reliable:true});
+        setupAudienceConnection();
+    });
+    peer.on('error',err=>{
+        setStatus("Error: "+err.type,true);
+        if(err.type==='peer-unavailable')setStatus("Quiz not found. Check code.",true);
+    });
+}
+
+function setupAudienceConnection(){
+    conn.on('open',()=>{
+        document.getElementById('setupView').style.display='none';
+        document.getElementById('audienceView').style.display='flex';
+        conn.send({type:'join',role:'audience'});
+    });
+    
+    conn.on('data',handleAudienceData);
+    conn.on('close',()=>{
+        document.getElementById('audienceSubtitle').innerText="Disconnected from quiz";
+    });
+}
+
+function handleAudienceData(data){
+    switch(data.type){
+        case 'showQuestion':
+            document.getElementById('audienceQuestion').innerText=data.question;
+            document.getElementById('audienceQuestion').style.display='block';
+            document.getElementById('audienceLeaderboard').style.display='none';
+            document.getElementById('audienceSubtitle').innerText='Answer the question!';
+            
+            if(data.timerEnabled){
+                document.getElementById('audienceTimer').style.display='block';
+                document.getElementById('audienceTimer').innerText=data.timerDuration;
+                document.getElementById('audienceTimer').classList.remove('warning');
+            }else{
+                document.getElementById('audienceTimer').style.display='none';
+            }
+            break;
+        case 'startTimer':
+            document.getElementById('audienceTimer').style.display='block';
+            document.getElementById('audienceTimer').innerText=data.duration;
+            document.getElementById('audienceTimer').classList.remove('warning');
+            break;
+        case 'timerTick':
+            document.getElementById('audienceTimer').innerText=data.time;
+            if(data.time<=5){
+                document.getElementById('audienceTimer').classList.add('warning');
+            }
+            break;
+        case 'stopTimer':
+            document.getElementById('audienceTimer').style.display='none';
+            break;
+        case 'leaderboard':
+            document.getElementById('audienceQuestion').style.display='none';
+            document.getElementById('audienceTimer').style.display='none';
+            document.getElementById('audienceLeaderboard').style.display='block';
+            document.getElementById('audienceSubtitle').innerText='Current Standings';
+            
+            const sorted=[...data.players].sort((a,b)=>b.score-a.score);
+            document.getElementById('audienceLeaderboardList').innerHTML=sorted.map((p,i)=>`
+                <div class="leaderboard-item">
+                    <div style="display:flex;align-items:center">
+                        <div class="leaderboard-rank">${i+1}</div>
+                        <div>${p.name}</div>
+                    </div>
+                    <div class="leaderboard-score">${p.score}</div>
+                </div>
+            `).join('');
+            break;
+        case 'clearQuestion':
+            document.getElementById('audienceQuestion').style.display='none';
+            document.getElementById('audienceTimer').style.display='none';
+            document.getElementById('audienceSubtitle').innerText='Next question coming...';
+            break;
+        case 'reset':
+            document.getElementById('audienceQuestion').style.display='none';
+            document.getElementById('audienceTimer').style.display='none';
+            document.getElementById('audienceLeaderboard').style.display='none';
+            document.getElementById('audienceSubtitle').innerText='Quiz reset. Waiting to begin...';
+            break;
+    }
+}
+
+// Question Management
+function openQuestionManager(){
+    document.getElementById('questionModal').style.display='flex';
+    loadSavedQuestions();
+}
+
+function closeQuestionManager(){
+    document.getElementById('questionModal').style.display='none';
+}
+
+function addQuestion(){
+    const questionText=document.getElementById('newQuestionText').value.trim();
+    const answerInputs=document.querySelectorAll('#newAnswerInputs input[type="text"]');
+    const answers=Array.from(answerInputs).map(inp=>inp.value.trim()).filter(a=>a);
+    const correctCheckboxes=document.querySelectorAll('#newAnswerInputs input[type="checkbox"]');
+    let correctAnswer=-1;
+    
+    correctCheckboxes.forEach((cb,i)=>{
+        if(cb.checked)correctAnswer=i;
+    });
+    
+    if(!questionText){
+        alert('Please enter a question');
+        return;
+    }
+    if(answers.length<2){
+        alert('Please enter at least 2 answers');
+        return;
+    }
+    if(correctAnswer===-1){
+        alert('Please select the correct answer');
+        return;
+    }
+    
+    const newQuestion={question:questionText,answers,correctAnswer};
+    questions.push(newQuestion);
+    saveQuestions();
+    loadSavedQuestions();
+    updateHostDisplay();
+    
+    document.getElementById('newQuestionText').value='';
+    answerInputs.forEach(inp=>inp.value='');
+    correctCheckboxes.forEach(cb=>cb.checked=false);
+    
+    alert('Question added!');
+}
+
+function loadSavedQuestions(){
+    const list=document.getElementById('savedQuestionsList');
+    if(questions.length===0){
+        list.innerHTML='<div style="text-align:center;color:#666;padding:20px">No questions yet. Add your first question above!</div>';
+        return;
+    }
+    
+    list.innerHTML=questions.map((q,i)=>`
+        <div class="question-item">
+            <div class="question-text">${i+1}. ${q.question}</div>
+            <div class="question-answers">
+                ${q.answers.map((ans,j)=>`
+                    <div class="question-answer ${j===q.correctAnswer?'correct':''}">${String.fromCharCode(65+j)}: ${ans}</div>
+                `).join('')}
+            </div>
+            <div class="question-actions">
+                <button class="action-btn use" onclick="useQuestion(${i})">USE THIS</button>
+                <button class="action-btn delete" onclick="deleteQuestion(${i})">DELETE</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function useQuestion(index){
+    currentQuestionIndex=index;
+    updateHostDisplay();
+    closeQuestionManager();
+}
+
+function deleteQuestion(index){
+    if(!confirm('Delete this question?'))return;
+    questions.splice(index,1);
+    saveQuestions();
+    loadSavedQuestions();
+    if(currentQuestionIndex>=questions.length){
+        currentQuestionIndex=Math.max(0,questions.length-1);
+    }
+    updateHostDisplay();
+}
+
+function saveQuestions(){
+    localStorage.setItem('quizQuestions',JSON.stringify(questions));
+}
+
+function loadQuestions(){
+    const saved=localStorage.getItem('quizQuestions');
+    if(saved){
+        questions=JSON.parse(saved);
+    }
+}
+
+// AI Generation
+function showAiGenerator(){
+    document.getElementById('questionModal').style.display='none';
+    document.getElementById('aiModal').style.display='flex';
+    
+    const savedKey=localStorage.getItem('geminiApiKey');
+    if(savedKey)document.getElementById('apiKeyInput').value=savedKey;
+}
+
+function closeAiGenerator(){
+    document.getElementById('aiModal').style.display='none';
+    document.getElementById('questionModal').style.display='flex';
+}
+
+async function generateQuestions(){
+    const key=document.getElementById('apiKeyInput').value.trim();
+    const topic=document.getElementById('topicInput').value.trim();
+    const numQuestions=parseInt(document.getElementById('numQuestionsInput').value)||5;
+    const status=document.getElementById('aiStatus');
+    
+    if(!key){
+        status.innerText='Please enter API key';
+        status.style.color='var(--error)';
+        return;
+    }
+    if(!topic){
+        status.innerText='Please enter a topic';
+        status.style.color='var(--error)';
+        return;
+    }
+    
+    localStorage.setItem('geminiApiKey',key);
+    status.innerText='Generating questions...';
+    status.style.color='var(--accent)';
+    
+    try{
+        const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                contents:[{
+                    parts:[{
+                        text:`Generate exactly ${numQuestions} multiple-choice quiz questions about "${topic}". 
+                        Return ONLY a valid JSON array with this exact structure, no additional text:
+                        [{"question":"Question text here?","answers":["Answer 1","Answer 2","Answer 3","Answer 4"],"correctAnswer":0}]
+                        
+                        Rules:
+                        - Each question must have exactly 4 answers
+                        - correctAnswer is the index (0-3) of the correct answer
+                        - Make questions challenging but fair
+                        - Ensure variety in difficulty
+                        - No markdown, no code blocks, just pure JSON`
+                    }]
+                }]
+            })
+        });
+        
+        const data=await res.json();
+        if(data.candidates&&data.candidates[0]){
+            let text=data.candidates[0].content.parts[0].text.trim();
+            text=text.replace(/```json/g,'').replace(/```/g,'').trim();
+            
+            const generated=JSON.parse(text);
+            if(Array.isArray(generated)){
+                questions.push(...generated);
+                saveQuestions();
+                status.innerText=`Successfully generated ${generated.length} questions!`;
+                status.style.color='var(--success)';
+                
+                setTimeout(()=>{
+                    closeAiGenerator();
+                    loadSavedQuestions();
+                    updateHostDisplay();
+                },2000);
+            }else{
+                throw new Error('Invalid format');
+            }
+        }else{
+            status.innerText='Generation failed. Check API key.';
+            status.style.color='var(--error)';
+        }
+    }catch(err){
+        status.innerText='Error: '+err.message;
+        status.style.color='var(--error)';
+    }
+}
+
+// Prevent context menu
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+// Handle checkbox behavior
+document.addEventListener('change',e=>{
+    if(e.target.type==='checkbox'&&e.target.name==='correctAnswer'){
+        document.querySelectorAll('input[name="correctAnswer"]').forEach(cb=>{
+            if(cb!==e.target)cb.checked=false;
+        });
+    }
+});
+    </script>
+</body>
+</html>
