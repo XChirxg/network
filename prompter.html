@@ -3,683 +3,437 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Prompter V2</title>
+    <title>Pro Prompter</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <style>
-        :root {
-            --accent: #00ff88;
-            --bg: #121212;
-            --surface: #1e1e1e;
-            --text: #ffffff;
-            --pad-bg: #2a2a2a;
-            --error: #ff4444;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-user-select: none;
-            user-select: none;
-            -webkit-touch-callout: none;
-            touch-action: none;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-            background: var(--bg);
-            color: var(--text);
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-        }
-
-        /* --- ICONS --- */
-        .icon { width: 24px; height: 24px; fill: currentColor; pointer-events: none; }
-
-        /* --- SETUP SCREEN --- */
-        .setup {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
-            background: var(--bg);
-            z-index: 1000;
-            position: absolute;
-            width: 100%;
-            transition: opacity 0.3s;
-        }
-
-        .setup h1 { font-size: 2.5rem; letter-spacing: 5px; margin-bottom: 2rem; color: var(--accent); }
-        
-        .mode-select { display: flex; flex-direction: column; gap: 20px; align-items: center; width: 100%; max-width: 300px; }
-        
-        .big-btn {
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            background: transparent;
-            border: 2px solid var(--accent);
-            color: var(--accent);
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
-            width: 100%;
-            text-align: center;
-        }
-        
-        .big-btn:active { background: var(--accent); color: var(--bg); transform: scale(0.98); }
-
-        .input-group {
-            display: none; /* Hidden by default */
-            flex-direction: column;
-            gap: 10px;
-            width: 100%;
-        }
-
-        .code-input {
-            background: var(--surface);
-            border: 1px solid #444;
-            color: #fff;
-            padding: 15px;
-            font-size: 1.5rem;
-            text-align: center;
-            border-radius: 8px;
-            letter-spacing: 5px;
-            outline: none;
-        }
-        .code-input:focus { border-color: var(--accent); }
-
-        .status { margin-top: 20px; color: #666; letter-spacing: 2px; font-size: 0.9rem; min-height: 20px; text-align: center;}
-        .status.error { color: var(--error); }
-
-        /* --- DISPLAY SCREEN --- */
-        #displayView {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-        }
-
-        #prompterContent {
-            padding: 0 10vw;
-            font-size: 5rem;
-            line-height: 1.6;
-            transform: translateY(45vh);
-            will-change: transform;
-            text-align: left;
-            white-space: pre-wrap;
-            font-weight: bold;
-            transform-origin: center center;
-        }
-
-        .marker-line {
-            position: fixed; top: 45%; left: 0; width: 100%; height: 0;
-            border-top: 2px dashed rgba(255, 0, 0, 0.5); z-index: 50;
-        }
-        
-        .triangle-marker {
-            position: fixed; top: 45%; left: 20px; width: 0; height: 0;
-            border-top: 15px solid transparent; border-bottom: 15px solid transparent;
-            border-left: 20px solid rgba(255,0,0,0.7); transform: translateY(-50%);
-        }
-
-        .overlay-ui {
-            position: fixed; top: 20px; right: 20px; z-index: 100;
-            display: flex; gap: 10px; flex-direction: column; align-items: flex-end;
-        }
-
-        .room-code-display {
-            background: rgba(0,0,0,0.7);
-            color: var(--accent);
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid var(--accent);
-            font-family: monospace;
-            font-size: 1.2rem;
-        }
-
-        /* --- CONTROLLER SCREEN --- */
-        #controllerView {
-            display: none;
-            flex-direction: column;
-            height: 100%;
-            background: var(--bg);
-        }
-
-        .top-bar {
-            padding: 15px; background: var(--surface); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #333;
-        }
-
-        .text-preview {
-            flex: 1; background: #000; border: 1px solid #444; padding: 10px; color: #aaa; border-radius: 4px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;
-        }
-
-        .edit-btn {
-            background: var(--accent); border: none; border-radius: 4px; width: 40px; height: 40px;
-            display: flex; align-items: center; justify-content: center; color: #000; cursor: pointer;
-        }
-
-        .pad-container {
-            flex-grow: 1; position: relative; background: #000; display: flex; justify-content: center; align-items: center; overflow: hidden;
-        }
-
-        #scrollPad {
-            width: 90%; height: 90%; background: var(--pad-bg); border-radius: 12px; position: relative;
-            display: flex; justify-content: center; align-items: center; flex-direction: column; border: 2px solid #444; touch-action: none;
-        }
-
-        .pad-instruction {
-            color: rgba(255,255,255,0.2); font-weight: bold; text-align: center; pointer-events: none; line-height: 1.5;
-        }
-
-        #stickBase {
-            position: absolute; width: 1px; height: 100%; background: rgba(255,255,255,0.1); display: none;
-        }
-        #stickHead {
-            position: absolute; width: 80px; height: 80px; background: rgba(0, 255, 136, 0.2);
-            border: 2px solid var(--accent); border-radius: 50%; transform: translate(-50%, -50%); display: none; pointer-events: none;
-        }
-
-        .bottom-toolbar {
-            background: var(--surface); padding: 15px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; border-top: 1px solid #333;
-        }
-
-        .tool-btn {
-            background: transparent; border: 1px solid #444; border-radius: 8px; height: 50px;
-            display: flex; align-items: center; justify-content: center; color: #fff; cursor: pointer;
-        }
-        .tool-btn:active { background: #444; }
-        .tool-btn.active { background: var(--accent); color: #000; border: none; }
-
-        /* --- EDIT MODAL --- */
-        #editModal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 2000; flex-direction: column;
-        }
-        
-        #editModal textarea {
-            flex: 1; background: #121212; color: #fff; padding: 20px; font-size: 18px; border: none; resize: none; outline: none;
-        }
-        
-        .modal-header {
-            padding: 15px; background: var(--surface); display: flex; justify-content: space-between; align-items: center;
-        }
-
-        .save-btn {
-            background: var(--accent); color: #000; padding: 8px 20px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;
-        }
-
+        :root{--accent:#00ff88;--bg:#121212;--surface:#1e1e1e;--text:#fff;--pad-bg:#2a2a2a;--error:#ff4444}
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+        body{font-family:-apple-system,monospace;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw}
+        .icon{width:20px;height:20px;fill:currentColor;pointer-events:none}
+        .setup{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;background:var(--bg);z-index:1000;position:absolute;width:100%;transition:opacity .3s}
+        .setup h1{font-size:2.5rem;letter-spacing:5px;margin-bottom:2rem;color:var(--accent)}
+        .mode-select{display:flex;flex-direction:column;gap:20px;align-items:center;width:100%;max-width:300px}
+        .big-btn{padding:15px 30px;font-size:1.2rem;background:transparent;border:2px solid var(--accent);color:var(--accent);border-radius:8px;cursor:pointer;font-weight:bold;transition:.2s;width:100%;text-align:center}
+        .big-btn:active{background:var(--accent);color:var(--bg);transform:scale(.98)}
+        .input-group{display:none;flex-direction:column;gap:10px;width:100%}
+        .code-input{background:var(--surface);border:1px solid #444;color:#fff;padding:15px;font-size:1.5rem;text-align:center;border-radius:8px;letter-spacing:5px;outline:none}
+        .code-input:focus{border-color:var(--accent)}
+        .status{margin-top:20px;color:#666;letter-spacing:2px;font-size:.9rem;min-height:20px;text-align:center}
+        .status.error{color:var(--error)}
+        .dev-credit{margin-top:30px;font-size:.8rem;color:#666}
+        .dev-credit a{color:var(--accent);text-decoration:none}
+        #displayView{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;touch-action:pan-y;overflow:hidden}
+        #prompterContent{padding:0 10vw;font-size:5rem;line-height:1.6;transform:translateY(45vh);will-change:transform;text-align:left;white-space:pre-wrap;font-weight:bold;letter-spacing:.05em;word-spacing:.1em}
+        #prompterContent strong,#prompterContent b{font-weight:900}
+        #slideContent strong,#slideContent b{font-weight:900}
+        .marker-line{position:fixed;top:45%;left:0;width:100%;height:0;border-top:2px dashed rgba(255,0,0,.5);z-index:50;pointer-events:none}
+        .triangle-marker{position:fixed;top:45%;left:20px;width:0;height:0;border-top:15px solid transparent;border-bottom:15px solid transparent;border-left:20px solid rgba(255,0,0,.7);transform:translateY(-50%);pointer-events:none}
+        .overlay-ui{position:fixed;top:20px;right:20px;z-index:100;display:flex;gap:10px;flex-direction:column;align-items:flex-end}
+        .room-code-display{background:rgba(0,0,0,.7);color:var(--accent);padding:10px;border-radius:4px;border:1px solid var(--accent);font-family:monospace;font-size:1.2rem}
+        #slideContent{display:none;position:fixed;top:0;left:0;width:100%;height:100%;padding:5vw;font-size:4rem;line-height:1.5;text-align:center;justify-content:center;align-items:center;white-space:pre-wrap;font-weight:bold}
+        .slide-nav{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);display:none;gap:20px;z-index:100}
+        .slide-nav button{width:60px;height:60px;border-radius:50%;background:rgba(0,255,136,.2);border:2px solid var(--accent);color:var(--accent);font-size:1.5rem;cursor:pointer}
+        .slide-counter{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:var(--accent);padding:10px 20px;border-radius:4px;display:none;font-size:1.2rem}
+        #controllerView{display:none;flex-direction:column;height:100%;background:var(--bg)}
+        .top-bar{padding:10px;background:var(--surface);display:flex;align-items:center;gap:10px;border-bottom:1px solid #333}
+        .text-preview{flex:1;background:#000;border:1px solid #444;padding:10px;color:#aaa;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+        .edit-btn{background:var(--accent);border:none;border-radius:4px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:#000;cursor:pointer}
+        .toolbar{background:var(--surface);padding:10px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;border-bottom:1px solid #333}
+        .pad-container{flex-grow:1;position:relative;background:#000;display:flex;justify-content:center;align-items:center;overflow:hidden}
+        #scrollPad{width:90%;height:80%;background:var(--pad-bg);border-radius:12px;position:relative;display:flex;justify-content:center;align-items:center;flex-direction:column;border:2px solid #444;touch-action:none}
+        .pad-instruction{color:rgba(255,255,255,.2);font-weight:bold;text-align:center;pointer-events:none;line-height:1.5;font-size:.9rem}
+        .pad-stats{position:absolute;top:15px;left:0;right:0;display:flex;flex-direction:column;gap:8px;padding:0 15px;pointer-events:none}
+        .stat-row{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.5);padding:8px 12px;border-radius:6px;font-size:.85rem;color:var(--accent)}
+        .stat-label{opacity:.7}
+        .stat-value{font-weight:bold;font-family:monospace}
+        .pad-footer{position:absolute;bottom:10px;font-size:.65rem;color:rgba(255,255,255,.15);pointer-events:none}
+        #stickBase{position:absolute;width:1px;height:100%;background:rgba(255,255,255,.1);display:none}
+        #stickHead{position:absolute;width:80px;height:80px;background:rgba(0,255,136,.2);border:2px solid var(--accent);border-radius:50%;transform:translate(-50%,-50%);display:none;pointer-events:none}
+        #slideControls{display:none;flex-direction:column;justify-content:center;align-items:center;gap:40px;height:100%;padding:40px}
+        .slide-btn-big{width:200px;height:200px;border-radius:20px;background:var(--accent);border:none;color:#000;font-size:2.5rem;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(0,255,136,.3)}
+        .slide-btn-big:active{transform:scale(.95)}
+        .slide-info{color:#aaa;font-size:1.5rem;text-align:center;font-weight:bold}
+        .tool-btn{background:transparent;border:1px solid #444;border-radius:8px;height:45px;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;cursor:pointer;font-size:.65rem;padding:5px}
+        .tool-btn:active{background:#444}
+        .tool-btn.active{background:var(--accent);color:#000;border:none}
+        #editModal,#projectsModal,#apiModal,#displaySettingsModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:2000;flex-direction:column}
+        .modal-header{padding:15px;background:var(--surface);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333}
+        .save-btn{background:var(--accent);color:#000;padding:8px 20px;border:none;border-radius:4px;font-weight:bold;cursor:pointer}
+        .editor-toolbar{background:var(--surface);padding:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;border-bottom:1px solid #333}
+        .editor-toolbar .tool-btn{height:50px;font-size:.7rem}
+        #fullTextInput,#displayTextInput{flex:1;background:#121212;color:#fff;padding:20px;font-size:18px;border:none;resize:none;outline:none;font-family:monospace}
+        .format-panel{background:var(--surface);padding:10px;border-top:1px solid #333;display:grid;grid-template-columns:1fr;gap:8px;max-height:40vh;overflow-y:auto}
+        .text-stats{background:var(--surface);padding:15px;border-bottom:1px solid #333;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+        .stat-box{background:#000;padding:10px;border-radius:6px;text-align:center}
+        .stat-box .stat-number{font-size:1.5rem;color:var(--accent);font-weight:bold;font-family:monospace}
+        .stat-box .stat-label{font-size:.7rem;color:#888;margin-top:4px}
+        .format-row{display:flex;align-items:center;gap:10px}
+        .format-row label{font-size:.75rem;color:#aaa;min-width:70px}
+        .format-row input,.format-row select{flex:1;background:#000;border:1px solid #444;color:#fff;padding:6px;border-radius:4px;outline:none;font-size:.8rem}
+        .project-list{flex:1;overflow-y:auto;padding:15px}
+        .project-item{background:var(--surface);padding:15px;margin-bottom:10px;border-radius:8px;border:1px solid #444}
+        .project-name{font-weight:bold;margin-bottom:5px;color:var(--accent)}
+        .project-preview{color:#888;font-size:.85rem;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .project-stats{color:#666;font-size:.75rem;margin-bottom:10px}
+        .project-actions{display:flex;gap:8px}
+        .project-actions button{padding:6px 12px;border:1px solid #444;background:transparent;color:#fff;border-radius:4px;font-size:.75rem;cursor:pointer}
+        .api-setup{padding:20px;display:flex;flex-direction:column;gap:15px}
+        .api-setup input{background:var(--surface);border:1px solid #444;color:#fff;padding:12px;border-radius:4px;outline:none}
+        .settings-icon{position:fixed;top:20px;left:20px;width:50px;height:50px;background:rgba(0,255,136,.2);border:2px solid var(--accent);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:100}
+        .auto-play-controls{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);display:none;gap:20px;z-index:100}
+        .auto-play-controls button{padding:15px 30px;background:var(--accent);border:none;border-radius:8px;color:#000;font-size:1rem;font-weight:bold;cursor:pointer}
     </style>
 </head>
 <body>
-
     <div class="setup" id="setupView">
         <h1>PROMPTER</h1>
-        
         <div class="mode-select" id="initialBtns">
             <button class="big-btn" onclick="startDisplay()">I AM THE SCREEN</button>
             <button class="big-btn" onclick="showRemoteInput()">I AM THE REMOTE</button>
         </div>
-
         <div class="mode-select input-group" id="remoteInputGroup">
             <input type="number" id="roomCodeInput" class="code-input" placeholder="0000" pattern="\d*">
             <button class="big-btn" onclick="connectToDisplay()">CONNECT</button>
-            <button class="big-btn" style="border-color: #444; color: #888; font-size: 0.9rem;" onclick="backToMain()">BACK</button>
+            <button class="big-btn" style="border-color:#444;color:#888;font-size:.9rem" onclick="backToMain()">BACK</button>
         </div>
-
         <div class="status" id="statusText">Select Mode</div>
+        <div class="dev-credit">Developed by <a href="https://ChiragSharma.web.app" target="_blank">xchirxg</a></div>
     </div>
 
     <div id="displayView">
         <div class="marker-line"></div>
         <div class="triangle-marker"></div>
-        
         <div class="overlay-ui" id="displayUI">
             <div class="room-code-display" id="displayCodeBox">CODE: ----</div>
-            <button class="big-btn" style="font-size: 0.8rem; padding: 8px;" onclick="toggleLocalFullscreen()">FULLSCREEN</button>
+            <button class="big-btn" style="font-size:.8rem;padding:8px" onclick="toggleLocalFullscreen()">FULLSCREEN</button>
         </div>
-
-        <div id="prompterContent">
-            Waiting for connection...
-            1. Open Prompter on phone
-            2. Select 'I AM THE REMOTE'
-            3. Enter code above
+        <div class="settings-icon" id="settingsIcon" onclick="openDisplaySettings()">
+            <svg class="icon" viewBox="0 0 24 24" style="width:24px;height:24px"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" fill="currentColor"/></svg>
+        </div>
+        <div id="prompterContent">Connecting...</div>
+        <div id="slideContent"></div>
+        <div class="slide-counter" id="slideCounter">1 / 1</div>
+        <div class="slide-nav" id="slideNav">
+            <button onclick="prevSlide()">◀</button>
+            <button onclick="nextSlide()">▶</button>
+        </div>
+        <div class="auto-play-controls" id="autoPlayControls">
+            <button onclick="startAutoPlay()" id="playBtn">PLAY</button>
+            <button onclick="stopAutoPlay()" id="stopBtn">STOP</button>
         </div>
     </div>
 
     <div id="controllerView">
         <div class="top-bar">
             <div class="text-preview" id="textPreview" onclick="openEditor()">Tap to edit script...</div>
+            <button class="edit-btn" onclick="openProjects()">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+            </button>
             <button class="edit-btn" onclick="openEditor()">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
             </button>
         </div>
-
+        <div class="toolbar">
+            <button class="tool-btn" onclick="sendAction('reset')">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                <span>RESET</span>
+            </button>
+            <button class="tool-btn" onclick="toggleMirror()" id="mirrorBtn">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
+                <span>MIRROR</span>
+            </button>
+            <button class="tool-btn" onclick="sendAction('sync')" style="color:var(--accent)">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
+                <span>SYNC</span>
+            </button>
+            <button class="tool-btn" onclick="cycleColor()">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z"/></svg>
+                <span>COLOR</span>
+            </button>
+            <button class="tool-btn" onclick="sendAction('hideUI')">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                <span>HIDE UI</span>
+            </button>
+        </div>
         <div class="pad-container">
             <div id="scrollPad">
-                <div class="pad-instruction">
-                    TOUCH & HOLD TO SCROLL<br>
-                    <span style="font-size:0.8em; font-weight:normal; opacity:0.7">PINCH TO RESIZE TEXT</span>
+                <div class="pad-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">TIME</span>
+                        <span class="stat-value" id="padTimer">00:00</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">WPM</span>
+                        <span class="stat-value" id="padWPM">0</span>
+                    </div>
                 </div>
+                <div class="pad-instruction">TOUCH & HOLD TO SCROLL<br><span style="font-size:.8em;font-weight:normal;opacity:.7">PINCH TO RESIZE</span></div>
+                <div class="pad-footer">developed by xchirxg</div>
                 <div id="stickBase"></div>
                 <div id="stickHead"></div>
             </div>
-        </div>
-
-        <div class="bottom-toolbar">
-            <button class="tool-btn" onclick="sendAction('reset')">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-            </button>
-            
-            <button class="tool-btn" onclick="toggleMirror()" id="mirrorBtn">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>
-            </button>
-
-            <button class="tool-btn" onclick="sendAction('sync')" style="color: var(--accent)">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
-            </button>
-            
-            <button class="tool-btn" onclick="cycleColor()">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z"/></svg>
-            </button>
-
-            <button class="tool-btn" onclick="sendAction('hideUI')">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-            </button>
+            <div id="slideControls">
+                <div class="slide-info" id="slideInfo">Slide 1 / 1</div>
+                <button class="slide-btn-big" onclick="remoteNextSlide()">▶</button>
+                <button class="slide-btn-big" onclick="remotePrevSlide()">◀</button>
+            </div>
         </div>
     </div>
 
     <div id="editModal">
         <div class="modal-header">
             <span>Edit Script</span>
+            <button class="save-btn" onclick="saveProject()">SAVE</button>
             <button class="save-btn" onclick="closeEditor()">DONE</button>
         </div>
-        <textarea id="fullTextInput" placeholder="Type your text here...">Welcome to Pro Prompter.
+        <div class="text-stats">
+            <div class="stat-box">
+                <div class="stat-number" id="wordCount">0</div>
+                <div class="stat-label">WORDS</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="avgTime">0:00</div>
+                <div class="stat-label">AVG TIME (150 WPM)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="charCount">0</div>
+                <div class="stat-label">CHARACTERS</div>
+            </div>
+        </div>
+        <div class="editor-toolbar">
+            <button class="tool-btn" onclick="clearText()">CLEAR</button>
+            <button class="tool-btn" onclick="copyText()">COPY</button>
+            <button class="tool-btn" onclick="pasteText()">PASTE</button>
+            <button class="tool-btn" onclick="toggleMode()" id="modeToggle">SLIDE</button>
+        </div>
+        <textarea id="fullTextInput" placeholder="Type your text here..." oninput="updateTextStats()">Connecting...</textarea>
+        <div class="format-panel">
+            <div class="format-row">
+                <label>Font Size:</label>
+                <input type="range" id="fontSizeSlider" min="2" max="10" step="0.5" value="5" oninput="updateFontSize(this.value)">
+            </div>
+            <div class="format-row">
+                <label>Font Style:</label>
+                <select id="fontStyleSelect" onchange="updateFontStyle(this.value)">
+                    <option value="monospace">Monospace</option>
+                    <option value="'Arial',sans-serif">Arial</option>
+                    <option value="'Times New Roman',serif">Times</option>
+                    <option value="'Courier New',monospace">Courier</option>
+                    <option value="'Georgia',serif">Georgia</option>
+                    <option value="'Verdana',sans-serif">Verdana</option>
+                </select>
+            </div>
+            <div class="format-row">
+                <label>Alignment:</label>
+                <select id="alignSelect" onchange="updateAlignment(this.value)">
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                </select>
+            </div>
+            <div class="format-row">
+                <label>Letter Space:</label>
+                <input type="range" id="letterSpaceSlider" min="0" max="0.5" step="0.01" value="0.05" oninput="updateLetterSpacing(this.value)">
+            </div>
+            <div class="format-row">
+                <label>Line Height:</label>
+                <input type="range" id="lineHeightSlider" min="1" max="3" step="0.1" value="1.6" oninput="updateLineHeight(this.value)">
+            </div>
+        </div>
+    </div>
 
-This is a demonstration script.
+    <div id="projectsModal">
+        <div class="modal-header">
+            <span>Projects</span>
+            <button class="save-btn" onclick="showApiSetup()">AI GENERATE</button>
+            <button class="save-btn" onclick="closeProjects()">CLOSE</button>
+        </div>
+        <div class="project-list" id="projectList"></div>
+    </div>
 
-1. Use the large pad on the Remote to scroll.
-   - Slide UP to scroll down.
-   - The further you slide, the faster it goes.
-2. Pinch on the pad to change text size.
-3. Tap "Edit" on the remote to change this text.
+    <div id="apiModal">
+        <div class="modal-header">
+            <span>AI Generate Script</span>
+            <button class="save-btn" onclick="closeApiSetup()">CLOSE</button>
+        </div>
+        <div class="api-setup">
+            <input type="text" id="apiKeyInput" placeholder="Enter Gemini API Key">
+            <input type="text" id="topicInput" placeholder="Enter topic (e.g., Climate Change)">
+            <button class="big-btn" onclick="generateAiScript()">GENERATE</button>
+            <div class="status" id="apiStatus"></div>
+        </div>
+    </div>
 
-Happy Recording!</textarea>
+    <div id="displaySettingsModal">
+        <div class="modal-header">
+            <span>Display Settings</span>
+            <button class="save-btn" onclick="applyDisplaySettings()">APPLY</button>
+            <button class="save-btn" onclick="closeDisplaySettings()">CLOSE</button>
+        </div>
+        <div class="text-stats">
+            <div class="stat-box">
+                <div class="stat-number" id="displayWordCount">0</div>
+                <div class="stat-label">WORDS</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="displayAvgTime">0:00</div>
+                <div class="stat-label">AVG TIME (150 WPM)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="displayCharCount">0</div>
+                <div class="stat-label">CHARACTERS</div>
+            </div>
+        </div>
+        <textarea id="displayTextInput" placeholder="Type your text here..." oninput="updateDisplayTextStats()">Connecting...</textarea>
+        <div class="format-panel">
+            <div class="format-row">
+                <label>Auto Speed:</label>
+                <input type="range" id="autoSpeedSlider" min="0.5" max="5" step="0.5" value="2">
+            </div>
+            <div class="format-row">
+                <label>Font Size:</label>
+                <input type="range" id="displayFontSizeSlider" min="2" max="10" step="0.5" value="5">
+            </div>
+            <div class="format-row">
+                <label>Mirror:</label>
+                <select id="displayMirrorSelect">
+                    <option value="false">Off</option>
+                    <option value="true">On</option>
+                </select>
+            </div>
+            <div class="format-row">
+                <label>Alignment:</label>
+                <select id="displayAlignSelect">
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                </select>
+            </div>
+        </div>
     </div>
 
     <script>
-        // --- CONSTANTS ---
-        const ID_PREFIX = "PROMPTER-V2-";
+const ID_PREFIX="PROMPTER-V2-";let peer,conn,mode='',myRoomCode='',heartbeatInterval,wakeLock=null;
+let scrollY=0,speed=0,isMirrored=false,fontSize=5,isUIHidden=false,textAlign='left',letterSpacing=.05,lineHeight=1.6,fontWeight='bold',fontStyle='monospace',displayMode='scroll',slides=[],currentSlide=0;
+let touchStartY=0,isTouching=false,pinchDistStart=0,tempFontSize=5,displayTouchStartY=0,displayTouching=false;
+const colors=['#ffffff','#ffff00','#00ff00','#00ffff','#ff00ff','#ff8800'];let colorIndex=0;
+let autoPlaySpeed=2,autoPlayInterval=null,isRemoteConnected=false;
+let minScrollY=0,maxScrollY=0;
 
-        // --- GLOBAL STATE ---
-        let peer, conn;
-        let mode = ''; // 'display' or 'controller'
-        let myRoomCode = '';
-        let heartbeatInterval;
-        let wakeLock = null;
+function loadState(){const s=localStorage.getItem('prompterState');if(s){const d=JSON.parse(s);fontSize=d.fontSize||5;textAlign=d.textAlign||'left';letterSpacing=d.letterSpacing||.05;lineHeight=d.lineHeight||1.6;fontWeight=d.fontWeight||'bold';fontStyle=d.fontStyle||'monospace';colorIndex=d.colorIndex||0}}
+function saveState(){localStorage.setItem('prompterState',JSON.stringify({fontSize,textAlign,letterSpacing,lineHeight,fontWeight,fontStyle,colorIndex}))}
+function setStatus(msg,isError=false){const el=document.getElementById('statusText');el.innerText=msg;el.className=isError?"status error":"status"}
+function backToMain(){document.getElementById('initialBtns').style.display='flex';document.getElementById('remoteInputGroup').style.display='none';setStatus("Select Mode")}
+function showRemoteInput(){document.getElementById('initialBtns').style.display='none';document.getElementById('remoteInputGroup').style.display='flex';document.getElementById('roomCodeInput').focus();setStatus("Enter the code from Display")}
+async function requestWakeLock(){try{if('wakeLock'in navigator){wakeLock=await navigator.wakeLock.request('screen')}}catch(err){}}
 
-        // Display State
-        let scrollY = 0;
-        let speed = 0;
-        let isMirrored = false;
-        let fontSize = 5; 
-        let isUIHidden = false;
+function parseMarkdown(text){return text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}
 
-        // Controller State
-        let touchStartY = 0;
-        let isTouching = false;
-        let pinchDistStart = 0;
-        let tempFontSize = 5;
+function calculateScrollLimits(){const content=document.getElementById('prompterContent');const contentHeight=content.scrollHeight;const viewHeight=window.innerHeight;maxScrollY=0;minScrollY=-(contentHeight-viewHeight*.1)}
 
-        // --- SETUP FUNCTIONS ---
-        function setStatus(msg, isError = false) {
-            const el = document.getElementById('statusText');
-            el.innerText = msg;
-            el.className = isError ? "status error" : "status";
-        }
+function startDisplay(){mode='display';setStatus("Starting Display...");requestWakeLock();loadState();myRoomCode=Math.floor(1000+Math.random()*9000).toString();const fullId=ID_PREFIX+myRoomCode;document.getElementById('setupView').style.display='none';document.getElementById('displayView').style.display='block';document.getElementById('displayCodeBox').innerText="CODE: "+myRoomCode;document.getElementById('prompterContent').innerHTML=parseMarkdown("CODE: "+myRoomCode+"\n\nWaiting for connection...");peer=new Peer(fullId);peer.on('open',id=>console.log('Host ID:',id));peer.on('connection',c=>{if(conn)conn.close();conn=c;isRemoteConnected=true;document.getElementById('prompterContent').innerHTML=parseMarkdown("Connected");document.getElementById('settingsIcon').style.display='none';setStatus("Remote Connected!");conn.on('data',handleData);conn.on('close',()=>{setStatus("Remote Disconnected");conn=null;isRemoteConnected=false;document.getElementById('settingsIcon').style.display='flex'});setTimeout(()=>{const currentText=document.getElementById('fullTextInput').value;if(conn&&conn.open)conn.send({type:'syncAll',text:currentText,fontSize,align:textAlign,letterSpacing,lineHeight,fontWeight,fontStyle,mode:displayMode,colorIndex})},500)});peer.on('error',err=>{if(err.type==='unavailable-id')startDisplay();else alert("Network Error: "+err.type)});setupDisplayTouch();requestAnimationFrame(displayLoop);setTimeout(()=>{if(!isRemoteConnected){document.getElementById('settingsIcon').style.display='flex'}},2000);setTimeout(calculateScrollLimits,500)}
 
-        function backToMain() {
-            document.getElementById('initialBtns').style.display = 'flex';
-            document.getElementById('remoteInputGroup').style.display = 'none';
-            setStatus("Select Mode");
-        }
+function setupDisplayTouch(){const v=document.getElementById('displayView');v.addEventListener('touchstart',e=>{if(displayMode==='slide')return;displayTouching=true;displayTouchStartY=e.touches[0].clientY},{passive:true});v.addEventListener('touchmove',e=>{if(displayMode==='slide'||!displayTouching)return;const y=e.touches[0].clientY,d=displayTouchStartY-y;scrollY-=d*.8;if(scrollY>maxScrollY)scrollY=maxScrollY;if(scrollY<minScrollY)scrollY=minScrollY;displayTouchStartY=y},{passive:true});v.addEventListener('touchend',()=>displayTouching=false,{passive:true})}
 
-        function showRemoteInput() {
-            document.getElementById('initialBtns').style.display = 'none';
-            document.getElementById('remoteInputGroup').style.display = 'flex';
-            document.getElementById('roomCodeInput').focus();
-            setStatus("Enter the code from the Display screen");
-        }
+function connectToDisplay(){const val=document.getElementById('roomCodeInput').value;if(val.length<4){setStatus("Please enter 4-digit code",true);return}mode='controller';setStatus("Connecting...");requestWakeLock();loadState();const targetId=ID_PREFIX+val;peer=new Peer();peer.on('open',()=>{conn=peer.connect(targetId,{reliable:true});setupConnectionHandlers()});peer.on('error',err=>{setStatus("Error: "+err.type,true);if(err.type==='peer-unavailable')setStatus("Display not found. Check code.",true)})}
 
-        // --- WAKE LOCK (Prevent sleep) ---
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake Lock active');
-                    wakeLock.addEventListener('release', () => console.log('Wake Lock released'));
-                }
-            } catch (err) {
-                console.log(`${err.name}, ${err.message}`);
-            }
-        }
+function setupConnectionHandlers(){conn.on('open',()=>{console.log("Connected");document.getElementById('setupView').style.display='none';document.getElementById('controllerView').style.display='flex';setupControllerEvents();sendAction('sync');startHeartbeat()});conn.on('data',data=>{if(data.type==='syncAll'){document.getElementById('fullTextInput').value=data.text;document.getElementById('fontSizeSlider').value=data.fontSize;document.getElementById('fontStyleSelect').value=data.fontStyle||'monospace';document.getElementById('alignSelect').value=data.align;document.getElementById('letterSpaceSlider').value=data.letterSpacing;document.getElementById('lineHeightSlider').value=data.lineHeight;tempFontSize=data.fontSize;colorIndex=data.colorIndex||0;if(data.mode==='slide'){displayMode='slide';switchToSlideMode()}updateTextPreview()}});conn.on('close',()=>{console.log("Connection lost");document.getElementById('textPreview').innerText="DISCONNECTED";setTimeout(()=>{if(peer&&!peer.destroyed){conn=peer.connect(conn.peer);setupConnectionHandlers()}},2000)});conn.on('error',err=>console.error(err))}
 
-        // --- PEER JS: DISPLAY SIDE ---
-        function startDisplay() {
-            mode = 'display';
-            setStatus("Starting Display...");
-            requestWakeLock();
-            
-            // Generate Random 4-Digit Code
-            myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
-            const fullId = ID_PREFIX + myRoomCode;
+function startHeartbeat(){if(heartbeatInterval)clearInterval(heartbeatInterval);heartbeatInterval=setInterval(()=>{if(conn&&conn.open)conn.send({type:'ping'})},2000)}
 
-            document.getElementById('setupView').style.display = 'none';
-            document.getElementById('displayView').style.display = 'block';
-            document.getElementById('displayCodeBox').innerText = "CODE: " + myRoomCode;
+function sendData(data){if(conn&&conn.open)conn.send(data)}
 
-            // Init Peer
-            peer = new Peer(fullId);
-            
-            peer.on('open', (id) => {
-                console.log('Host ID:', id);
-            });
+function handleData(data){const content=document.getElementById('prompterContent'),slideContent=document.getElementById('slideContent');switch(data.type){case 'speed':speed=data.val;break;case 'text':content.innerHTML=parseMarkdown(data.val);scrollY=0;if(displayMode==='slide')updateSlides(data.val);setTimeout(calculateScrollLimits,200);break;case 'fontSize':fontSize=data.val;content.style.fontSize=fontSize+'rem';slideContent.style.fontSize=fontSize+'rem';setTimeout(calculateScrollLimits,100);break;case 'fontStyle':fontStyle=data.val;content.style.fontFamily=fontStyle;slideContent.style.fontFamily=fontStyle;break;case 'align':textAlign=data.val;content.style.textAlign=textAlign;slideContent.style.textAlign=textAlign;break;case 'letterSpacing':letterSpacing=data.val;content.style.letterSpacing=letterSpacing+'em';slideContent.style.letterSpacing=letterSpacing+'em';break;case 'lineHeight':lineHeight=data.val;content.style.lineHeight=lineHeight;slideContent.style.lineHeight=lineHeight;break;case 'fontWeight':fontWeight=data.val;content.style.fontWeight=fontWeight;slideContent.style.fontWeight=fontWeight;break;case 'reset':scrollY=0;speed=0;currentSlide=0;if(displayMode==='slide')showSlide(0);break;case 'mirror':isMirrored=!isMirrored;updateTransform();if(displayMode==='slide'){slideContent.style.transform=isMirrored?'scaleX(-1)':'scaleX(1)'}break;case 'color':colorIndex=(colorIndex+1)%colors.length;content.style.color=colors[colorIndex];slideContent.style.color=colors[colorIndex];break;case 'hideUI':isUIHidden=!isUIHidden;const opacity=isUIHidden?'0':'1';document.getElementById('displayUI').style.opacity=opacity;document.querySelector('.marker-line').style.opacity=opacity;document.querySelector('.triangle-marker').style.opacity=opacity;document.getElementById('slideCounter').style.opacity=opacity;document.body.style.cursor=isUIHidden?'none':'default';break;case 'sync':conn.send({type:'syncAll',text:content.innerHTML.replace(/<strong>/g,'**').replace(/<\/strong>/g,'**'),fontSize,fontStyle,align:textAlign,letterSpacing,lineHeight,fontWeight,mode:displayMode,colorIndex});break;case 'mode':displayMode=data.val;if(displayMode==='slide'){document.getElementById('prompterContent').style.display='none';document.getElementById('slideContent').style.display='flex';document.querySelector('.marker-line').style.display='none';document.querySelector('.triangle-marker').style.display='none';document.getElementById('slideCounter').style.display='block';document.getElementById('slideNav').style.display='flex';updateSlides(content.innerHTML.replace(/<strong>/g,'**').replace(/<\/strong>/g,'**'));showSlide(0)}else{document.getElementById('prompterContent').style.display='block';document.getElementById('slideContent').style.display='none';document.querySelector('.marker-line').style.display='block';document.querySelector('.triangle-marker').style.display='block';document.getElementById('slideCounter').style.display='none';document.getElementById('slideNav').style.display='none';setTimeout(calculateScrollLimits,200)}break;case 'nextSlide':if(currentSlide<slides.length-1){currentSlide++;showSlide(currentSlide)}break;case 'prevSlide':if(currentSlide>0){currentSlide--;showSlide(currentSlide)}break;case 'ping':break}}
 
-            peer.on('connection', (c) => {
-                // If we already have a connection, we can choose to replace it or allow multiple
-                // For this logic, we'll allow the new one to take over.
-                if(conn) { conn.close(); }
-                
-                conn = c;
-                setStatus("Remote Connected!");
-                
-                conn.on('data', handleData);
-                conn.on('close', () => {
-                    setStatus("Remote Disconnected");
-                    conn = null;
-                });
+function updateSlides(text){slides=text.split(/\n\n+/).filter(s=>s.trim());currentSlide=0;showSlide(0)}
 
-                // Send current text to new controller immediately
-                setTimeout(() => {
-                    const currentText = document.getElementById('prompterContent').innerText;
-                    if(conn && conn.open) conn.send({ type: 'syncText', text: currentText });
-                }, 500);
-            });
+function showSlide(index){if(slides.length===0)return;document.getElementById('slideContent').innerHTML=parseMarkdown(slides[index]||'');document.getElementById('slideCounter').innerText=`${index+1} / ${slides.length}`}
 
-            peer.on('error', (err) => {
-                // If ID is taken (rare with random 4 digits), try again automatically
-                if (err.type === 'unavailable-id') {
-                    startDisplay(); 
-                } else {
-                    alert("Network Error: " + err.type);
-                }
-            });
+function nextSlide(){if(currentSlide<slides.length-1){currentSlide++;showSlide(currentSlide)}}
 
-            requestAnimationFrame(displayLoop);
-        }
+function prevSlide(){if(currentSlide>0){currentSlide--;showSlide(currentSlide)}}
 
-        // --- PEER JS: CONTROLLER SIDE ---
-        function connectToDisplay() {
-            const inputVal = document.getElementById('roomCodeInput').value;
-            if (inputVal.length < 4) {
-                setStatus("Please enter the 4-digit code", true);
-                return;
-            }
+function displayLoop(){if(displayMode==='scroll'){if(Math.abs(speed)>.1){scrollY-=speed;if(scrollY>maxScrollY)scrollY=maxScrollY;if(scrollY<minScrollY)scrollY=minScrollY}updateTransform()}requestAnimationFrame(displayLoop)}
 
-            mode = 'controller';
-            setStatus("Connecting...");
-            requestWakeLock();
-            
-            const targetId = ID_PREFIX + inputVal;
-            
-            peer = new Peer(); // Let PeerJS assign a random ID for the remote
+function updateTransform(){const content=document.getElementById('prompterContent'),scale=isMirrored?'scaleX(-1)':'scaleX(1)';content.style.transform=`${scale} translateY(${scrollY}px)`}
 
-            peer.on('open', () => {
-                conn = peer.connect(targetId, { reliable: true });
-                setupConnectionHandlers();
-            });
+function toggleLocalFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else if(document.exitFullscreen)document.exitFullscreen()}
 
-            peer.on('error', (err) => {
-                setStatus("Error: " + err.type, true);
-                if(err.type === 'peer-unavailable') {
-                    setStatus("Display not found. Check code.", true);
-                }
-            });
-        }
+function setupControllerEvents(){const pad=document.getElementById('scrollPad'),stickHead=document.getElementById('stickHead'),stickBase=document.getElementById('stickBase');pad.addEventListener('touchstart',e=>{e.preventDefault();if(e.touches.length===2){isTouching=false;pinchDistStart=Math.hypot(e.touches[0].pageX-e.touches[1].pageX,e.touches[0].pageY-e.touches[1].pageY);return}isTouching=true;touchStartY=e.touches[0].clientY;const rect=pad.getBoundingClientRect(),relativeY=e.touches[0].clientY-rect.top;stickBase.style.display='block';stickBase.style.top=relativeY+'px';stickHead.style.display='block';stickHead.style.top=relativeY+'px'},{passive:false});pad.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===2){const dist=Math.hypot(e.touches[0].pageX-e.touches[1].pageX,e.touches[0].pageY-e.touches[1].pageY),delta=dist-pinchDistStart;if(Math.abs(delta)>10){if(delta>0)tempFontSize+=.1;else tempFontSize=Math.max(1,tempFontSize-.1);sendData({type:'fontSize',val:tempFontSize});pinchDistStart=dist}return}if(!isTouching)return;const currentY=e.touches[0].clientY,deltaY=touchStartY-currentY;let scrollSpeed=deltaY*.15;if(scrollSpeed>25)scrollSpeed=25;if(scrollSpeed<-25)scrollSpeed=-25;sendData({type:'speed',val:scrollSpeed});let visualOffset=-deltaY;if(visualOffset>40)visualOffset=40;if(visualOffset<-40)visualOffset=-40;stickHead.style.transform=`translate(-50%, calc(-50% + ${visualOffset}px))`},{passive:false});pad.addEventListener('touchend',e=>{e.preventDefault();if(e.touches.length===0){isTouching=false;sendData({type:'speed',val:0});stickHead.style.display='none';stickBase.style.display='none';stickHead.style.transform=`translate(-50%, -50%)`}})}
 
-        function setupConnectionHandlers() {
-            conn.on('open', () => {
-                console.log("Connected to display");
-                document.getElementById('setupView').style.display = 'none';
-                document.getElementById('controllerView').style.display = 'flex';
-                setupControllerEvents();
-                sendAction('sync'); // Request text
-                startHeartbeat();
-            });
+function updateTextStats(){const text=document.getElementById('fullTextInput').value;const words=text.trim().split(/\s+/).filter(w=>w).length;const chars=text.length;const avgWPM=150;const minutes=words/avgWPM;const mins=Math.floor(minutes);const secs=Math.round((minutes-mins)*60);document.getElementById('wordCount').innerText=words;document.getElementById('avgTime').innerText=`${mins}:${String(secs).padStart(2,'0')}`;document.getElementById('charCount').innerText=chars}
 
-            conn.on('data', (data) => {
-                if (data.type === 'syncText') {
-                    document.getElementById('fullTextInput').value = data.text;
-                    updateTextPreview();
-                }
-            });
+function openEditor(){document.getElementById('editModal').style.display='flex';updateTextStats()}
 
-            conn.on('close', () => {
-                console.log("Connection lost");
-                document.getElementById('textPreview').innerText = "DISCONNECTED - Reconnecting...";
-                // Attempt Reconnect
-                setTimeout(() => {
-                   if(peer && !peer.destroyed) {
-                        const targetId = conn.peer;
-                        console.log("Reconnecting to " + targetId);
-                        conn = peer.connect(targetId);
-                        setupConnectionHandlers();
-                   }
-                }, 2000);
-            });
+function closeEditor(){document.getElementById('editModal').style.display='none';const text=document.getElementById('fullTextInput').value;updateTextPreview();sendData({type:'text',val:text});saveState()}
 
-            conn.on('error', (err) => console.error(err));
-        }
+function updateTextPreview(){const text=document.getElementById('fullTextInput').value,preview=text.split('\n')[0]||"No text...";document.getElementById('textPreview').innerText=preview}
 
-        // --- HEARTBEAT SYSTEM ---
-        // Keeps the connection alive by sending small data every few seconds
-        function startHeartbeat() {
-            if(heartbeatInterval) clearInterval(heartbeatInterval);
-            heartbeatInterval = setInterval(() => {
-                if(conn && conn.open) {
-                    conn.send({ type: 'ping' });
-                }
-            }, 2000);
-        }
+function clearText(){if(confirm('Clear all text?'))document.getElementById('fullTextInput').value=''}
 
-        // --- DATA HANDLING ---
-        function sendData(data) {
-            if (conn && conn.open) {
-                conn.send(data);
-            }
-        }
+async function copyText(){const text=document.getElementById('fullTextInput').value;try{await navigator.clipboard.writeText(text);alert('Text copied!')}catch(err){alert('Failed to copy')}}
 
-        function handleData(data) {
-            const content = document.getElementById('prompterContent');
-            
-            switch(data.type) {
-                case 'speed': speed = data.val; break;
-                case 'text': 
-                    content.innerText = data.val; 
-                    scrollY = 0; 
-                    break;
-                case 'fontSize':
-                    fontSize = data.val;
-                    content.style.fontSize = fontSize + 'rem';
-                    break;
-                case 'reset':
-                    scrollY = 0;
-                    speed = 0;
-                    break;
-                case 'mirror':
-                    isMirrored = !isMirrored;
-                    updateTransform();
-                    content.style.textAlign = isMirrored ? 'right' : 'left';
-                    break;
-                case 'color':
-                    const colors = ['#ffffff', '#ffff00', '#00ff00', '#00ffff'];
-                    let curr = colors.indexOf(content.style.color || '#ffffff');
-                    content.style.color = colors[(curr + 1) % colors.length];
-                    break;
-                case 'hideUI':
-                    isUIHidden = !isUIHidden;
-                    const opacity = isUIHidden ? '0' : '1';
-                    document.getElementById('displayUI').style.opacity = opacity;
-                    document.querySelector('.marker-line').style.opacity = opacity;
-                    document.querySelector('.triangle-marker').style.opacity = opacity;
-                    document.body.style.cursor = isUIHidden ? 'none' : 'default';
-                    break;
-                case 'sync':
-                    conn.send({ type: 'syncText', text: content.innerText });
-                    break;
-                case 'ping':
-                    // Just keeping connection alive
-                    break;
-            }
-        }
+async function pasteText(){try{const text=await navigator.clipboard.readText();document.getElementById('fullTextInput').value=text;updateTextStats()}catch(err){alert('Failed to paste')}}
 
-        // --- DISPLAY LOOP ---
-        function displayLoop() {
-            if (Math.abs(speed) > 0.1) {
-                scrollY -= speed; 
-            }
-            updateTransform();
-            requestAnimationFrame(displayLoop);
-        }
+function toggleMode(){displayMode=displayMode==='scroll'?'slide':'scroll';const btn=document.getElementById('modeToggle');btn.innerHTML=displayMode==='slide'?'SCROLL':'SLIDE';sendData({type:'mode',val:displayMode});if(displayMode==='slide')switchToSlideMode();else switchToScrollMode()}
 
-        function updateTransform() {
-            const content = document.getElementById('prompterContent');
-            const scale = isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
-            content.style.transform = `${scale} translateY(${scrollY}px)`;
-        }
+function switchToSlideMode(){document.getElementById('scrollPad').style.display='none';document.getElementById('slideControls').style.display='flex';const text=document.getElementById('fullTextInput').value,localSlides=text.split(/\n\n+/).filter(s=>s.trim());document.getElementById('slideInfo').innerText=`Slide 1 / ${localSlides.length}`}
 
-        function toggleLocalFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else {
-                if (document.exitFullscreen) document.exitFullscreen();
-            }
-        }
+function switchToScrollMode(){document.getElementById('scrollPad').style.display='flex';document.getElementById('slideControls').style.display='none'}
 
-        // --- CONTROLLER INPUT LOGIC ---
-        function setupControllerEvents() {
-            const pad = document.getElementById('scrollPad');
-            const stickHead = document.getElementById('stickHead');
-            const stickBase = document.getElementById('stickBase');
+function remoteNextSlide(){sendData({type:'nextSlide'});const text=document.getElementById('fullTextInput').value,localSlides=text.split(/\n\n+/).filter(s=>s.trim()),nextSlide=Math.min(currentSlide+1,localSlides.length-1);document.getElementById('slideInfo').innerText=`Slide ${nextSlide+1} / ${localSlides.length}`;currentSlide=nextSlide}
 
-            pad.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                if (e.touches.length === 2) {
-                    isTouching = false;
-                    pinchDistStart = Math.hypot(
-                        e.touches[0].pageX - e.touches[1].pageX,
-                        e.touches[0].pageY - e.touches[1].pageY
-                    );
-                    return;
-                }
+function remotePrevSlide(){sendData({type:'prevSlide'});const text=document.getElementById('fullTextInput').value,localSlides=text.split(/\n\n+/).filter(s=>s.trim()),prevSlideNum=Math.max(currentSlide-1,0);document.getElementById('slideInfo').innerText=`Slide ${prevSlideNum+1} / ${localSlides.length}`;currentSlide=prevSlideNum}
 
-                isTouching = true;
-                touchStartY = e.touches[0].clientY;
-                
-                const rect = pad.getBoundingClientRect();
-                const relativeY = e.touches[0].clientY - rect.top;
-                
-                stickBase.style.display = 'block';
-                stickBase.style.top = relativeY + 'px';
-                stickHead.style.display = 'block';
-                stickHead.style.top = relativeY + 'px';
-            }, { passive: false });
+function updateFontSize(val){sendData({type:'fontSize',val:parseFloat(val)});saveState()}
 
-            pad.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                // Pinch Logic
-                if (e.touches.length === 2) {
-                    const dist = Math.hypot(
-                        e.touches[0].pageX - e.touches[1].pageX,
-                        e.touches[0].pageY - e.touches[1].pageY
-                    );
-                    const delta = dist - pinchDistStart;
-                    if (Math.abs(delta) > 10) {
-                        if (delta > 0) tempFontSize += 0.1;
-                        else tempFontSize = Math.max(1, tempFontSize - 0.1);
-                        sendData({ type: 'fontSize', val: tempFontSize });
-                        pinchDistStart = dist;
-                    }
-                    return;
-                }
+function updateFontStyle(val){sendData({type:'fontStyle',val});fontStyle=val;saveState()}
 
-                if (!isTouching) return;
+function updateAlignment(val){sendData({type:'align',val});saveState()}
 
-                const currentY = e.touches[0].clientY;
-                const deltaY = touchStartY - currentY;
-                let scrollSpeed = deltaY * 0.15;
-                
-                if (scrollSpeed > 25) scrollSpeed = 25;
-                if (scrollSpeed < -25) scrollSpeed = -25;
+function updateLetterSpacing(val){sendData({type:'letterSpacing',val:parseFloat(val)});saveState()}
 
-                sendData({ type: 'speed', val: scrollSpeed });
+function updateLineHeight(val){sendData({type:'lineHeight',val:parseFloat(val)});saveState()}
 
-                // Visual Joystick
-                let visualOffset = -deltaY; 
-                if(visualOffset > 40) visualOffset = 40;
-                if(visualOffset < -40) visualOffset = -40;
-                stickHead.style.transform = `translate(-50%, calc(-50% + ${visualOffset}px))`;
-            }, { passive: false });
+function sendAction(actionType){if(actionType==='mirror')document.getElementById('mirrorBtn').classList.toggle('active');sendData({type:actionType})}
 
-            pad.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                if (e.touches.length === 0) {
-                    isTouching = false;
-                    sendData({ type: 'speed', val: 0 });
-                    stickHead.style.display = 'none';
-                    stickBase.style.display = 'none';
-                    stickHead.style.transform = `translate(-50%, -50%)`;
-                }
-            });
-        }
+function cycleColor(){sendAction('color');colorIndex=(colorIndex+1)%colors.length;saveState()}
 
-        // --- CONTROLLER UI ACTIONS ---
-        function openEditor() { document.getElementById('editModal').style.display = 'flex'; }
-        
-        function closeEditor() {
-            document.getElementById('editModal').style.display = 'none';
-            const text = document.getElementById('fullTextInput').value;
-            updateTextPreview();
-            sendData({ type: 'text', val: text });
-        }
+function toggleMirror(){sendAction('mirror')}
 
-        function updateTextPreview() {
-            const text = document.getElementById('fullTextInput').value;
-            const preview = text.split('\n')[0] || "No text...";
-            document.getElementById('textPreview').innerText = preview;
-        }
+function saveProject(){const text=document.getElementById('fullTextInput').value,name=prompt("Project name:");if(!name)return;const projects=JSON.parse(localStorage.getItem('projects')||'[]');projects.push({name,text,date:new Date().toISOString(),words:text.split(/\s+/).filter(w=>w.trim()).length,settings:{fontSize,fontStyle,textAlign,letterSpacing,lineHeight,fontWeight}});localStorage.setItem('projects',JSON.stringify(projects));alert('Project saved!')}
 
-        function sendAction(actionType) {
-            if (actionType === 'mirror') {
-                document.getElementById('mirrorBtn').classList.toggle('active');
-            }
-            sendData({ type: actionType });
-        }
+function openProjects(){document.getElementById('projectsModal').style.display='flex';loadProjects()}
 
-        function cycleColor() { sendData({ type: 'color' }); }
-        function toggleMirror() { sendAction('mirror'); }
+function closeProjects(){document.getElementById('projectsModal').style.display='none'}
 
-        document.addEventListener('contextmenu', event => event.preventDefault());
+function loadProjects(){const projects=JSON.parse(localStorage.getItem('projects')||'[]'),list=document.getElementById('projectList');list.innerHTML=projects.length?'':'<div style="text-align:center;color:#666;padding:20px">No projects yet</div>';projects.reverse().forEach((p,i)=>{const div=document.createElement('div');div.className='project-item';div.innerHTML=`<div class="project-name">${p.name}</div><div class="project-preview">${p.text.substring(0,80)}...</div><div class="project-stats">${new Date(p.date).toLocaleDateString()} • ${p.words||0} words</div><div class="project-actions"><button onclick="useProject(${projects.length-1-i})">USE</button><button onclick="editProject(${projects.length-1-i})">EDIT</button><button onclick="deleteProject(${projects.length-1-i})">DELETE</button></div>`;list.appendChild(div)})}
 
-        // Re-request wake lock on visibility change (tabs can lose it)
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') {
-                await requestWakeLock();
-            }
-        });
+function useProject(i){const projects=JSON.parse(localStorage.getItem('projects')||'[]'),p=projects[i];document.getElementById('fullTextInput').value=p.text;if(p.settings){document.getElementById('fontSizeSlider').value=p.settings.fontSize||5;document.getElementById('fontStyleSelect').value=p.settings.fontStyle||'monospace';document.getElementById('alignSelect').value=p.settings.textAlign||'left';document.getElementById('letterSpaceSlider').value=p.settings.letterSpacing||.05;document.getElementById('lineHeightSlider').value=p.settings.lineHeight||1.6}updateTextPreview();closeProjects();sendData({type:'text',val:p.text})}
 
+function editProject(i){useProject(i);openEditor();closeProjects()}
+
+function deleteProject(i){if(!confirm('Delete this project?'))return;const projects=JSON.parse(localStorage.getItem('projects')||'[]');projects.splice(i,1);localStorage.setItem('projects',JSON.stringify(projects));loadProjects()}
+
+function showApiSetup(){document.getElementById('projectsModal').style.display='none';document.getElementById('apiModal').style.display='flex';const key=localStorage.getItem('geminiApiKey');if(key)document.getElementById('apiKeyInput').value=key}
+
+function closeApiSetup(){document.getElementById('apiModal').style.display='none';document.getElementById('projectsModal').style.display='flex'}
+
+async function generateAiScript(){const key=document.getElementById('apiKeyInput').value,topic=document.getElementById('topicInput').value,status=document.getElementById('apiStatus');if(!key){status.innerText='Please enter API key';status.className='status error';return}if(!topic){status.innerText='Please enter a topic';status.className='status error';return}localStorage.setItem('geminiApiKey',key);status.innerText='Generating...';status.className='status';try{const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:`Create a professional teleprompter script about "${topic}". Use clear, natural language suitable for speaking. Place a line break after each sentence for better readability. Avoid bullet points, tables, or complex formatting. Keep it conversational and easy to read aloud. Make it around 300-400 words.`}]}]})});const data=await res.json();if(data.candidates&&data.candidates[0]){const text=data.candidates[0].content.parts[0].text.replace(/\.\s+/g,'.\n\n').trim();document.getElementById('fullTextInput').value=text;updateTextPreview();closeApiSetup();openEditor();status.innerText='Script generated!';status.className='status'}else{status.innerText='Generation failed. Check API key.';status.className='status error'}}catch(err){status.innerText='Error: '+err.message;status.className='status error'}}
+
+function openDisplaySettings(){document.getElementById('displaySettingsModal').style.display='flex';document.getElementById('displayTextInput').value=document.getElementById('prompterContent').innerHTML.replace(/<strong>/g,'**').replace(/<\/strong>/g,'**');document.getElementById('autoSpeedSlider').value=autoPlaySpeed;document.getElementById('displayFontSizeSlider').value=fontSize;document.getElementById('displayMirrorSelect').value=isMirrored?'true':'false';document.getElementById('displayAlignSelect').value=textAlign;updateDisplayTextStats()}
+
+function closeDisplaySettings(){document.getElementById('displaySettingsModal').style.display='none'}
+
+function applyDisplaySettings(){const text=document.getElementById('displayTextInput').value;document.getElementById('prompterContent').innerHTML=parseMarkdown(text);autoPlaySpeed=parseFloat(document.getElementById('autoSpeedSlider').value);fontSize=parseFloat(document.getElementById('displayFontSizeSlider').value);isMirrored=document.getElementById('displayMirrorSelect').value==='true';textAlign=document.getElementById('displayAlignSelect').value;document.getElementById('prompterContent').style.fontSize=fontSize+'rem';document.getElementById('prompterContent').style.textAlign=textAlign;updateTransform();setTimeout(calculateScrollLimits,200);document.getElementById('autoPlayControls').style.display='flex';closeDisplaySettings()}
+
+function updateDisplayTextStats(){const text=document.getElementById('displayTextInput').value;const words=text.trim().split(/\s+/).filter(w=>w).length;const chars=text.length;const avgWPM=150;const minutes=words/avgWPM;const mins=Math.floor(minutes);const secs=Math.round((minutes-mins)*60);document.getElementById('displayWordCount').innerText=words;document.getElementById('displayAvgTime').innerText=`${mins}:${String(secs).padStart(2,'0')}`;document.getElementById('displayCharCount').innerText=chars}
+
+function startAutoPlay(){stopAutoPlay();autoPlayInterval=setInterval(()=>{scrollY-=autoPlaySpeed;if(scrollY<minScrollY){scrollY=minScrollY;stopAutoPlay()}updateTransform()},50)}
+
+function stopAutoPlay(){if(autoPlayInterval){clearInterval(autoPlayInterval);autoPlayInterval=null}}
+
+document.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('visibilitychange',async()=>{if(wakeLock!==null&&document.visibilityState==='visible')await requestWakeLock()});loadState();
     </script>
 </body>
 </html>
