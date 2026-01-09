@@ -270,28 +270,54 @@
             });
         }
 
-        function startGyro() {
-            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission()
-                    .then(response => {
-                        if (response === 'granted') {
-                            window.addEventListener('deviceorientation', handleOrientation);
-                        }
-                    });
-            } else {
-                window.addEventListener('deviceorientation', handleOrientation);
+        async function startGyro() {
+            try {
+                // Request permission for iOS 13+
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    const response = await DeviceOrientationEvent.requestPermission();
+                    if (response === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation, true);
+                        console.log('Gyro permission granted');
+                    } else {
+                        alert('GYRO PERMISSION DENIED');
+                    }
+                } else {
+                    // Android or older iOS
+                    window.addEventListener('deviceorientation', handleOrientation, true);
+                    console.log('Gyro started (no permission needed)');
+                }
+            } catch (error) {
+                console.error('Gyro error:', error);
+                alert('GYRO ERROR: ' + error.message);
             }
         }
 
         function handleOrientation(e) {
-            let angle = Math.abs(e.beta || 0);
+            // Beta is the front-to-back tilt in degrees
+            // When phone is flat: beta ≈ 0
+            // When phone is standing up: beta ≈ 90
+            // When phone tilted back: beta can be negative
+            
+            let angle = e.beta;
+            
+            // Handle null/undefined
+            if (angle === null || angle === undefined) {
+                document.getElementById('angleDisplay').innerText = 'NO DATA';
+                return;
+            }
+            
+            // Convert to positive and handle upside down
+            if (angle < 0) angle = Math.abs(angle);
             if (angle > 90) angle = 180 - angle;
             
-            angle = Math.max(30, Math.min(80, angle));
+            // Clamp between 30-80 degrees
+            const clampedAngle = Math.max(30, Math.min(80, angle));
             
-            const normalized = 1 - ((angle - 30) / 50);
+            // Normalize: 80° = 0 (released), 30° = 1 (fully pressed)
+            const normalized = 1 - ((clampedAngle - 30) / 50);
             
-            document.getElementById('angleDisplay').innerText = Math.round(angle) + '°';
+            // Show both raw and normalized values
+            document.getElementById('angleDisplay').innerText = Math.round(angle) + '° [' + Math.round(normalized * 100) + '%]';
             
             if (conn && conn.open) {
                 conn.send({
