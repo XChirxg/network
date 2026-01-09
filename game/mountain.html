@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mountain Climber</title>
+    <title>Mountain Racer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <style>
@@ -37,10 +37,9 @@
             z-index: 1000;
         }
         .title {
-            font-size: 42px;
+            font-size: 48px;
             letter-spacing: 4px;
             color: #0f0;
-            text-align: center;
         }
         .btn {
             padding: 20px 40px;
@@ -87,12 +86,12 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            font-size: 16px;
+            font-size: 18px;
             color: #0f0;
             z-index: 10;
             font-family: 'Courier New', monospace;
             line-height: 1.8;
-            text-shadow: 2px 2px 4px #000;
+            text-shadow: 0 0 10px #0f0;
         }
         .code-display {
             position: fixed;
@@ -173,15 +172,15 @@
             color: #0f0;
             text-shadow: 0 0 20px #0f0;
             opacity: 0;
+            transition: opacity 0.3s;
             pointer-events: none;
-            transition: opacity 0.5s;
             z-index: 100;
         }
     </style>
 </head>
 <body>
     <div id="setup">
-        <div class="title">MOUNTAIN CLIMBER</div>
+        <div class="title">MOUNTAIN RACER</div>
         <div id="mainMenu">
             <button class="btn" onclick="startAsDisplay()">DISPLAY</button>
             <button class="btn" onclick="showPedalSetup()">BRAKE PEDAL</button>
@@ -198,10 +197,10 @@
     <div id="gameView">
         <canvas id="renderCanvas"></canvas>
         <div class="hud">
-            <div>SPEED: <span id="speedDisplay">0</span> MPH</div>
-            <div>ALTITUDE: <span id="altitudeDisplay">0</span> M</div>
-            <div>CHECKPOINT: <span id="checkpointDisplay">0/5</span></div>
-            <div>DISTANCE: <span id="distanceDisplay">0</span> M</div>
+            <div>SPEED: <span id="speedDisplay">0</span> km/h</div>
+            <div>ALTITUDE: <span id="altDisplay">0</span> m</div>
+            <div>CHECKPOINT: <span id="checkpointDisplay">0/10</span></div>
+            <div>POSITION: <span id="posDisplay">0, 0</span></div>
         </div>
         <div class="code-display" id="codeBox">CODE: ----</div>
         <div class="controls">
@@ -225,15 +224,14 @@
     <script>
         const PREFIX = "RACER-";
         let peer, conn, myCode, mode = '';
-        let scene, camera, renderer, terrain, car;
-        let carSpeed = 0, carVelocityX = 0, carVelocityZ = 0;
-        let carX = 0, carZ = 0, carY = 0, carRotation = 0;
+        let scene, camera, renderer;
+        let carSpeed = 0, carVelocity = new THREE.Vector3();
+        let carPosition = new THREE.Vector3(0, 0, 0);
+        let carRotation = 0, steerDir = 0;
         let brakeValue = 0, gasValue = 0;
         let isGasPedal = false;
-        let steerDir = 0;
-        let checkpointCount = 0;
-        let checkpoints = [], obstacles = [], trees = [];
-        let distanceTraveled = 0;
+        let checkpoint = 0, checkpoints = [];
+        let terrain, trees = [], rocks = [], mountainPath = [];
 
         function setStatus(msg) {
             document.getElementById('status').innerText = msg;
@@ -300,23 +298,19 @@
                     const response = await DeviceOrientationEvent.requestPermission();
                     if (response === 'granted') {
                         window.addEventListener('deviceorientation', handleOrientation, true);
-                        console.log('Gyro permission granted');
                     } else {
                         alert('GYRO PERMISSION DENIED');
                     }
                 } else {
                     window.addEventListener('deviceorientation', handleOrientation, true);
-                    console.log('Gyro started');
                 }
             } catch (error) {
-                console.error('Gyro error:', error);
                 alert('GYRO ERROR: ' + error.message);
             }
         }
 
         function handleOrientation(e) {
             let angle = e.beta;
-            
             if (angle === null || angle === undefined) {
                 document.getElementById('angleDisplay').innerText = 'NO DATA';
                 return;
@@ -343,157 +337,145 @@
             scene.background = new THREE.Color(0x87ceeb);
             scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
 
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 300);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
             camera.position.set(0, 2, 5);
-            camera.lookAt(0, 1, 0);
 
             renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('renderCanvas'), antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
 
-            // Add ambient light
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
+            // Add sun
+            const sun = new THREE.DirectionalLight(0xffffaa, 1);
+            sun.position.set(50, 100, 50);
+            scene.add(sun);
+            scene.add(new THREE.AmbientLight(0x404040, 0.5));
 
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
-            directionalLight.position.set(50, 100, 50);
-            scene.add(directionalLight);
-
-            // Create terrain with mountain
             createTerrain();
-            
-            // Create car (simple box for now)
-            const carGeo = new THREE.BoxGeometry(1.5, 1, 2.5);
-            const carMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            car = new THREE.Mesh(carGeo, carMat);
-            car.position.set(0, 1, 0);
-            scene.add(car);
-
-            // Add trees around the world
-            for (let i = 0; i < 80; i++) {
-                const x = (Math.random() - 0.5) * 200;
-                const z = (Math.random() - 0.5) * 200;
-                const y = getTerrainHeight(x, z);
-                
-                // Don't place trees on the mountain path
-                if (Math.abs(x) > 15 || z > 20 || z < -20) {
-                    createTree(x, y, z);
-                }
-            }
-
-            // Create mountain path with checkpoints
-            createMountainPath();
+            createMountain();
+            createTrees();
+            createCheckpoints();
 
             animate();
         }
 
         function createTerrain() {
-            const size = 200;
-            const segments = 100;
-            const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+            // Ground plane
+            const groundGeo = new THREE.PlaneGeometry(500, 500, 50, 50);
+            const groundMat = new THREE.MeshBasicMaterial({ color: 0x228b22, wireframe: false });
             
-            // Create mountain terrain
-            const vertices = geometry.attributes.position.array;
-            for (let i = 0; i < vertices.length; i += 3) {
-                const x = vertices[i];
-                const z = vertices[i + 1];
-                
-                // Mountain in the center going up
-                const distFromCenter = Math.sqrt(x * x + z * z);
-                const mountainHeight = Math.max(0, 30 - distFromCenter * 0.3);
-                
-                // Add some noise for natural look
-                const noise = (Math.sin(x * 0.1) + Math.cos(z * 0.1)) * 2;
-                
-                vertices[i + 2] = mountainHeight + noise;
+            // Add some height variation
+            const positions = groundGeo.attributes.position.array;
+            for (let i = 0; i < positions.length; i += 3) {
+                positions[i + 2] = Math.random() * 2;
             }
+            groundGeo.computeVertexNormals();
             
-            geometry.computeVertexNormals();
-            
-            const material = new THREE.MeshBasicMaterial({ 
-                color: 0x228b22,
-                wireframe: false,
-                side: THREE.DoubleSide
-            });
-            
-            terrain = new THREE.Mesh(geometry, material);
+            terrain = new THREE.Mesh(groundGeo, groundMat);
             terrain.rotation.x = -Math.PI / 2;
+            terrain.position.y = -1;
             scene.add(terrain);
         }
 
-        function getTerrainHeight(x, z) {
-            const distFromCenter = Math.sqrt(x * x + z * z);
-            const mountainHeight = Math.max(0, 30 - distFromCenter * 0.3);
-            const noise = (Math.sin(x * 0.1) + Math.cos(z * 0.1)) * 2;
-            return mountainHeight + noise;
+        function createMountain() {
+            // Create winding mountain path
+            const mountainBase = new THREE.Vector3(-100, 0, -100);
+            const segments = 50;
+            
+            for (let i = 0; i < segments; i++) {
+                const t = i / segments;
+                const angle = t * Math.PI * 4; // 4 spirals
+                const radius = 30 - t * 20; // Spiral inward
+                const height = t * 80; // Climb to 80m
+                
+                const x = mountainBase.x + Math.cos(angle) * radius;
+                const y = height;
+                const z = mountainBase.z + Math.sin(angle) * radius;
+                
+                // Path segment
+                const pathGeo = new THREE.BoxGeometry(8, 0.5, 8);
+                const pathMat = new THREE.MeshBasicMaterial({ color: 0x8b7355 });
+                const pathSegment = new THREE.Mesh(pathGeo, pathMat);
+                pathSegment.position.set(x, y, z);
+                scene.add(pathSegment);
+                mountainPath.push(pathSegment);
+                
+                // Add rocks as obstacles
+                if (i > 5 && i % 5 === 0 && Math.random() > 0.5) {
+                    const rockGeo = new THREE.DodecahedronGeometry(1.5, 0);
+                    const rockMat = new THREE.MeshBasicMaterial({ color: 0x808080 });
+                    const rock = new THREE.Mesh(rockGeo, rockMat);
+                    rock.position.set(
+                        x + (Math.random() - 0.5) * 5,
+                        y + 1,
+                        z + (Math.random() - 0.5) * 5
+                    );
+                    scene.add(rock);
+                    rocks.push(rock);
+                }
+            }
+
+            // Mountain body
+            const mountainGeo = new THREE.ConeGeometry(40, 80, 8);
+            const mountainMat = new THREE.MeshBasicMaterial({ color: 0x8b7355 });
+            const mountain = new THREE.Mesh(mountainGeo, mountainMat);
+            mountain.position.set(mountainBase.x, 40, mountainBase.z);
+            scene.add(mountain);
+
+            // Peak
+            const peakGeo = new THREE.ConeGeometry(10, 20, 8);
+            const peakMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const peak = new THREE.Mesh(peakGeo, peakMat);
+            peak.position.set(mountainBase.x, 90, mountainBase.z);
+            scene.add(peak);
         }
 
-        function createTree(x, y, z) {
-            // Trunk
-            const trunkGeo = new THREE.CylinderGeometry(0.3, 0.3, 3, 8);
-            const trunkMat = new THREE.MeshBasicMaterial({ color: 0x8b4513 });
-            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.set(x, y + 1.5, z);
-            scene.add(trunk);
-            
-            // Leaves
-            const leavesGeo = new THREE.SphereGeometry(2, 8, 8);
-            const leavesMat = new THREE.MeshBasicMaterial({ color: 0x228b22 });
-            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-            leaves.position.set(x, y + 4, z);
-            scene.add(leaves);
-            
-            trees.push({ trunk, leaves, x, z });
+        function createTrees() {
+            for (let i = 0; i < 150; i++) {
+                const x = (Math.random() - 0.5) * 400;
+                const z = (Math.random() - 0.5) * 400;
+                
+                // Don't place trees on mountain
+                if (Math.sqrt((x + 100) ** 2 + (z + 100) ** 2) < 60) continue;
+                
+                // Trunk
+                const trunkGeo = new THREE.CylinderGeometry(0.5, 0.7, 5, 6);
+                const trunkMat = new THREE.MeshBasicMaterial({ color: 0x8b4513 });
+                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                trunk.position.set(x, 1.5, z);
+                scene.add(trunk);
+                trees.push(trunk);
+                
+                // Foliage
+                const foliageGeo = new THREE.ConeGeometry(2, 6, 6);
+                const foliageMat = new THREE.MeshBasicMaterial({ color: 0x228b22 });
+                const foliage = new THREE.Mesh(foliageGeo, foliageMat);
+                foliage.position.set(x, 6, z);
+                scene.add(foliage);
+                trees.push(foliage);
+            }
         }
 
-        function createMountainPath() {
-            // Create 5 checkpoints along the mountain path
+        function createCheckpoints() {
             const checkpointPositions = [
-                { x: 0, z: -20, y: 2 },
-                { x: 5, z: -35, y: 8 },
-                { x: -3, z: -50, y: 15 },
-                { x: 2, z: -65, y: 22 },
-                { x: 0, z: -80, y: 30 }
+                [0, 0, -20], [-30, 0, -40], [-60, 10, -60], [-80, 20, -85],
+                [-90, 30, -105], [-95, 40, -110], [-92, 50, -108], [-85, 60, -100],
+                [-75, 70, -95], [-100, 80, -100]
             ];
-
+            
             checkpointPositions.forEach((pos, i) => {
-                // Checkpoint marker
-                const cpGeo = new THREE.BoxGeometry(8, 5, 1);
+                const cpGeo = new THREE.TorusGeometry(4, 0.3, 8, 16);
                 const cpMat = new THREE.MeshBasicMaterial({ 
-                    color: 0xffff00,
+                    color: 0x00ff00,
                     transparent: true,
                     opacity: 0.6
                 });
-                const checkpoint = new THREE.Mesh(cpGeo, cpMat);
-                checkpoint.position.set(pos.x, pos.y, pos.z);
-                checkpoint.userData.index = i;
-                checkpoint.userData.collected = false;
-                scene.add(checkpoint);
-                checkpoints.push(checkpoint);
-
-                // Add obstacles between checkpoints
-                if (i < checkpointPositions.length - 1) {
-                    for (let j = 0; j < 3; j++) {
-                        const obstacleX = pos.x + (Math.random() - 0.5) * 6;
-                        const obstacleZ = pos.z - 5 - j * 4;
-                        const obstacleY = getTerrainHeight(obstacleX, obstacleZ);
-                        
-                        const obsGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-                        const obsMat = new THREE.MeshBasicMaterial({ color: 0x808080 });
-                        const obstacle = new THREE.Mesh(obsGeo, obsMat);
-                        obstacle.position.set(obstacleX, obstacleY + 0.75, obstacleZ);
-                        scene.add(obstacle);
-                        obstacles.push(obstacle);
-                    }
-                }
+                const cp = new THREE.Mesh(cpGeo, cpMat);
+                cp.position.set(pos[0], pos[1] + 2, pos[2]);
+                cp.rotation.x = Math.PI / 2;
+                cp.userData.index = i;
+                cp.userData.collected = false;
+                scene.add(cp);
+                checkpoints.push(cp);
             });
-        }
-
-        function showCheckpointMessage() {
-            const msg = document.getElementById('checkpointMsg');
-            msg.style.opacity = '1';
-            setTimeout(() => {
-                msg.style.opacity = '0';
-            }, 1500);
         }
 
         function steerLeft() {
@@ -508,94 +490,120 @@
             steerDir = 0;
         }
 
-        function animate() {
-            requestAnimationFrame(animate);
+        function showCheckpointMessage() {
+            const msg = document.getElementById('checkpointMsg');
+            msg.style.opacity = '1';
+            setTimeout(() => msg.style.opacity = '0', 1000);
+        }
 
-            // Physics-based movement - ONLY when gas is pressed
-            const targetSpeed = Math.max(0, gasValue * 0.5 - brakeValue * 0.4);
-            carSpeed += (targetSpeed - carSpeed) * 0.05;
+        function getTerrainHeight(x, z) {
+            // Check if on mountain path
+            for (let segment of mountainPath) {
+                const dx = x - segment.position.x;
+                const dz = z - segment.position.z;
+                if (Math.sqrt(dx * dx + dz * dz) < 5) {
+                    return segment.position.y;
+                }
+            }
+            return 0;
+        }
 
-            // Only move if there's actual speed
-            if (carSpeed > 0.001) {
-                // Steering affects rotation
-                carRotation += steerDir * 0.03 * carSpeed;
-                
-                // Calculate velocity based on rotation
-                carVelocityX = Math.sin(carRotation) * carSpeed;
-                carVelocityZ = -Math.cos(carRotation) * carSpeed;
-                
-                carX += carVelocityX;
-                carZ += carVelocityZ;
-                
-                distanceTraveled += carSpeed;
-                
-                // Get terrain height at car position
-                carY = getTerrainHeight(carX, carZ) + 0.5;
-                
-                // Update car position
-                car.position.set(carX, carY, carZ);
-                car.rotation.y = carRotation;
-                
-                // Tilt car based on terrain slope
-                const frontHeight = getTerrainHeight(carX + Math.sin(carRotation) * 2, carZ - Math.cos(carRotation) * 2);
-                const backHeight = getTerrainHeight(carX - Math.sin(carRotation) * 2, carZ + Math.cos(carRotation) * 2);
-                car.rotation.x = (frontHeight - backHeight) * 0.1;
-                
-                // Camera follows car - driver POV
-                const camOffsetX = carX - Math.sin(carRotation) * 5;
-                const camOffsetZ = carZ + Math.cos(carRotation) * 5;
-                const camHeight = carY + 2;
-                
-                camera.position.x += (camOffsetX - camera.position.x) * 0.1;
-                camera.position.y += (camHeight - camera.position.y) * 0.1;
-                camera.position.z += (camOffsetZ - camera.position.z) * 0.1;
-                
-                camera.lookAt(carX, carY + 1, carZ);
+        function checkCollisions() {
+            // Check rocks
+            for (let rock of rocks) {
+                const dx = carPosition.x - rock.position.x;
+                const dz = carPosition.z - rock.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                if (dist < 2) {
+                    carSpeed *= 0.5; // Slow down on collision
+                    carVelocity.multiplyScalar(0.5);
+                }
+            }
+
+            // Check trees
+            for (let tree of trees) {
+                const dx = carPosition.x - tree.position.x;
+                const dz = carPosition.z - tree.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                if (dist < 1.5) {
+                    carSpeed = 0;
+                    carVelocity.set(0, 0, 0);
+                }
             }
 
             // Check checkpoints
-            checkpoints.forEach(cp => {
+            for (let cp of checkpoints) {
                 if (!cp.userData.collected) {
-                    const dist = Math.sqrt(
-                        Math.pow(cp.position.x - carX, 2) +
-                        Math.pow(cp.position.z - carZ, 2)
-                    );
-                    
-                    if (dist < 5) {
+                    const dx = carPosition.x - cp.position.x;
+                    const dz = carPosition.z - cp.position.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    if (dist < 4 && cp.userData.index === checkpoint) {
                         cp.userData.collected = true;
-                        cp.material.color.setHex(0x00ff00);
-                        checkpointCount++;
+                        cp.material.color.setHex(0x666666);
+                        checkpoint++;
                         showCheckpointMessage();
                         
-                        if (checkpointCount === 5) {
+                        if (checkpoint === checkpoints.length) {
                             setTimeout(() => {
-                                alert('SUMMIT REACHED! Distance: ' + Math.round(distanceTraveled) + 'M');
+                                alert('YOU WIN! All checkpoints collected!');
                                 location.reload();
-                            }, 500);
+                            }, 1000);
                         }
                     }
                 }
-            });
+            }
+        }
 
-            // Check obstacle collisions
-            obstacles.forEach(obs => {
-                const dist = Math.sqrt(
-                    Math.pow(obs.position.x - carX, 2) +
-                    Math.pow(obs.position.z - carZ, 2)
-                );
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Physics - FIXED: Only move when gas is applied
+            const targetSpeed = Math.max(0, gasValue * 0.5 - brakeValue * 0.4);
+            carSpeed += (targetSpeed - carSpeed) * 0.1;
+            
+            // Steering
+            if (steerDir !== 0 && carSpeed > 0.01) {
+                carRotation += steerDir * 0.04;
+            }
+
+            // Only update position if actually moving
+            if (carSpeed > 0.01) {
+                carVelocity.x = Math.sin(carRotation) * carSpeed;
+                carVelocity.z = Math.cos(carRotation) * carSpeed;
                 
-                if (dist < 2) {
-                    carSpeed *= 0.5;
-                    carX -= carVelocityX * 2;
-                    carZ -= carVelocityZ * 2;
+                carPosition.add(carVelocity);
+                
+                // Terrain following
+                const terrainHeight = getTerrainHeight(carPosition.x, carPosition.z);
+                carPosition.y = terrainHeight + 0.5;
+            }
+
+            // Camera follow (driver POV)
+            camera.position.x = carPosition.x - Math.sin(carRotation) * 5;
+            camera.position.y = carPosition.y + 2;
+            camera.position.z = carPosition.z - Math.cos(carRotation) * 5;
+            
+            camera.lookAt(
+                carPosition.x + Math.sin(carRotation) * 10,
+                carPosition.y + 1,
+                carPosition.z + Math.cos(carRotation) * 10
+            );
+
+            checkCollisions();
+
+            // Animate checkpoints
+            checkpoints.forEach(cp => {
+                if (!cp.userData.collected) {
+                    cp.rotation.z += 0.02;
                 }
             });
 
             // Update HUD
             document.getElementById('speedDisplay').innerText = Math.round(carSpeed * 100);
-            document.getElementById('altitudeDisplay').innerText = Math.round(carY);
-            document.getElementById('checkpointDisplay').innerText = checkpointCount + '/5';
-            document.getElementById('distanceDisplay').innerText = Math.round(distanceTraveled);
+            document.getElementById('altDisplay').innerText = Math.round(carPosition.y);
+            document.getElementById('checkpointDisplay').innerText = checkpoint + '/' + checkpoints.length;
+            document.getElementById('posDisplay').innerText = 
+                Math.round(carPosition.x) + ', ' + Math.round(carPosition.z);
 
             renderer.render(scene, camera);
         }
@@ -608,14 +616,13 @@
             }
         });
 
-        // Keyboard controls for desktop testing
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') steerLeft();
-            if (e.key === 'ArrowRight' || e.key === 'd') steerRight();
+        // Keyboard controls for testing
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') steerLeft();
+            if (e.key === 'ArrowRight') steerRight();
         });
-
-        window.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'ArrowRight' || e.key === 'd') stopSteer();
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') stopSteer();
         });
     </script>
 </body>
