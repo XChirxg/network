@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Phone Racing Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        .setup {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+        }
+        .setup h1 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .mode-select {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .big-btn {
+            padding: 20px;
+            font-size: 1.3rem;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid #fff;
+            color: #fff;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        .big-btn:active {
+            transform: scale(0.95);
+            background: rgba(255,255,255,0.3);
+        }
+        .input-group {
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .code-input {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 20px;
+            font-size: 2rem;
+            text-align: center;
+            border-radius: 15px;
+            letter-spacing: 10px;
+            backdrop-filter: blur(10px);
+        }
+        .code-input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        .status {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            min-height: 30px;
+            text-align: center;
+        }
+        #gameCanvas {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .game-ui {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .room-code {
+            color: #00ff88;
+            font-family: monospace;
+        }
+        #controllerView {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .controller-label {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .brake-controller {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        }
+        .accel-controller {
+            background: linear-gradient(135deg, #00f260 0%, #0575e6 100%);
+        }
+        .touch-pad {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            border: 3px solid rgba(255,255,255,0.3);
+            touch-action: none;
+            position: relative;
+        }
+        .touch-pad.active {
+            background: rgba(255,255,255,0.3);
+            transform: scale(0.98);
+        }
+        .steering-controls {
+            display: flex;
+            gap: 20px;
+            height: 200px;
+        }
+        .steer-btn {
+            flex: 1;
+            background: rgba(255,255,255,0.2);
+            border: 3px solid #fff;
+            border-radius: 20px;
+            font-size: 4rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            touch-action: none;
+        }
+        .steer-btn:active {
+            background: rgba(255,255,255,0.4);
+            transform: scale(0.95);
+        }
+        .pressure-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            height: 40px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .pressure-bar {
+            height: 100%;
+            width: 0%;
+            background: #00ff88;
+            transition: width 0.1s;
+        }
+        .game-over {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 200;
+        }
+        .game-over h2 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #00ff88;
+        }
+        .game-over .stats {
+            font-size: 1.5rem;
+            margin: 20px 0;
+        }
+        .restart-btn {
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            background: #00ff88;
+            border: none;
+            border-radius: 10px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup" id="setupView">
+        <h1>🏎️ PHONE RACER</h1>
+        <div class="mode-select" id="initialBtns">
+            <button class="big-btn" onclick="startDisplay()">🖥️ MAIN SCREEN</button>
+            <button class="big-btn" onclick="showBrakeInput()">🛑 BRAKE PEDAL</button>
+            <button class="big-btn" onclick="showAccelInput()">⚡ GAS PEDAL</button>
+        </div>
+        <div class="mode-select input-group" id="brakeInputGroup">
+            <input type="number" id="brakeCodeInput" class="code-input" placeholder="0000">
+            <button class="big-btn" onclick="connectBrake()">CONNECT BRAKE</button>
+            <button class="big-btn" onclick="backToMain()">BACK</button>
+        </div>
+        <div class="mode-select input-group" id="accelInputGroup">
+            <input type="number" id="accelCodeInput" class="code-input" placeholder="0000">
+            <button class="big-btn" onclick="connectAccel()">CONNECT GAS</button>
+            <button class="big-btn" onclick="backToMain()">BACK</button>
+        </div>
+        <div class="status" id="statusText">Choose your device role</div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+    <div class="game-ui" id="gameUI">
+        <div>Room Code: <span class="room-code" id="roomCode">----</span></div>
+        <div style="margin-top:10px">Speed: <span id="speedDisplay">0</span> km/h</div>
+        <div>Distance: <span id="distanceDisplay">0</span> m</div>
+    </div>
+
+    <div id="controllerView">
+        <div class="controller-label" id="controllerLabel"></div>
+        <div class="touch-pad" id="touchPad">
+            <div class="pressure-indicator">
+                <div class="pressure-bar" id="pressureBar"></div>
+            </div>
+            <span id="padLabel"></span>
+        </div>
+        <div class="steering-controls" id="steeringControls">
+            <button class="steer-btn" id="leftBtn">◀</button>
+            <button class="steer-btn" id="rightBtn">▶</button>
+        </div>
+    </div>
+
+    <div class="game-over" id="gameOver">
+        <h2>GAME OVER!</h2>
+        <div class="stats">
+            <div>Distance: <span id="finalDistance">0</span> m</div>
+            <div>Max Speed: <span id="maxSpeed">0</span> km/h</div>
+            <div>Time: <span id="gameTime">0</span> s</div>
+        </div>
+        <button class="restart-btn" onclick="restartGame()">RESTART</button>
+    </div>
+
+    <script>
+        const ID_PREFIX = "RACER-";
+        let peer, brakeConn, accelConn;
+        let mode = '';
+        let myRoomCode = '';
+        
+        // Game state
+        let scene, camera, renderer;
+        let car, road = [];
+        let obstacles = [];
+        let carSpeed = 0;
+        let carX = 0;
+        let brakeInput = 0;
+        let accelInput = 0;
+        let steerInput = 0;
+        let distance = 0;
+        let maxSpeedReached = 0;
+        let gameStartTime = 0;
+        let gameRunning = false;
+
+        function setStatus(msg) {
+            document.getElementById('statusText').innerText = msg;
+        }
+
+        function backToMain() {
+            document.getElementById('initialBtns').style.display = 'flex';
+            document.getElementById('brakeInputGroup').style.display = 'none';
+            document.getElementById('accelInputGroup').style.display = 'none';
+        }
+
+        function showBrakeInput() {
+            document.getElementById('initialBtns').style.display = 'none';
+            document.getElementById('brakeInputGroup').style.display = 'flex';
+        }
+
+        function showAccelInput() {
+            document.getElementById('initialBtns').style.display = 'none';
+            document.getElementById('accelInputGroup').style.display = 'flex';
+        }
+
+        // Display (Main Screen)
+        function startDisplay() {
+            mode = 'display';
+            myRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
+            
+            document.getElementById('setupView').style.display = 'none';
+            document.getElementById('gameCanvas').style.display = 'block';
+            document.getElementById('gameUI').style.display = 'block';
+            document.getElementById('roomCode').innerText = myRoomCode;
+            
+            initThreeJS();
+            
+            const fullId = ID_PREFIX + myRoomCode;
+            peer = new Peer(fullId);
+            
+            peer.on('open', () => {
+                setStatus('Waiting for controllers...');
+            });
+            
+            peer.on('connection', (conn) => {
+                conn.on('data', (data) => {
+                    if (data.type === 'brake') {
+                        brakeInput = data.value;
+                        if (!brakeConn) {
+                            brakeConn = conn;
+                            setStatus('Brake connected! Waiting for gas...');
+                        }
+                    } else if (data.type === 'accel') {
+                        accelInput = data.value;
+                        if (!accelConn) {
+                            accelConn = conn;
+                            setStatus('Gas connected!');
+                            if (brakeConn && accelConn && !gameRunning) {
+                                startGame();
+                            }
+                        }
+                    } else if (data.type === 'steer') {
+                        steerInput = data.value;
+                    }
+                });
+            });
+        }
+
+        // Controller connections
+        function connectBrake() {
+            const code = document.getElementById('brakeCodeInput').value;
+            if (code.length !== 4) return;
+            
+            mode = 'brake';
+            connectController(code, 'brake');
+        }
+
+        function connectAccel() {
+            const code = document.getElementById('accelCodeInput').value;
+            if (code.length !== 4) return;
+            
+            mode = 'accel';
+            connectController(code, 'accel');
+        }
+
+        function connectController(code, type) {
+            const targetId = ID_PREFIX + code;
+            peer = new Peer();
+            
+            peer.on('open', () => {
+                const conn = peer.connect(targetId);
+                
+                conn.on('open', () => {
+                    document.getElementById('setupView').style.display = 'none';
+                    document.getElementById('controllerView').style.display = 'flex';
+                    
+                    const view = document.getElementById('controllerView');
+                    const label = document.getElementById('controllerLabel');
+                    const pad = document.getElementById('touchPad');
+                    const padLabel = document.getElementById('padLabel');
+                    const steeringControls = document.getElementById('steeringControls');
+                    
+                    if (type === 'brake') {
+                        view.className = 'brake-controller';
+                        label.innerText = '🛑 BRAKE PEDAL';
+                        padLabel.innerText = 'PRESS TO BRAKE';
+                        steeringControls.style.display = 'none';
+                    } else {
+                        view.className = 'accel-controller';
+                        label.innerText = '⚡ GAS PEDAL';
+                        padLabel.innerText = 'PRESS TO GO';
+                        steeringControls.style.display = 'flex';
+                    }
+                    
+                    setupTouchControls(conn, type);
+                });
+            });
+        }
+
+        function setupTouchControls(conn, type) {
+            const pad = document.getElementById('touchPad');
+            const bar = document.getElementById('pressureBar');
+            
+            let touching = false;
+            
+            pad.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                touching = true;
+                pad.classList.add('active');
+            });
+            
+            pad.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!touching) return;
+                
+                const touch = e.touches[0];
+                const rect = pad.getBoundingClientRect();
+                const pressure = Math.max(0, Math.min(1, (rect.bottom - touch.clientY) / rect.height));
+                
+                bar.style.width = (pressure * 100) + '%';
+                conn.send({ type, value: pressure });
+            });
+            
+            pad.addEventListener('touchend', () => {
+                touching = false;
+                pad.classList.remove('active');
+                bar.style.width = '0%';
+                conn.send({ type, value: 0 });
+            });
+            
+            // Steering controls (only for gas pedal)
+            if (type === 'accel') {
+                const leftBtn = document.getElementById('leftBtn');
+                const rightBtn = document.getElementById('rightBtn');
+                
+                leftBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    conn.send({ type: 'steer', value: -1 });
+                });
+                
+                leftBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    conn.send({ type: 'steer', value: 0 });
+                });
+                
+                rightBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    conn.send({ type: 'steer', value: 1 });
+                });
+                
+                rightBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    conn.send({ type: 'steer', value: 0 });
+                });
+            }
+        }
+
+        // Three.js Game
+        function initThreeJS() {
+            const canvas = document.getElementById('gameCanvas');
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x87ceeb, 10, 100);
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 3, -5);
+            camera.lookAt(0, 1, 5);
+            
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x87ceeb);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 5);
+            scene.add(dirLight);
+            
+            // Create car
+            const carGeometry = new THREE.BoxGeometry(0.8, 0.5, 1.5);
+            const carMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+            car = new THREE.Mesh(carGeometry, carMaterial);
+            car.position.y = 0.25;
+            scene.add(car);
+            
+            // Create initial road
+            createRoad();
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        function createRoad() {
+            const roadGeometry = new THREE.PlaneGeometry(5, 20);
+            const roadMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
+            
+            for (let i = 0; i < 5; i++) {
+                const roadSegment = new THREE.Mesh(roadGeometry, roadMaterial);
+                roadSegment.rotation.x = -Math.PI / 2;
+                roadSegment.position.z = i * 20;
+                scene.add(roadSegment);
+                road.push(roadSegment);
+            }
+        }
+
+        function createObstacle(z) {
+            const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const material = new THREE.MeshPhongMaterial({ color: 0xff8800 });
+            const obstacle = new THREE.Mesh(geometry, material);
+            
+            obstacle.position.x = (Math.random() - 0.5) * 3;
+            obstacle.position.y = 0.4;
+            obstacle.position.z = z;
+            
+            scene.add(obstacle);
+            obstacles.push(obstacle);
+        }
+
+        function startGame() {
+            gameRunning = true;
+            gameStartTime = Date.now();
+            animate();
+        }
+
+        function animate() {
+            if (!gameRunning) return;
+            
+            requestAnimationFrame(animate);
+            
+            // Physics
+            const acceleration = accelInput * 0.5;
+            const braking = brakeInput * 0.8;
+            
+            carSpeed += acceleration - braking;
+            carSpeed = Math.max(0, Math.min(carSpeed, 3));
+            carSpeed *= 0.98; // Natural deceleration
+            
+            // Steering
+            carX += steerInput * 0.1;
+            carX = Math.max(-2, Math.min(2, carX));
+            
+            car.position.x = carX;
+            
+            // Move road
+            distance += carSpeed * 0.1;
+            
+            road.forEach(segment => {
+                segment.position.z -= carSpeed * 0.1;
+                
+                if (segment.position.z < -20) {
+                    segment.position.z += 100;
+                }
+            });
+            
+            // Move obstacles
+            obstacles.forEach((obstacle, i) => {
+                obstacle.position.z -= carSpeed * 0.1;
+                
+                // Collision detection
+                if (Math.abs(obstacle.position.z - car.position.z) < 1 &&
+                    Math.abs(obstacle.position.x - car.position.x) < 0.8) {
+                    endGame();
+                }
+                
+                if (obstacle.position.z < -10) {
+                    scene.remove(obstacle);
+                    obstacles.splice(i, 1);
+                }
+            });
+            
+            // Spawn obstacles
+            if (Math.random() < 0.02) {
+                createObstacle(50);
+            }
+            
+            // Update UI
+            const speed = Math.floor(carSpeed * 50);
+            document.getElementById('speedDisplay').innerText = speed;
+            document.getElementById('distanceDisplay').innerText = Math.floor(distance);
+            maxSpeedReached = Math.max(maxSpeedReached, speed);
+            
+            renderer.render(scene, camera);
+        }
+
+        function endGame() {
+            gameRunning = false;
+            
+            const gameTime = Math.floor((Date.now() - gameStartTime) / 1000);
+            
+            document.getElementById('finalDistance').innerText = Math.floor(distance);
+            document.getElementById('maxSpeed').innerText = maxSpeedReached;
+            document.getElementById('gameTime').innerText = gameTime;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        function restartGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            
+            // Reset game state
+            carSpeed = 0;
+            carX = 0;
+            distance = 0;
+            maxSpeedReached = 0;
+            car.position.x = 0;
+            
+            // Clear obstacles
+            obstacles.forEach(obs => scene.remove(obs));
+            obstacles = [];
+            
+            gameRunning = true;
+            gameStartTime = Date.now();
+            animate();
+        }
+    </script>
+</body>
+</html>
