@@ -137,7 +137,7 @@
             transform: translate(-50%, -50%);
             text-align: center;
             color: #0f0;
-            font-size: 24px;
+            font-size: 20px;
         }
         .angle-display {
             position: fixed;
@@ -196,8 +196,8 @@
         <div class="pedal-info">
             PLACE PHONE ON GROUND<br>
             PRESS WITH FOOT<br>
-            80° = RELEASED<br>
-            30° = PRESSED
+            50° = RELEASED<br>
+            20° = PRESSED
         </div>
         <div class="angle-display" id="angleDisplay">--°</div>
         <div class="pedal-type" id="pedalType">BRAKE</div>
@@ -210,6 +210,7 @@
         let carSpeed = 0, carX = 0, score = 0, steerDir = 0;
         let brakeValue = 0, gasValue = 0;
         let isGasPedal = false;
+        let roadCurve = 0, roadCurveTarget = 0, curveSpeed = 0;
 
         function setStatus(msg) {
             document.getElementById('status').innerText = msg;
@@ -294,10 +295,6 @@
 
         function handleOrientation(e) {
             // Beta is the front-to-back tilt in degrees
-            // When phone is flat: beta ≈ 0
-            // When phone is standing up: beta ≈ 90
-            // When phone tilted back: beta can be negative
-            
             let angle = e.beta;
             
             // Handle null/undefined
@@ -310,11 +307,11 @@
             if (angle < 0) angle = Math.abs(angle);
             if (angle > 90) angle = 180 - angle;
             
-            // Clamp between 30-80 degrees
-            const clampedAngle = Math.max(30, Math.min(80, angle));
+            // Clamp between 20-50 degrees (NEW RANGE)
+            const clampedAngle = Math.max(20, Math.min(50, angle));
             
-            // Normalize: 80° = 0 (released), 30° = 1 (fully pressed)
-            const normalized = 1 - ((clampedAngle - 30) / 50);
+            // Normalize: 50° = 0 (released), 20° = 1 (fully pressed)
+            const normalized = 1 - ((clampedAngle - 20) / 30);
             
             // Show both raw and normalized values
             document.getElementById('angleDisplay').innerText = Math.round(angle) + '° [' + Math.round(normalized * 100) + '%]';
@@ -346,6 +343,7 @@
                 const segment = new THREE.Mesh(roadGeo, roadMat);
                 segment.rotation.x = -Math.PI / 2;
                 segment.position.z = -i * 2;
+                segment.userData.index = i;
                 scene.add(segment);
                 road.push(segment);
 
@@ -354,9 +352,13 @@
                 const line = new THREE.Mesh(lineGeo, lineMat);
                 line.rotation.x = -Math.PI / 2;
                 line.position.set(0, 0.01, -i * 2);
+                line.userData.index = i;
                 scene.add(line);
                 road.push(line);
             }
+
+            // Initialize curve
+            roadCurveTarget = (Math.random() - 0.5) * 2;
 
             if (Math.random() < 0.3) {
                 addObstacle();
@@ -392,13 +394,30 @@
             carSpeed = gasValue * 0.3 - brakeValue * 0.2;
             carSpeed = Math.max(0, carSpeed);
 
+            // Update road curve
+            roadCurve += (roadCurveTarget - roadCurve) * 0.02;
+            curveSpeed += (roadCurve * 0.03);
+            
+            // Randomly change curve target
+            if (Math.random() < 0.01) {
+                roadCurveTarget = (Math.random() - 0.5) * 3;
+            }
+
             carX += steerDir * 0.05;
             carX = Math.max(-2.5, Math.min(2.5, carX));
 
             camera.position.x = carX;
+            camera.rotation.z = -roadCurve * 0.1;
 
             road.forEach(segment => {
                 segment.position.z += carSpeed;
+                
+                // Apply curve to road segments
+                if (segment.userData.index !== undefined) {
+                    const curveOffset = Math.sin(segment.userData.index * 0.3 + curveSpeed) * roadCurve;
+                    segment.position.x = curveOffset;
+                }
+                
                 if (segment.position.z > 5) {
                     segment.position.z -= 60;
                 }
