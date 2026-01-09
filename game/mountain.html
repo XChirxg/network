@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mountain Climber</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        #setup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            z-index: 1000;
+        }
+        .title {
+            font-size: 42px;
+            letter-spacing: 4px;
+            color: #0f0;
+            text-align: center;
+        }
+        .btn {
+            padding: 20px 40px;
+            background: #000;
+            border: 2px solid #0f0;
+            color: #0f0;
+            font-size: 20px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            width: 250px;
+        }
+        .btn:active {
+            background: #0f0;
+            color: #000;
+        }
+        .input {
+            background: #000;
+            border: 2px solid #0f0;
+            color: #0f0;
+            padding: 15px;
+            font-size: 24px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 4px;
+            width: 250px;
+        }
+        .status {
+            color: #0f0;
+            font-size: 14px;
+            letter-spacing: 2px;
+        }
+        #gameView {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        #renderCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .hud {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 16px;
+            color: #0f0;
+            z-index: 10;
+            font-family: 'Courier New', monospace;
+            line-height: 1.8;
+            text-shadow: 2px 2px 4px #000;
+        }
+        .code-display {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 20px;
+            color: #0f0;
+            border: 2px solid #0f0;
+            padding: 10px;
+            background: #000;
+        }
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 10;
+        }
+        .ctrl-btn {
+            width: 80px;
+            height: 80px;
+            background: #000;
+            border: 2px solid #0f0;
+            color: #0f0;
+            font-size: 32px;
+            font-family: 'Courier New', monospace;
+        }
+        .ctrl-btn:active {
+            background: #0f0;
+            color: #000;
+        }
+        #pedalView {
+            display: none;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            position: relative;
+        }
+        .pedal-info {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #0f0;
+            font-size: 20px;
+        }
+        .angle-display {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 32px;
+            color: #0f0;
+            border: 2px solid #0f0;
+            padding: 15px;
+            background: #000;
+        }
+        .pedal-type {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 28px;
+            color: #0f0;
+            border: 2px solid #0f0;
+            padding: 15px;
+            background: #000;
+        }
+        .checkpoint-msg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: #0f0;
+            text-shadow: 0 0 20px #0f0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="setup">
+        <div class="title">MOUNTAIN CLIMBER</div>
+        <div id="mainMenu">
+            <button class="btn" onclick="startAsDisplay()">DISPLAY</button>
+            <button class="btn" onclick="showPedalSetup()">BRAKE PEDAL</button>
+            <button class="btn" onclick="showPedalSetup(true)">GAS PEDAL</button>
+        </div>
+        <div id="codeInput" style="display:none; text-align:center;">
+            <input type="number" id="roomCode" class="input" placeholder="CODE">
+            <button class="btn" onclick="connectPedal()">CONNECT</button>
+            <button class="btn" onclick="backToMain()">BACK</button>
+        </div>
+        <div class="status" id="status">SELECT ROLE</div>
+    </div>
+
+    <div id="gameView">
+        <canvas id="renderCanvas"></canvas>
+        <div class="hud">
+            <div>SPEED: <span id="speedDisplay">0</span> MPH</div>
+            <div>ALTITUDE: <span id="altitudeDisplay">0</span> M</div>
+            <div>CHECKPOINT: <span id="checkpointDisplay">0/5</span></div>
+            <div>DISTANCE: <span id="distanceDisplay">0</span> M</div>
+        </div>
+        <div class="code-display" id="codeBox">CODE: ----</div>
+        <div class="controls">
+            <button class="ctrl-btn" ontouchstart="steerLeft()" ontouchend="stopSteer()" onmousedown="steerLeft()" onmouseup="stopSteer()">L</button>
+            <button class="ctrl-btn" ontouchstart="steerRight()" ontouchend="stopSteer()" onmousedown="steerRight()" onmouseup="stopSteer()">R</button>
+        </div>
+        <div class="checkpoint-msg" id="checkpointMsg">CHECKPOINT!</div>
+    </div>
+
+    <div id="pedalView">
+        <div class="pedal-info">
+            PLACE PHONE ON GROUND<br>
+            PRESS WITH FOOT<br>
+            50° = RELEASED<br>
+            20° = PRESSED
+        </div>
+        <div class="angle-display" id="angleDisplay">--°</div>
+        <div class="pedal-type" id="pedalType">BRAKE</div>
+    </div>
+
+    <script>
+        const PREFIX = "RACER-";
+        let peer, conn, myCode, mode = '';
+        let scene, camera, renderer, terrain, car;
+        let carSpeed = 0, carVelocityX = 0, carVelocityZ = 0;
+        let carX = 0, carZ = 0, carY = 0, carRotation = 0;
+        let brakeValue = 0, gasValue = 0;
+        let isGasPedal = false;
+        let steerDir = 0;
+        let checkpointCount = 0;
+        let checkpoints = [], obstacles = [], trees = [];
+        let distanceTraveled = 0;
+
+        function setStatus(msg) {
+            document.getElementById('status').innerText = msg;
+        }
+
+        function backToMain() {
+            document.getElementById('mainMenu').style.display = 'block';
+            document.getElementById('codeInput').style.display = 'none';
+            setStatus('SELECT ROLE');
+        }
+
+        function showPedalSetup(isGas = false) {
+            isGasPedal = isGas;
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('codeInput').style.display = 'block';
+            setStatus(isGas ? 'ENTER CODE FOR GAS' : 'ENTER CODE FOR BRAKE');
+        }
+
+        function startAsDisplay() {
+            mode = 'display';
+            myCode = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('gameView').style.display = 'block';
+            document.getElementById('codeBox').innerText = 'CODE: ' + myCode;
+
+            peer = new Peer(PREFIX + myCode);
+            peer.on('open', () => console.log('Display ready'));
+            peer.on('connection', c => {
+                const newConn = c;
+                newConn.on('data', data => {
+                    if (data.type === 'brake') brakeValue = data.value;
+                    if (data.type === 'gas') gasValue = data.value;
+                });
+            });
+
+            initGame();
+        }
+
+        function connectPedal() {
+            const code = document.getElementById('roomCode').value;
+            if (code.length < 4) {
+                setStatus('ENTER 4 DIGITS');
+                return;
+            }
+            
+            mode = 'pedal';
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('pedalView').style.display = 'block';
+            document.getElementById('pedalType').innerText = isGasPedal ? 'GAS' : 'BRAKE';
+
+            peer = new Peer();
+            peer.on('open', () => {
+                conn = peer.connect(PREFIX + code);
+                conn.on('open', () => {
+                    console.log('Pedal connected');
+                    startGyro();
+                });
+            });
+        }
+
+        async function startGyro() {
+            try {
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    const response = await DeviceOrientationEvent.requestPermission();
+                    if (response === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation, true);
+                        console.log('Gyro permission granted');
+                    } else {
+                        alert('GYRO PERMISSION DENIED');
+                    }
+                } else {
+                    window.addEventListener('deviceorientation', handleOrientation, true);
+                    console.log('Gyro started');
+                }
+            } catch (error) {
+                console.error('Gyro error:', error);
+                alert('GYRO ERROR: ' + error.message);
+            }
+        }
+
+        function handleOrientation(e) {
+            let angle = e.beta;
+            
+            if (angle === null || angle === undefined) {
+                document.getElementById('angleDisplay').innerText = 'NO DATA';
+                return;
+            }
+            
+            if (angle < 0) angle = Math.abs(angle);
+            if (angle > 90) angle = 180 - angle;
+            
+            const clampedAngle = Math.max(20, Math.min(50, angle));
+            const normalized = 1 - ((clampedAngle - 20) / 30);
+            
+            document.getElementById('angleDisplay').innerText = Math.round(angle) + '° [' + Math.round(normalized * 100) + '%]';
+            
+            if (conn && conn.open) {
+                conn.send({
+                    type: isGasPedal ? 'gas' : 'brake',
+                    value: normalized
+                });
+            }
+        }
+
+        function initGame() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb);
+            scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 300);
+            camera.position.set(0, 2, 5);
+            camera.lookAt(0, 1, 0);
+
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('renderCanvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            // Add ambient light
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
+            directionalLight.position.set(50, 100, 50);
+            scene.add(directionalLight);
+
+            // Create terrain with mountain
+            createTerrain();
+            
+            // Create car (simple box for now)
+            const carGeo = new THREE.BoxGeometry(1.5, 1, 2.5);
+            const carMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            car = new THREE.Mesh(carGeo, carMat);
+            car.position.set(0, 1, 0);
+            scene.add(car);
+
+            // Add trees around the world
+            for (let i = 0; i < 80; i++) {
+                const x = (Math.random() - 0.5) * 200;
+                const z = (Math.random() - 0.5) * 200;
+                const y = getTerrainHeight(x, z);
+                
+                // Don't place trees on the mountain path
+                if (Math.abs(x) > 15 || z > 20 || z < -20) {
+                    createTree(x, y, z);
+                }
+            }
+
+            // Create mountain path with checkpoints
+            createMountainPath();
+
+            animate();
+        }
+
+        function createTerrain() {
+            const size = 200;
+            const segments = 100;
+            const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+            
+            // Create mountain terrain
+            const vertices = geometry.attributes.position.array;
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i];
+                const z = vertices[i + 1];
+                
+                // Mountain in the center going up
+                const distFromCenter = Math.sqrt(x * x + z * z);
+                const mountainHeight = Math.max(0, 30 - distFromCenter * 0.3);
+                
+                // Add some noise for natural look
+                const noise = (Math.sin(x * 0.1) + Math.cos(z * 0.1)) * 2;
+                
+                vertices[i + 2] = mountainHeight + noise;
+            }
+            
+            geometry.computeVertexNormals();
+            
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0x228b22,
+                wireframe: false,
+                side: THREE.DoubleSide
+            });
+            
+            terrain = new THREE.Mesh(geometry, material);
+            terrain.rotation.x = -Math.PI / 2;
+            scene.add(terrain);
+        }
+
+        function getTerrainHeight(x, z) {
+            const distFromCenter = Math.sqrt(x * x + z * z);
+            const mountainHeight = Math.max(0, 30 - distFromCenter * 0.3);
+            const noise = (Math.sin(x * 0.1) + Math.cos(z * 0.1)) * 2;
+            return mountainHeight + noise;
+        }
+
+        function createTree(x, y, z) {
+            // Trunk
+            const trunkGeo = new THREE.CylinderGeometry(0.3, 0.3, 3, 8);
+            const trunkMat = new THREE.MeshBasicMaterial({ color: 0x8b4513 });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.set(x, y + 1.5, z);
+            scene.add(trunk);
+            
+            // Leaves
+            const leavesGeo = new THREE.SphereGeometry(2, 8, 8);
+            const leavesMat = new THREE.MeshBasicMaterial({ color: 0x228b22 });
+            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+            leaves.position.set(x, y + 4, z);
+            scene.add(leaves);
+            
+            trees.push({ trunk, leaves, x, z });
+        }
+
+        function createMountainPath() {
+            // Create 5 checkpoints along the mountain path
+            const checkpointPositions = [
+                { x: 0, z: -20, y: 2 },
+                { x: 5, z: -35, y: 8 },
+                { x: -3, z: -50, y: 15 },
+                { x: 2, z: -65, y: 22 },
+                { x: 0, z: -80, y: 30 }
+            ];
+
+            checkpointPositions.forEach((pos, i) => {
+                // Checkpoint marker
+                const cpGeo = new THREE.BoxGeometry(8, 5, 1);
+                const cpMat = new THREE.MeshBasicMaterial({ 
+                    color: 0xffff00,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                const checkpoint = new THREE.Mesh(cpGeo, cpMat);
+                checkpoint.position.set(pos.x, pos.y, pos.z);
+                checkpoint.userData.index = i;
+                checkpoint.userData.collected = false;
+                scene.add(checkpoint);
+                checkpoints.push(checkpoint);
+
+                // Add obstacles between checkpoints
+                if (i < checkpointPositions.length - 1) {
+                    for (let j = 0; j < 3; j++) {
+                        const obstacleX = pos.x + (Math.random() - 0.5) * 6;
+                        const obstacleZ = pos.z - 5 - j * 4;
+                        const obstacleY = getTerrainHeight(obstacleX, obstacleZ);
+                        
+                        const obsGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                        const obsMat = new THREE.MeshBasicMaterial({ color: 0x808080 });
+                        const obstacle = new THREE.Mesh(obsGeo, obsMat);
+                        obstacle.position.set(obstacleX, obstacleY + 0.75, obstacleZ);
+                        scene.add(obstacle);
+                        obstacles.push(obstacle);
+                    }
+                }
+            });
+        }
+
+        function showCheckpointMessage() {
+            const msg = document.getElementById('checkpointMsg');
+            msg.style.opacity = '1';
+            setTimeout(() => {
+                msg.style.opacity = '0';
+            }, 1500);
+        }
+
+        function steerLeft() {
+            steerDir = -1;
+        }
+
+        function steerRight() {
+            steerDir = 1;
+        }
+
+        function stopSteer() {
+            steerDir = 0;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Physics-based movement - ONLY when gas is pressed
+            const targetSpeed = Math.max(0, gasValue * 0.5 - brakeValue * 0.4);
+            carSpeed += (targetSpeed - carSpeed) * 0.05;
+
+            // Only move if there's actual speed
+            if (carSpeed > 0.001) {
+                // Steering affects rotation
+                carRotation += steerDir * 0.03 * carSpeed;
+                
+                // Calculate velocity based on rotation
+                carVelocityX = Math.sin(carRotation) * carSpeed;
+                carVelocityZ = -Math.cos(carRotation) * carSpeed;
+                
+                carX += carVelocityX;
+                carZ += carVelocityZ;
+                
+                distanceTraveled += carSpeed;
+                
+                // Get terrain height at car position
+                carY = getTerrainHeight(carX, carZ) + 0.5;
+                
+                // Update car position
+                car.position.set(carX, carY, carZ);
+                car.rotation.y = carRotation;
+                
+                // Tilt car based on terrain slope
+                const frontHeight = getTerrainHeight(carX + Math.sin(carRotation) * 2, carZ - Math.cos(carRotation) * 2);
+                const backHeight = getTerrainHeight(carX - Math.sin(carRotation) * 2, carZ + Math.cos(carRotation) * 2);
+                car.rotation.x = (frontHeight - backHeight) * 0.1;
+                
+                // Camera follows car - driver POV
+                const camOffsetX = carX - Math.sin(carRotation) * 5;
+                const camOffsetZ = carZ + Math.cos(carRotation) * 5;
+                const camHeight = carY + 2;
+                
+                camera.position.x += (camOffsetX - camera.position.x) * 0.1;
+                camera.position.y += (camHeight - camera.position.y) * 0.1;
+                camera.position.z += (camOffsetZ - camera.position.z) * 0.1;
+                
+                camera.lookAt(carX, carY + 1, carZ);
+            }
+
+            // Check checkpoints
+            checkpoints.forEach(cp => {
+                if (!cp.userData.collected) {
+                    const dist = Math.sqrt(
+                        Math.pow(cp.position.x - carX, 2) +
+                        Math.pow(cp.position.z - carZ, 2)
+                    );
+                    
+                    if (dist < 5) {
+                        cp.userData.collected = true;
+                        cp.material.color.setHex(0x00ff00);
+                        checkpointCount++;
+                        showCheckpointMessage();
+                        
+                        if (checkpointCount === 5) {
+                            setTimeout(() => {
+                                alert('SUMMIT REACHED! Distance: ' + Math.round(distanceTraveled) + 'M');
+                                location.reload();
+                            }, 500);
+                        }
+                    }
+                }
+            });
+
+            // Check obstacle collisions
+            obstacles.forEach(obs => {
+                const dist = Math.sqrt(
+                    Math.pow(obs.position.x - carX, 2) +
+                    Math.pow(obs.position.z - carZ, 2)
+                );
+                
+                if (dist < 2) {
+                    carSpeed *= 0.5;
+                    carX -= carVelocityX * 2;
+                    carZ -= carVelocityZ * 2;
+                }
+            });
+
+            // Update HUD
+            document.getElementById('speedDisplay').innerText = Math.round(carSpeed * 100);
+            document.getElementById('altitudeDisplay').innerText = Math.round(carY);
+            document.getElementById('checkpointDisplay').innerText = checkpointCount + '/5';
+            document.getElementById('distanceDisplay').innerText = Math.round(distanceTraveled);
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+
+        // Keyboard controls for desktop testing
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') steerLeft();
+            if (e.key === 'ArrowRight' || e.key === 'd') steerRight();
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'ArrowRight' || e.key === 'd') stopSteer();
+        });
+    </script>
+</body>
+</html>
