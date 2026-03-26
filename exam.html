@@ -5,192 +5,611 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>EXAMAI</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        :root{
-            --bg:#0a0a0f;--surface:#111118;--panel:#16161f;--border:#222230;
-            --accent:#7c6dfa;--accent2:#fa6d8f;--accent3:#6dfac2;
-            --text:#e8e8f0;--muted:#55556a;--danger:#fa4a4a;--glow:rgba(124,109,250,.3);
+        :root {
+            --bg: #0d0d10;
+            --surface: #131318;
+            --panel: #17171e;
+            --border: #25252f;
+            --border-light: #2e2e3a;
+            --accent: #c59b6d;
+            --accent-soft: rgba(197,155,109,.12);
+            --accent2: #9e7fbc;
+            --accent3: #5f9ea0;
+            --text: #e8e6e1;
+            --text-secondary: #a09d97;
+            --text-muted: #5a5860;
+            --danger: #c0645a;
+            --danger-glow: rgba(192,100,90,.25);
+            --success: #5a9e7a;
+            --glow: rgba(197,155,109,.15);
+            --radius: 10px;
         }
-        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
-        body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;width:100vw}
-        .view{display:none;position:fixed;inset:0;flex-direction:column}
-        .view.show{display:flex}
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            width: 100vw;
+        }
+
+        .view { display:none; position:fixed; inset:0; flex-direction:column; }
+        .view.show { display:flex; }
 
         /* ══ SETUP ══ */
-        #setupView{justify-content:center;align-items:center;padding:24px;background:var(--bg)}
-        .brand{font-family:'Space Mono',monospace;font-size:clamp(2rem,10vw,3rem);font-weight:700;letter-spacing:-2px;
-            background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 60%,var(--accent3) 100%);
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
-        .tagline{color:var(--muted);font-size:.7rem;letter-spacing:3px;text-transform:uppercase;
-            font-family:'Space Mono',monospace;margin-bottom:28px}
-        .mode-btns{display:flex;flex-direction:column;gap:14px;width:100%;max-width:360px;margin-bottom:16px}
-        .big-btn{padding:16px;font-size:1rem;font-family:'Syne',sans-serif;font-weight:800;letter-spacing:1px;
-            border:2px solid var(--accent);background:transparent;color:var(--accent);border-radius:14px;cursor:pointer;transition:.15s}
-        .big-btn:active{background:var(--accent);color:#fff;transform:scale(.98)}
-        .big-btn.sec{border-color:var(--border);color:var(--muted);font-size:.85rem}
-        .connect-group{display:none;flex-direction:column;gap:12px;width:100%;max-width:360px}
-        .code-input{background:var(--panel);border:1px solid var(--border);color:#fff;padding:14px;
-            font-size:2rem;text-align:center;border-radius:12px;letter-spacing:8px;outline:none;
-            font-family:'Space Mono',monospace;width:100%;-webkit-user-select:text;user-select:text}
-        .code-input:focus{border-color:var(--accent)}
-        .api-setup{display:none;flex-direction:column;gap:10px;width:100%;max-width:360px;margin-top:4px}
-        .fl{font-size:.65rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;
-            font-family:'Space Mono',monospace;margin-bottom:2px}
-        .api-setup input,.api-setup select{background:var(--panel);border:1px solid var(--border);color:var(--text);
-            padding:11px;border-radius:10px;font-family:'Space Mono',monospace;font-size:.8rem;
-            outline:none;width:100%;-webkit-user-select:text;user-select:text}
-        .api-setup input:focus{border-color:var(--accent)}
-        .stxt{color:var(--muted);font-size:.78rem;font-family:'Space Mono',monospace;
-            text-align:center;min-height:18px;letter-spacing:1px;margin-top:6px}
-        .stxt.err{color:var(--danger)}
+        #setupView {
+            justify-content: center;
+            align-items: center;
+            padding: 28px;
+            background: var(--bg);
+        }
+
+        .brand {
+            font-family: 'Crimson Pro', serif;
+            font-weight: 600;
+            font-size: clamp(2.4rem, 10vw, 3.4rem);
+            letter-spacing: -1px;
+            color: var(--accent);
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+
+        .tagline {
+            color: var(--text-muted);
+            font-size: .65rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-family: 'DM Mono', monospace;
+            margin-bottom: 32px;
+        }
+
+        .mode-btns { display:flex; flex-direction:column; gap:12px; width:100%; max-width:360px; margin-bottom:16px; }
+
+        .big-btn {
+            padding: 15px 20px;
+            font-size: .88rem;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 500;
+            letter-spacing: .5px;
+            border: 1px solid var(--border-light);
+            background: var(--panel);
+            color: var(--text);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: .15s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .big-btn:active { background: var(--border); transform: scale(.99); }
+
+        .big-btn.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #1a1209;
+            font-weight: 600;
+        }
+
+        .big-btn.primary:active { background: #b08a5a; }
+
+        .big-btn.sec {
+            color: var(--text-muted);
+            font-size: .82rem;
+        }
+
+        .btn-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            opacity: .85;
+        }
+
+        .connect-group { display:none; flex-direction:column; gap:12px; width:100%; max-width:360px; }
+
+        .code-input {
+            background: var(--panel);
+            border: 1px solid var(--border-light);
+            color: var(--text);
+            padding: 16px;
+            font-size: 2rem;
+            text-align: center;
+            border-radius: var(--radius);
+            letter-spacing: 10px;
+            outline: none;
+            font-family: 'DM Mono', monospace;
+            width: 100%;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        .code-input:focus { border-color: var(--accent); }
+
+        .api-setup { display:none; flex-direction:column; gap:10px; width:100%; max-width:360px; margin-top:4px; }
+
+        .fl {
+            font-size: .6rem;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-family: 'DM Mono', monospace;
+            margin-bottom: 4px;
+        }
+
+        .api-setup input, .api-setup select {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 11px 12px;
+            border-radius: var(--radius);
+            font-family: 'DM Sans', sans-serif;
+            font-size: .83rem;
+            outline: none;
+            width: 100%;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        .api-setup input:focus, .api-setup select:focus { border-color: var(--accent); }
+        .api-setup select option { background: #1a1a22; }
+
+        .stxt {
+            color: var(--text-muted);
+            font-size: .72rem;
+            font-family: 'DM Mono', monospace;
+            text-align: center;
+            min-height: 18px;
+            letter-spacing: 1px;
+            margin-top: 8px;
+        }
+        .stxt.err { color: var(--danger); }
 
         /* ══ DISPLAY VIEW ══ */
-        #displayView{background:#000}
-        .d-topbar{padding:10px 16px;background:rgba(0,0,0,.9);display:flex;align-items:center;
-            justify-content:space-between;border-bottom:1px solid #1a1a1a;flex-shrink:0;z-index:10}
-        .d-code{font-family:'Space Mono',monospace;font-size:.85rem;color:var(--accent);
-            border:1px solid var(--accent);padding:6px 12px;border-radius:6px;letter-spacing:3px}
-        .d-status{font-size:.65rem;font-family:'Space Mono',monospace;padding:4px 10px;
-            border-radius:20px;border:1px solid var(--border);color:var(--muted);letter-spacing:1px}
-        .d-status.thinking{border-color:var(--accent);color:var(--accent);animation:blink 1s infinite}
-        .d-status.streaming{border-color:var(--accent3);color:var(--accent3)}
-        .d-status.connected{border-color:var(--accent3);color:var(--accent3)}
-        @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+        #displayView { background: var(--bg); }
 
-        /* Question overlay — shown briefly, fades out when streaming starts */
-        #dQOverlay{
-            position:absolute;inset:0;z-index:20;
-            display:flex;flex-direction:column;align-items:center;justify-content:center;
-            padding:40px;text-align:center;background:#000;
-            transition:opacity .5s ease;
+        .d-topbar {
+            padding: 10px 18px;
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            z-index: 10;
         }
-        #dQOverlay.hidden{opacity:0;pointer-events:none}
-        .dq-label{font-family:'Space Mono',monospace;font-size:.65rem;letter-spacing:3px;
-            color:var(--muted);text-transform:uppercase;margin-bottom:16px}
-        .dq-text{font-size:clamp(1.1rem,3.5vw,2rem);font-weight:800;color:var(--accent2);
-            line-height:1.5;font-family:'Syne',sans-serif}
-        .dq-thinking{margin-top:24px;font-family:'Space Mono',monospace;font-size:.75rem;
-            color:var(--accent);animation:blink 1s infinite;letter-spacing:2px}
 
-        .marker-line{position:fixed;top:42%;left:0;width:100%;height:0;
-            border-top:2px dashed rgba(255,0,0,.4);z-index:50;pointer-events:none}
-        .marker-tri{position:fixed;top:42%;left:16px;width:0;height:0;
-            border-top:12px solid transparent;border-bottom:12px solid transparent;
-            border-left:16px solid rgba(255,0,0,.6);transform:translateY(-50%);pointer-events:none}
-        #displayScroll{flex:1;overflow:hidden;position:relative}
-        #displayContent{padding:28px 24px 80px;font-size:clamp(1.1rem,3vw,1.7rem);
-            line-height:1.85;font-family:'Syne',sans-serif;font-weight:500;color:#fff;
-            position:absolute;width:100%;will-change:transform;transform:translateY(0px)}
-        #displayContent strong{font-weight:800;color:var(--accent3)}
-        #displayContent em{color:var(--accent2);font-style:normal}
-        .d-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;
-            align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center;z-index:5}
-        .d-ph-icon{font-size:2.5rem}
-        .d-ph-title{font-size:1.1rem;font-weight:800}
-        .d-ph-sub{font-size:.8rem;color:var(--muted);font-family:'Space Mono',monospace;line-height:1.6}
-        .d-fs-btn{font-size:.65rem;font-family:'Space Mono',monospace;padding:5px 10px;
-            background:transparent;border:1px solid #333;border-radius:6px;color:#666;cursor:pointer}
-        .cursor{display:inline-block;width:2px;height:1em;background:var(--accent);
-            vertical-align:text-bottom;margin-left:2px;animation:blink .8s step-end infinite}
+        .d-code {
+            font-family: 'DM Mono', monospace;
+            font-size: .78rem;
+            color: var(--accent);
+            border: 1px solid rgba(197,155,109,.3);
+            padding: 5px 11px;
+            border-radius: 6px;
+            letter-spacing: 3px;
+        }
+
+        .d-status {
+            font-size: .6rem;
+            font-family: 'DM Mono', monospace;
+            padding: 4px 11px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+        }
+        .d-status.thinking { border-color: var(--accent); color: var(--accent); animation: blink 1.2s infinite; }
+        .d-status.streaming { border-color: var(--accent3); color: var(--accent3); }
+        .d-status.connected { border-color: var(--success); color: var(--success); }
+
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+        /* Question overlay */
+        #dQOverlay {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px;
+            text-align: center;
+            background: var(--bg);
+            transition: opacity .5s ease;
+        }
+        #dQOverlay.hidden { opacity:0; pointer-events:none; }
+
+        .dq-label {
+            font-family: 'DM Mono', monospace;
+            font-size: .6rem;
+            letter-spacing: 3px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .dq-text {
+            font-family: 'Crimson Pro', serif;
+            font-size: clamp(1.4rem, 4vw, 2.2rem);
+            font-weight: 400;
+            color: var(--text);
+            line-height: 1.55;
+            font-style: italic;
+            max-width: 640px;
+        }
+
+        .dq-thinking {
+            margin-top: 28px;
+            font-family: 'DM Mono', monospace;
+            font-size: .65rem;
+            color: var(--accent);
+            animation: blink 1.2s infinite;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .thinking-dots span {
+            display: inline-block;
+            width: 4px;
+            height: 4px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: tdot .9s ease-in-out infinite;
+        }
+        .thinking-dots span:nth-child(2) { animation-delay: .15s; }
+        .thinking-dots span:nth-child(3) { animation-delay: .3s; }
+        @keyframes tdot { 0%,80%,100%{transform:scale(.5);opacity:.4} 40%{transform:scale(1);opacity:1} }
+
+        .marker-line { position:fixed; top:42%; left:0; width:100%; height:0; border-top:1px solid rgba(197,155,109,.25); z-index:50; pointer-events:none; }
+        .marker-tri {
+            position: fixed;
+            top: 42%;
+            left: 14px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            width: 0; height: 0;
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+            border-left: 10px solid rgba(197,155,109,.5);
+        }
+
+        #displayScroll { flex:1; overflow:hidden; position:relative; }
+
+        /* THE READING TYPOGRAPHY — Crimson Pro for body, generous line height */
+        #displayContent {
+            padding: 36px 40px 100px;
+            font-family: 'Crimson Pro', serif;
+            font-size: clamp(1.25rem, 2.8vw, 1.75rem);
+            font-weight: 400;
+            line-height: 1.8;
+            color: #dedad4;
+            position: absolute;
+            width: 100%;
+            will-change: transform;
+            transform: translateY(0px);
+            letter-spacing: .01em;
+        }
+
+        /* Paragraph spacing for readability */
+        #displayContent p {
+            margin-bottom: 1.1em;
+        }
+
+        #displayContent p:last-child { margin-bottom: 0; }
+
+        #displayContent strong {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        #displayContent em {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .d-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 40px;
+            text-align: center;
+            z-index: 5;
+        }
+
+        .d-ph-icon { opacity: .25; }
+
+        .d-ph-title {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.3rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+
+        .d-ph-sub {
+            font-size: .75rem;
+            color: var(--text-muted);
+            font-family: 'DM Mono', monospace;
+            line-height: 1.7;
+        }
+
+        .d-fs-btn {
+            font-size: .6rem;
+            font-family: 'DM Mono', monospace;
+            padding: 5px 10px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: .85em;
+            background: var(--accent);
+            vertical-align: text-bottom;
+            margin-left: 2px;
+            animation: blink .75s step-end infinite;
+        }
 
         /* ══ CONTROLLER VIEW ══ */
-        #controllerView{background:var(--bg)}
-        .c-topbar{padding:10px 14px;background:var(--surface);display:flex;align-items:center;
-            justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
-        .c-logo{font-family:'Space Mono',monospace;font-size:.85rem;font-weight:700;
-            background:linear-gradient(135deg,var(--accent),var(--accent2));
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent}
-        .c-conn{font-size:.65rem;font-family:'Space Mono',monospace;padding:4px 10px;
-            border-radius:20px;border:1px solid var(--border);color:var(--muted)}
-        .c-conn.ok{border-color:var(--accent3);color:var(--accent3)}
-        .c-conn.err{border-color:var(--danger);color:var(--danger)}
+        #controllerView { background: var(--bg); }
 
-        /* transcript strip — single line, compact */
-        .c-transcript{
-            padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--border);
-            font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);
-            height:42px;line-height:1.4;flex-shrink:0;overflow:hidden;
-            white-space:nowrap;text-overflow:ellipsis;transition:.2s;
+        .c-topbar {
+            padding: 11px 16px;
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
         }
-        .c-transcript.recording{color:var(--danger);border-bottom-color:var(--danger)}
 
-        /* pad area — fills remaining space */
-        .pad-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-            padding:14px;gap:12px;background:var(--bg);overflow:hidden}
-
-        /* ── RECORD BUTTON ── */
-        .record-btn{
-            width:100%;max-width:440px;padding:17px;border:none;border-radius:16px;
-            font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:1px;
-            cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
-            transition:.15s;touch-action:manipulation;
+        .c-logo {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: .5px;
         }
-        .record-btn.idle{background:var(--accent);color:#fff;box-shadow:0 4px 24px var(--glow)}
-        .record-btn.rec{background:var(--danger);color:#fff;
-            box-shadow:0 4px 24px rgba(250,74,74,.5);animation:recPulse 1.4s infinite}
-        @keyframes recPulse{0%,100%{box-shadow:0 4px 24px rgba(250,74,74,.4)}50%{box-shadow:0 4px 40px rgba(250,74,74,.8)}}
 
-        /* ── SCROLL PAD ── (same concept as original prompter) */
-        .pad-container{
-            width:100%;max-width:440px;flex:1;max-height:280px;
-            background:var(--panel);border:2px solid var(--border);border-radius:16px;
-            position:relative;display:flex;align-items:center;justify-content:center;
-            touch-action:none;overflow:hidden;
+        .c-conn {
+            font-size: .6rem;
+            font-family: 'DM Mono', monospace;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            letter-spacing: 1px;
         }
-        .pad-hint{color:rgba(255,255,255,.18);font-size:.78rem;font-weight:700;
-            text-align:center;pointer-events:none;line-height:1.7;letter-spacing:.5px}
-        .pad-speed-indicator{
-            position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
-            font-family:'Space Mono',monospace;font-size:.65rem;color:var(--muted);
-            pointer-events:none;transition:.2s;
+        .c-conn.ok { border-color: var(--success); color: var(--success); }
+        .c-conn.err { border-color: var(--danger); color: var(--danger); }
+
+        .c-transcript {
+            padding: 10px 16px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            font-size: .78rem;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text-secondary);
+            height: 42px;
+            line-height: 1.4;
+            flex-shrink: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            transition: .2s;
+            font-style: italic;
         }
-        /* stick visuals */
-        #stickBase{position:absolute;width:1px;height:100%;background:rgba(255,255,255,.06);display:none}
-        #stickHead{position:absolute;width:72px;height:72px;
-            background:rgba(124,109,250,.18);border:2px solid var(--accent);
-            border-radius:50%;transform:translate(-50%,-50%);display:none;pointer-events:none;
-            transition:background .15s}
-        #stickHead.fast{background:rgba(250,74,74,.25);border-color:var(--danger)}
+        .c-transcript.recording { color: var(--danger); border-bottom-color: var(--danger); font-style: normal; }
 
-        /* bottom row */
-        .bottom-row{display:flex;gap:8px;width:100%;max-width:440px}
-        .sm-btn{flex:1;padding:11px 6px;background:var(--panel);border:1px solid var(--border);
-            border-radius:12px;color:var(--muted);cursor:pointer;font-size:.65rem;
-            font-family:'Space Mono',monospace;display:flex;flex-direction:column;align-items:center;gap:4px;transition:.15s}
-        .sm-btn:active{background:var(--border);transform:scale(.97)}
-        .sm-btn-icon{font-size:1rem}
-        .q-counter{font-family:'Space Mono',monospace;font-size:.62rem;color:var(--muted)}
-        .q-counter span{color:var(--accent)}
-        .mic-note{font-size:.68rem;font-family:'Space Mono',monospace;color:var(--muted);
-            width:100%;max-width:440px;text-align:center}
-        .mic-note.ok{color:var(--accent3)}
-        .mic-note.err{color:var(--danger)}
+        .pad-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            gap: 11px;
+            background: var(--bg);
+            overflow: hidden;
+        }
 
-        /* wave bars */
-        .wb{display:inline-block;width:3px;height:11px;background:currentColor;
-            border-radius:2px;margin:0 1px;animation:wv .7s ease-in-out infinite;vertical-align:middle}
-        .wb:nth-child(2){animation-delay:.1s}.wb:nth-child(3){animation-delay:.2s;height:18px}
-        .wb:nth-child(4){animation-delay:.1s}.wb:nth-child(5){animation-delay:0s}
+        /* RECORD BUTTON */
+        .record-btn {
+            width: 100%;
+            max-width: 440px;
+            padding: 16px 20px;
+            border: none;
+            border-radius: var(--radius);
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 500;
+            font-size: .92rem;
+            letter-spacing: .5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: .15s;
+            touch-action: manipulation;
+        }
+        .record-btn.idle {
+            background: var(--accent);
+            color: #1a1209;
+            box-shadow: 0 2px 20px rgba(197,155,109,.2);
+        }
+        .record-btn.rec {
+            background: var(--danger);
+            color: #fff;
+            box-shadow: 0 2px 24px var(--danger-glow);
+            animation: recPulse 1.4s infinite;
+        }
+        @keyframes recPulse {
+            0%,100% { box-shadow: 0 2px 16px rgba(192,100,90,.35); }
+            50% { box-shadow: 0 2px 36px rgba(192,100,90,.6); }
+        }
+
+        /* SCROLL PAD */
+        .pad-container {
+            width: 100%;
+            max-width: 440px;
+            flex: 1;
+            max-height: 260px;
+            background: var(--panel);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        .pad-hint {
+            color: rgba(255,255,255,.12);
+            font-size: .72rem;
+            font-weight: 400;
+            text-align: center;
+            pointer-events: none;
+            line-height: 1.8;
+            letter-spacing: .5px;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .pad-speed-indicator {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'DM Mono', monospace;
+            font-size: .6rem;
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: .2s;
+            letter-spacing: 1px;
+        }
+
+        #stickBase { position:absolute; width:1px; height:100%; background:rgba(255,255,255,.05); display:none; }
+        #stickHead {
+            position: absolute;
+            width: 64px;
+            height: 64px;
+            background: rgba(197,155,109,.12);
+            border: 1px solid rgba(197,155,109,.4);
+            border-radius: 50%;
+            transform: translate(-50%,-50%);
+            display: none;
+            pointer-events: none;
+            transition: background .15s;
+        }
+        #stickHead.fast { background: rgba(192,100,90,.2); border-color: var(--danger); }
+
+        /* BOTTOM ROW */
+        .bottom-row { display:flex; gap:8px; width:100%; max-width:440px; }
+
+        .sm-btn {
+            flex: 1;
+            padding: 10px 6px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: .58rem;
+            font-family: 'DM Mono', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            transition: .15s;
+            letter-spacing: .5px;
+        }
+        .sm-btn:active { background: var(--border); transform: scale(.97); }
+        .sm-btn svg { opacity: .6; }
+
+        .q-counter {
+            font-family: 'DM Mono', monospace;
+            font-size: .6rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+        .q-counter span { color: var(--accent); }
+
+        .mic-note {
+            font-size: .65rem;
+            font-family: 'DM Mono', monospace;
+            color: var(--text-muted);
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+            letter-spacing: .5px;
+        }
+        .mic-note.ok { color: var(--success); }
+        .mic-note.err { color: var(--danger); }
+
+        /* Wave bars */
+        .wb { display:inline-block; width:2px; height:9px; background:currentColor; border-radius:2px; margin:0 1.5px; animation:wv .7s ease-in-out infinite; vertical-align:middle; }
+        .wb:nth-child(2){animation-delay:.1s} .wb:nth-child(3){animation-delay:.2s;height:15px} .wb:nth-child(4){animation-delay:.1s} .wb:nth-child(5){animation-delay:0s}
         @keyframes wv{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1.4)}}
+
+        /* Divider */
+        .form-divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            width: 100%;
+            max-width: 360px;
+            margin: 2px 0;
+        }
     </style>
 </head>
 <body>
 
 <!-- ══ SETUP ══ -->
 <div class="view show" id="setupView">
-    <div class="brand">EXAMAI</div>
+    <div class="brand">Examai</div>
     <div class="tagline">Voice · AI · Answer</div>
     <div class="mode-btns" id="modeBtns">
-        <button class="big-btn" onclick="startDisplay()">📺  I AM THE SCREEN</button>
-        <button class="big-btn" onclick="showRemoteSetup()">🎙  I AM THE REMOTE</button>
+        <button class="big-btn primary" onclick="startDisplay()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/>
+            </svg>
+            I am the Screen
+        </button>
+        <button class="big-btn" onclick="showRemoteSetup()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>
+            </svg>
+            I am the Remote
+        </button>
     </div>
+
     <div class="api-setup" id="apiSetup">
-        <div><div class="fl">Gemini API Key</div>
-            <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off"></div>
-        <div><div class="fl">Subject (optional)</div>
-            <input type="text" id="subjectInput" placeholder="e.g. Physics, History, Biology"></div>
-        <div><div class="fl">Answer Style</div>
+        <div>
+            <div class="fl">Gemini API Key</div>
+            <input type="password" id="apiKeyInput" placeholder="AIza…" autocomplete="off">
+        </div>
+        <div>
+            <div class="fl">Subject — optional</div>
+            <input type="text" id="subjectInput" placeholder="e.g. Physics, History, Biology">
+        </div>
+        <div>
+            <div class="fl">Answer Style</div>
             <select id="styleInput">
                 <option value="detailed">Detailed &amp; Exam-Friendly</option>
                 <option value="concise">Concise (2–3 sentences)</option>
@@ -199,10 +618,23 @@
             </select>
         </div>
     </div>
+
+    <hr class="form-divider" id="formDivider" style="display:none">
+
     <div class="connect-group" id="connectGroup">
         <input type="number" id="codeInput" class="code-input" placeholder="0000" maxlength="4">
-        <button class="big-btn" onclick="connectToDisplay()">CONNECT →</button>
-        <button class="big-btn sec" onclick="backToMain()">← BACK</button>
+        <button class="big-btn primary" onclick="connectToDisplay()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            Connect to Screen
+        </button>
+        <button class="big-btn sec" onclick="backToMain()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Back
+        </button>
     </div>
     <div class="stxt" id="setupStatus">Select your role</div>
 </div>
@@ -212,24 +644,36 @@
     <div class="d-topbar">
         <div class="d-code" id="dCodeBox">CODE: ----</div>
         <div class="d-status" id="dStatus">WAITING</div>
-        <button class="d-fs-btn" onclick="toggleFS()">⛶ FULLSCREEN</button>
+        <button class="d-fs-btn" onclick="toggleFS()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+            </svg>
+            FULLSCREEN
+        </button>
     </div>
     <div class="marker-line" id="markerLine"></div>
     <div class="marker-tri" id="markerTri"></div>
+
     <div id="displayScroll">
-        <!-- placeholder shown when idle -->
         <div class="d-placeholder" id="dPlaceholder">
-            <div class="d-ph-icon">📡</div>
+            <div class="d-ph-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/>
+                </svg>
+            </div>
             <div class="d-ph-title">Waiting for Remote</div>
-            <div class="d-ph-sub">Connect the remote device using the code above</div>
+            <div class="d-ph-sub">Connect the remote device using the code shown above</div>
         </div>
-        <!-- answer text -->
         <div id="displayContent"></div>
-        <!-- question overlay: visible while thinking, fades once answer starts -->
         <div id="dQOverlay" style="display:none">
-            <div class="dq-label">QUESTION RECEIVED</div>
+            <div class="dq-label">Question Received</div>
             <div class="dq-text" id="dQText"></div>
-            <div class="dq-thinking">⬤ generating answer...</div>
+            <div class="dq-thinking">
+                <div class="thinking-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                Generating answer
+            </div>
         </div>
     </div>
 </div>
@@ -237,23 +681,25 @@
 <!-- ══ CONTROLLER VIEW ══ -->
 <div class="view" id="controllerView">
     <div class="c-topbar">
-        <div class="c-logo">EXAMAI REMOTE</div>
-        <div class="c-conn" id="cConn">CONNECTING...</div>
+        <div class="c-logo">Examai Remote</div>
+        <div class="c-conn" id="cConn">CONNECTING…</div>
     </div>
-    <!-- compact single-line transcript — no question shown after send -->
-    <div class="c-transcript" id="cTranscript">Hold RECORD &amp; speak your question...</div>
+    <div class="c-transcript" id="cTranscript">Hold Record and speak your question…</div>
 
     <div class="pad-wrap">
         <!-- RECORD BUTTON -->
         <button class="record-btn idle" id="recordBtn"
             ontouchstart="startRec(event)" ontouchend="stopRec(event)"
             onmousedown="startRec(event)" onmouseup="stopRec(event)" onmouseleave="ifRecStop(event)">
-            <span id="btnInner">🎙  HOLD TO RECORD</span>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="btnIcon">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>
+            </svg>
+            <span id="btnInner">Hold to Record</span>
         </button>
 
         <!-- SCROLL PAD -->
         <div class="pad-container" id="scrollPad">
-            <div class="pad-hint">TOUCH &amp; DRAG<br><span style="font-size:.75em;font-weight:400;opacity:.7">up = scroll up · down = scroll down</span></div>
+            <div class="pad-hint">TOUCH &amp; DRAG<br><span style="font-size:.88em;opacity:.7">up · scroll up &nbsp; down · scroll down</span></div>
             <div class="pad-speed-indicator" id="padSpeedTxt"></div>
             <div id="stickBase"></div>
             <div id="stickHead"></div>
@@ -262,11 +708,23 @@
         <!-- UTILITY BUTTONS -->
         <div class="bottom-row">
             <button class="sm-btn" onclick="sendCmd('reset')">
-                <span class="sm-btn-icon">↺</span><span>RESET</span></button>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.87"/>
+                </svg>
+                RESET
+            </button>
             <button class="sm-btn" onclick="sendScrollCmd(0)">
-                <span class="sm-btn-icon">⏸</span><span>STOP</span></button>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+                </svg>
+                STOP
+            </button>
             <button class="sm-btn" onclick="sendCmd('hideUI')">
-                <span class="sm-btn-icon">👁</span><span>HIDE UI</span></button>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+                HIDE UI
+            </button>
         </div>
 
         <div class="mic-note" id="micNote"></div>
@@ -283,21 +741,16 @@ let peer, conn;
 let apiKey = '', subject = '', answerStyle = 'detailed';
 let myRoomCode = '';
 
-// Display
 let scrollY = 0, scrollSpeed = 0;
-
-// Controller / speech
 let recognition = null;
 let isRecording = false;
 let micGranted = false;
 let finalTranscript = '';
 let qCount = 0;
-
-// Pad touch
 let padTouching = false, padTouchStartY = 0;
 let pinching = false, pinchDist0 = 0;
 
-// ── Restore saved prefs ──
+// Restore saved prefs
 (function(){
     try{
         const k=localStorage.getItem('exa_k');
@@ -356,11 +809,9 @@ let displayFullText='';
 function handleDisplayData(data){
     switch(data.type){
         case 'question':
-            // Show question overlay, hide answer content
             displayFullText='';
             document.getElementById('displayContent').innerHTML='';
             document.getElementById('dPlaceholder').style.display='none';
-            // Show overlay
             const ov=document.getElementById('dQOverlay');
             ov.style.display='flex'; ov.style.opacity='1'; ov.classList.remove('hidden');
             document.getElementById('dQText').innerText=data.val;
@@ -369,7 +820,6 @@ function handleDisplayData(data){
             break;
 
         case 'chunk':
-            // First chunk — fade out the question overlay
             if(!displayFullText){
                 const o=document.getElementById('dQOverlay');
                 o.classList.add('hidden');
@@ -389,7 +839,7 @@ function handleDisplayData(data){
         case 'error':
             document.getElementById('dQOverlay').style.display='none';
             document.getElementById('displayContent').innerHTML=
-                '<span style="color:var(--danger)">⚠ '+data.val+'</span>';
+                '<p style="color:var(--danger)">Error: '+data.val+'</p>';
             setDStatus('ERROR','');
             break;
 
@@ -414,12 +864,30 @@ function handleDisplayData(data){
     }
 }
 
+// Render: convert markdown-ish to readable paragraphs
 function renderDisplay(streaming){
-    const html=displayFullText
-        .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g,'<em>$1</em>')
-        .replace(/\n/g,'<br>');
-    document.getElementById('displayContent').innerHTML=html+(streaming?'<span class="cursor"></span>':'');
+    let raw = displayFullText;
+
+    // Convert **bold**
+    raw = raw.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    // Convert *italic*
+    raw = raw.replace(/\*(.*?)\*/g,'<em>$1</em>');
+
+    // Split into paragraphs on double newlines
+    const paras = raw.split(/\n{2,}/);
+    let html = paras.map(p => {
+        // Single newlines become space (flow naturally)
+        const line = p.replace(/\n/g,' ').trim();
+        if(!line) return '';
+        return '<p>'+line+'</p>';
+    }).filter(Boolean).join('');
+
+    if(streaming){
+        // Append cursor to last paragraph
+        html = html.replace(/<\/p>$/, '<span class="cursor"></span></p>');
+    }
+
+    document.getElementById('displayContent').innerHTML = html;
 }
 
 function displayLoop(){
@@ -446,12 +914,14 @@ function toggleFS(){
 function showRemoteSetup(){
     document.getElementById('modeBtns').style.display='none';
     document.getElementById('apiSetup').style.display='flex';
+    document.getElementById('formDivider').style.display='block';
     document.getElementById('connectGroup').style.display='flex';
     setStatus('Enter screen code + API key');
 }
 function backToMain(){
     document.getElementById('modeBtns').style.display='flex';
     document.getElementById('apiSetup').style.display='none';
+    document.getElementById('formDivider').style.display='none';
     document.getElementById('connectGroup').style.display='none';
     setStatus('Select your role');
 }
@@ -494,7 +964,7 @@ function connectToDisplay(){
 function sendCmd(type){ if(conn&&conn.open) conn.send({type}); }
 function sendScrollCmd(val){ if(conn&&conn.open) conn.send({type:'scroll',val}); }
 
-// ── SCROLL PAD (joystick-style, same as original prompter) ──
+// ── SCROLL PAD ──
 function setupScrollPad(){
     const pad=document.getElementById('scrollPad');
     const head=document.getElementById('stickHead');
@@ -503,11 +973,8 @@ function setupScrollPad(){
     pad.addEventListener('touchstart',e=>{
         e.preventDefault();
         if(e.touches.length===2){
-            padTouching=false;
-            pinching=true;
-            pinchDist0=Math.hypot(
-                e.touches[0].pageX-e.touches[1].pageX,
-                e.touches[0].pageY-e.touches[1].pageY);
+            padTouching=false; pinching=true;
+            pinchDist0=Math.hypot(e.touches[0].pageX-e.touches[1].pageX,e.touches[0].pageY-e.touches[1].pageY);
             return;
         }
         padTouching=true; pinching=false;
@@ -524,29 +991,20 @@ function setupScrollPad(){
     pad.addEventListener('touchmove',e=>{
         e.preventDefault();
         if(e.touches.length===2&&pinching){
-            // pinch = font resize
             const d=Math.hypot(e.touches[0].pageX-e.touches[1].pageX,e.touches[0].pageY-e.touches[1].pageY);
             const delta=d-pinchDist0;
-            if(Math.abs(delta)>8){
-                sendCmd(delta>0?'fontUp':'fontDown');
-                pinchDist0=d;
-            }
+            if(Math.abs(delta)>8){sendCmd(delta>0?'fontUp':'fontDown');pinchDist0=d;}
             return;
         }
         if(!padTouching) return;
         const dy=padTouchStartY-e.touches[0].clientY;
-        // Map drag distance to speed: max ±20 px = max speed ±18
         let spd=dy*0.13;
-        if(spd>18) spd=18;
-        if(spd<-18) spd=-18;
+        if(spd>18) spd=18; if(spd<-18) spd=-18;
         sendScrollCmd(spd);
-
-        // Visual feedback
-        let vis=-dy; if(vis>50) vis=50; if(vis<-50) vis=-50;
+        let vis=-dy; if(vis>50)vis=50; if(vis<-50)vis=-50;
         head.style.transform=`translate(-50%, calc(-50% + ${vis}px))`;
         head.classList.toggle('fast',Math.abs(spd)>10);
-        document.getElementById('padSpeedTxt').innerText=
-            spd===0?'':(spd>0?'▲ scrolling up':'▼ scrolling down');
+        document.getElementById('padSpeedTxt').innerText=spd===0?'':(spd>0?'▲ scrolling up':'▼ scrolling down');
     },{passive:false});
 
     pad.addEventListener('touchend',e=>{
@@ -561,7 +1019,6 @@ function setupScrollPad(){
         }
     },{passive:false});
 
-    // Mouse support for desktop testing
     let mouseDown=false;
     pad.addEventListener('mousedown',e=>{
         mouseDown=true; padTouchStartY=e.clientY;
@@ -590,15 +1047,15 @@ function setupScrollPad(){
 
 // ── MICROPHONE ──
 function initMic(){
-    setMicNote('Requesting microphone permission...','');
+    setMicNote('Requesting microphone permission…','');
     navigator.mediaDevices.getUserMedia({audio:true,video:false})
         .then(stream=>{
-            stream.getTracks().forEach(t=>t.stop()); // release — we only needed the permission
+            stream.getTracks().forEach(t=>t.stop());
             micGranted=true;
-            setMicNote('Mic ready ✓','ok');
-            document.getElementById('cTranscript').innerText='Hold RECORD and speak your question.';
+            setMicNote('Mic ready','ok');
+            document.getElementById('cTranscript').innerText='Hold Record and speak your question.';
         })
-        .catch(err=>{
+        .catch(()=>{
             micGranted=false;
             setMicNote('Mic denied — allow mic in browser settings','err');
         });
@@ -609,13 +1066,10 @@ function setMicNote(msg,cls){
     el.innerText=msg; el.className='mic-note '+cls;
 }
 
-// Build a fresh SpeechRecognition each press
 function buildRecognition(){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!SR) return null;
     const r=new SR();
-    // continuous:false = one natural utterance, stops on silence
-    // This prevents the repeated/looping transcript issue
     r.continuous=false;
     r.interimResults=true;
     r.lang='en-IN';
@@ -636,7 +1090,6 @@ function buildRecognition(){
         }
         finalTranscript+=fin;
         const disp=(finalTranscript+interim).trim();
-        // Show only live interim on the strip (truncated)
         const show=disp.length>60?'…'+disp.slice(-60):disp;
         document.getElementById('cTranscript').innerText=show||'Listening…';
     };
@@ -646,15 +1099,10 @@ function buildRecognition(){
         setMicNote('Speech error: '+e.error,'err');
     };
 
-    // When it ends naturally (silence detected) AND user is still holding:
-    // DON'T restart — just wait for release. This stops the repetition problem.
     r.onend=()=>{
         if(isRecording){
-            // Silent — show what we have so far
             const t=finalTranscript.trim();
             if(t) document.getElementById('cTranscript').innerText=t;
-            // Recognition ended by itself (silence). Mark done so stopRec sends it.
-            // User can release now.
         }
     };
     return r;
@@ -664,19 +1112,21 @@ function startRec(e){
     e.preventDefault();
     if(isRecording) return;
     if(!micGranted){
-        document.getElementById('cTranscript').innerText='⚠ Mic not ready. Grant permission first.';
+        document.getElementById('cTranscript').innerText='Mic not ready. Grant permission first.';
         return;
     }
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR){ document.getElementById('cTranscript').innerText='⚠ Use Chrome for speech support.'; return; }
+    if(!SR){ document.getElementById('cTranscript').innerText='Use Chrome for speech support.'; return; }
 
     isRecording=true;
     finalTranscript='';
     recognition=buildRecognition();
 
     document.getElementById('recordBtn').className='record-btn rec';
-    document.getElementById('btnInner').innerHTML=
-        '<span class="wb"></span><span class="wb"></span><span class="wb"></span>&nbsp;RELEASE TO SEND';
+    // Swap icon to stop icon
+    document.getElementById('btnIcon').innerHTML=
+        '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+    document.getElementById('btnInner').innerText='Release to Send';
 
     try{ recognition.start(); }
     catch(ex){
@@ -697,13 +1147,10 @@ function stopRec(e){
         document.getElementById('cTranscript').className='c-transcript';
 
         if(q.length>1){
-            // Show briefly then clear
-            document.getElementById('cTranscript').innerText='✓ Sent: '+q.slice(0,50)+(q.length>50?'…':'');
+            document.getElementById('cTranscript').innerText='Sent: '+q.slice(0,55)+(q.length>55?'…':'');
             setTimeout(()=>{
-                document.getElementById('cTranscript').innerText='Hold RECORD and speak your question.';
+                document.getElementById('cTranscript').innerText='Hold Record and speak your question.';
             },2500);
-
-            // Send to screen & AI
             if(conn&&conn.open) conn.send({type:'question',val:q});
             askGemini(q);
         } else {
@@ -716,23 +1163,26 @@ function ifRecStop(e){ if(isRecording) stopRec(e); }
 
 function resetBtn(){
     document.getElementById('recordBtn').className='record-btn idle';
-    document.getElementById('btnInner').innerText='🎙  HOLD TO RECORD';
+    document.getElementById('btnIcon').innerHTML=
+        '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>';
+    document.getElementById('btnInner').innerText='Hold to Record';
 }
 
 // ─────────────────────────────────────────────
-//  GEMINI  (gemini-2.5-flash-preview REST SSE)
+//  GEMINI  (gemini-2.5-flash REST SSE)
 // ─────────────────────────────────────────────
 async function askGemini(question){
     const styleMap={
-        detailed:'Give a detailed, well-structured answer suitable for an exam. Use clear paragraphs. Be thorough.',
-        concise:'Give a concise, direct answer in 2–3 sentences only.',
-        bullets:'Answer using clear numbered bullet points. Keep each point brief.',
-        simple:'Explain simply as if teaching a beginner. Use short sentences and everyday language.'
+        detailed:'Give a detailed, well-structured answer suitable for an exam. Write in clear, flowing paragraphs — avoid lists or bullet points. Be thorough and accurate.',
+        concise:'Give a concise, direct answer in 2–3 sentences. No lists. Write in plain prose.',
+        bullets:'Answer using 3–5 numbered points. Keep each point to one clear sentence.',
+        simple:'Explain simply as if teaching a beginner. Use short sentences, plain language, and no jargon. Write in prose paragraphs.'
     };
-    const prompt=[
-        subject?'Subject: '+subject+'.':'',
+    const subjectLine = subject ? 'Subject context: '+subject+'.' : '';
+    const prompt = [
+        subjectLine,
         styleMap[answerStyle]||styleMap.detailed,
-        'Do not start with filler phrases. Start the answer directly.',
+        'Do not start with phrases like "Sure!" or "Great question." Begin the answer directly and confidently.',
         '',
         'Question: '+question
     ].filter(Boolean).join(' ');
