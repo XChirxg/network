@@ -276,7 +276,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: 20;
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -285,7 +285,8 @@ body {
   background: var(--display-bg);
   transition: opacity .5s ease;
 }
-#dQOverlay.hidden { opacity:0; pointer-events:none; }
+#dQOverlay.visible { display: flex; opacity: 1; }
+#dQOverlay.fading { opacity: 0; }
 
 .dq-label {
   font-family: 'DM Mono', monospace;
@@ -374,6 +375,8 @@ body {
 #displayContent p:last-child { margin-bottom: 0; }
 #displayContent strong { font-weight: 600; color: var(--accent); }
 #displayContent em { color: var(--text-secondary); font-style: italic; }
+#displayContent ol, #displayContent ul { padding-left: 1.4em; margin-bottom: 1em; }
+#displayContent li { margin-bottom: .4em; }
 
 .cursor {
   display: inline-block;
@@ -854,7 +857,7 @@ input[type=range]::-moz-range-thumb {
       <div class="wc-sub">Enter this on the remote device</div>
     </div>
 
-    <div id="dQOverlay" style="display:none">
+    <div id="dQOverlay">
       <div class="dq-label">Question Received</div>
       <div class="dq-text" id="dQText"></div>
       <div class="dq-thinking">
@@ -896,54 +899,54 @@ input[type=range]::-moz-range-thumb {
     <div class="setting-group">
       <div class="sg-label">2 · Font Family</div>
       <div class="font-chips">
-        <button class="font-chip active" onclick="setFont('crimson')" style="font-family:'Crimson Pro',serif">Crimson</button>
-        <button class="font-chip" onclick="setFont('sans')" style="font-family:'DM Sans',sans-serif">DM Sans</button>
-        <button class="font-chip" onclick="setFont('mono')" style="font-family:'DM Mono',monospace">Mono</button>
-        <button class="font-chip" onclick="setFont('serif')" style="font-family:Georgia,serif">Georgia</button>
+        <button class="font-chip active" onclick="setFont('crimson', this)" style="font-family:'Crimson Pro',serif">Crimson</button>
+        <button class="font-chip" onclick="setFont('sans', this)" style="font-family:'DM Sans',sans-serif">DM Sans</button>
+        <button class="font-chip" onclick="setFont('mono', this)" style="font-family:'DM Mono',monospace">Mono</button>
+        <button class="font-chip" onclick="setFont('serif', this)" style="font-family:Georgia,serif">Georgia</button>
       </div>
     </div>
 
     <div class="setting-group">
       <div class="sg-label">3 · Line Spacing</div>
       <div class="lh-chips">
-        <button class="lh-chip" onclick="setLineHeight(1.3)">TIGHT<br>1.3×</button>
-        <button class="lh-chip active" onclick="setLineHeight(1.8)">NORMAL<br>1.8×</button>
-        <button class="lh-chip" onclick="setLineHeight(2.4)">LOOSE<br>2.4×</button>
-        <button class="lh-chip" onclick="setLineHeight(3.0)">AIRY<br>3.0×</button>
+        <button class="lh-chip" onclick="setLineHeight(1.3, this)">TIGHT<br>1.3×</button>
+        <button class="lh-chip active" onclick="setLineHeight(1.8, this)">NORMAL<br>1.8×</button>
+        <button class="lh-chip" onclick="setLineHeight(2.4, this)">LOOSE<br>2.4×</button>
+        <button class="lh-chip" onclick="setLineHeight(3.0, this)">AIRY<br>3.0×</button>
       </div>
     </div>
 
     <div class="setting-group">
       <div class="sg-label">4 · Response Word Limit</div>
       <div class="wl-chips">
-        <button class="wl-chip" onclick="setWordLimit(15)">~15w</button>
-        <button class="wl-chip" onclick="setWordLimit(50)">50w</button>
-        <button class="wl-chip active" onclick="setWordLimit(100)">100w</button>
-        <button class="wl-chip" onclick="setWordLimit(200)">200w</button>
-        <button class="wl-chip" onclick="setWordLimit(500)">500w</button>
-        <button class="wl-chip" onclick="setWordLimit(0)">FULL</button>
+        <button class="wl-chip" onclick="setWordLimit(15, this)">~15w</button>
+        <button class="wl-chip" onclick="setWordLimit(50, this)">50w</button>
+        <button class="wl-chip active" onclick="setWordLimit(100, this)">100w</button>
+        <button class="wl-chip" onclick="setWordLimit(200, this)">200w</button>
+        <button class="wl-chip" onclick="setWordLimit(500, this)">500w</button>
+        <button class="wl-chip" onclick="setWordLimit(0, this)">FULL</button>
       </div>
     </div>
 
     <div class="setting-group">
       <div class="sg-label">5 · Color Scheme</div>
       <div class="scheme-row">
-        <div class="scheme-chip selected" title="Dark" onclick="setScheme('dark')" style="background:#0d0d10; border-color:var(--accent)">
+        <div class="scheme-chip selected" title="Dark" onclick="setScheme('dark', this)" style="background:#0d0d10; border-color:var(--accent)">
           <div style="position:absolute;inset:5px;background:rgba(197,155,109,.8);border-radius:5px;width:14px;height:14px"></div>
         </div>
-        <div class="scheme-chip" title="Sepia" onclick="setScheme('sepia')" style="background:#2b2318">
+        <div class="scheme-chip" title="Sepia" onclick="setScheme('sepia', this)" style="background:#2b2318">
           <div style="position:absolute;inset:5px;background:#c59b6d;border-radius:5px;width:14px;height:14px"></div>
         </div>
-        <div class="scheme-chip" title="Light" onclick="setScheme('light')" style="background:#f5f2ed">
+        <div class="scheme-chip" title="Light" onclick="setScheme('light', this)" style="background:#f5f2ed">
           <div style="position:absolute;inset:5px;background:#3a3530;border-radius:5px;width:14px;height:14px"></div>
         </div>
-        <div class="scheme-chip" title="High Contrast" onclick="setScheme('contrast')" style="background:#000000">
+        <div class="scheme-chip" title="High Contrast" onclick="setScheme('contrast', this)" style="background:#000000">
           <div style="position:absolute;inset:5px;background:#ffffff;border-radius:5px;width:14px;height:14px"></div>
         </div>
-        <div class="scheme-chip" title="Night Blue" onclick="setScheme('blue')" style="background:#0a0e1a">
+        <div class="scheme-chip" title="Night Blue" onclick="setScheme('blue', this)" style="background:#0a0e1a">
           <div style="position:absolute;inset:5px;background:#7aadff;border-radius:5px;width:14px;height:14px"></div>
         </div>
-        <div class="scheme-chip" title="Forest" onclick="setScheme('forest')" style="background:#0a1410">
+        <div class="scheme-chip" title="Forest" onclick="setScheme('forest', this)" style="background:#0a1410">
           <div style="position:absolute;inset:5px;background:#7ecfa8;border-radius:5px;width:14px;height:14px"></div>
         </div>
       </div>
@@ -958,20 +961,20 @@ input[type=range]::-moz-range-thumb {
     <div class="setting-group">
       <div class="sg-label">7 · Side Margins</div>
       <div class="pad-chips">
-        <button class="pad-chip" onclick="setPadding('none')">NONE</button>
-        <button class="pad-chip" onclick="setPadding('narrow')">NARROW</button>
-        <button class="pad-chip active" onclick="setPadding('normal')">NORMAL</button>
-        <button class="pad-chip" onclick="setPadding('wide')">WIDE</button>
+        <button class="pad-chip" onclick="setPadding('none', this)">NONE</button>
+        <button class="pad-chip" onclick="setPadding('narrow', this)">NARROW</button>
+        <button class="pad-chip active" onclick="setPadding('normal', this)">NORMAL</button>
+        <button class="pad-chip" onclick="setPadding('wide', this)">WIDE</button>
       </div>
     </div>
 
     <div class="setting-group">
       <div class="sg-label">8 · Auto-Scroll Speed</div>
       <div class="speed-chips">
-        <button class="speed-chip" onclick="setScrollMult(0.06)">SLOW</button>
-        <button class="speed-chip active" onclick="setScrollMult(0.13)">NORMAL</button>
-        <button class="speed-chip" onclick="setScrollMult(0.22)">FAST</button>
-        <button class="speed-chip" onclick="setScrollMult(0.4)">TURBO</button>
+        <button class="speed-chip" onclick="setScrollMult(0.06, this)">SLOW</button>
+        <button class="speed-chip active" onclick="setScrollMult(0.13, this)">NORMAL</button>
+        <button class="speed-chip" onclick="setScrollMult(0.22, this)">FAST</button>
+        <button class="speed-chip" onclick="setScrollMult(0.4, this)">TURBO</button>
       </div>
     </div>
 
@@ -1029,13 +1032,13 @@ input[type=range]::-moz-range-thumb {
         </svg>
         RESET
       </button>
-      <button class="sm-btn" onclick="sendScrollCmd(0)">
+      <button class="sm-btn" onclick="sendScrollStop()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
         </svg>
         STOP
       </button>
-      <button class="sm-btn" onclick="sendScrollCmd(-999); setTimeout(()=>sendScrollCmd(0),50)">
+      <button class="sm-btn" onclick="sendScrollTop()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/>
         </svg>
@@ -1059,7 +1062,8 @@ input[type=range]::-moz-range-thumb {
 //  GLOBALS
 // ─────────────────────────────────────────────
 const PEER_PREFIX = 'EXAMAI-V5-';
-let peer, conn;
+let peer = null;
+let conn = null;
 let apiKey = '', subject = '', answerStyle = 'detailed';
 let myRoomCode = '';
 let recognition = null;
@@ -1067,12 +1071,16 @@ let isRecording = false;
 let micGranted = false;
 let finalTranscript = '';
 let qCount = 0;
-let padTouching = false, padTouchStartY = 0;
 let scrollMultiplier = 0.13;
 let currentAbortController = null;
 let isProcessing = false;
 
-// ── DISPLAY SETTINGS ──
+// ── WORD LIMIT — lives on controller, synced from display settings ──
+// FIX: wordLimit is kept as a standalone variable on controller side
+// so the display's settings panel can push updates via the peer connection.
+let controllerWordLimit = 100;
+
+// ── DISPLAY SETTINGS (display device only) ──
 let settings = {
   fontSize: 2.0,
   fontFamily: 'crimson',
@@ -1112,14 +1120,21 @@ const PADDINGS = {
 // Restore saved prefs
 (function(){
   try {
-    const k = localStorage.getItem('exa_k');
-    const s = localStorage.getItem('exa_s');
+    const k  = localStorage.getItem('exa_k');
+    const s  = localStorage.getItem('exa_s');
     const st = localStorage.getItem('exa_st');
     const sv = localStorage.getItem('exa_settings');
-    if(k) document.getElementById('apiKeyInput').value = atob(k);
-    if(s) document.getElementById('subjectInput').value = s;
+    if(k)  document.getElementById('apiKeyInput').value = atob(k);
+    if(s)  document.getElementById('subjectInput').value = s;
     if(st) document.getElementById('styleInput').value = st;
-    if(sv) { try { settings = {...settings,...JSON.parse(sv)}; } catch(e){} }
+    if(sv) {
+      try {
+        const parsed = JSON.parse(sv);
+        settings = {...settings, ...parsed};
+        // Restore word limit for controller too
+        if(parsed.wordLimit !== undefined) controllerWordLimit = parsed.wordLimit;
+      } catch(e){}
+    }
   } catch(e){}
 })();
 
@@ -1128,7 +1143,7 @@ function saveSettings(){
 }
 
 // ─────────────────────────────────────────────
-//  SETUP HELPERS
+//  VIEW HELPERS
 // ─────────────────────────────────────────────
 function showView(id){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('show'));
@@ -1141,7 +1156,7 @@ function setStatus(msg, isErr){
 }
 
 // ─────────────────────────────────────────────
-//  SETTINGS PANEL
+//  SETTINGS PANEL — FIX: pass `this` instead of using global event
 // ─────────────────────────────────────────────
 function openSettings(){
   applySettingsToUI();
@@ -1158,8 +1173,8 @@ function applySettingsToUI(){
   document.getElementById('fontSizeDisplay').innerText = settings.fontSize.toFixed(1) + ' rem';
   applyFontPreview();
   document.getElementById('contrastSlider').value = settings.contrast;
-  document.getElementById('markerToggle').className = 'toggle' + (settings.markerOn?' on':'');
-  document.getElementById('readingModeToggle').className = 'toggle' + (settings.readingMode?' on':'');
+  document.getElementById('markerToggle').className    = 'toggle' + (settings.markerOn   ? ' on' : '');
+  document.getElementById('readingModeToggle').className = 'toggle' + (settings.readingMode ? ' on' : '');
 }
 
 function onFontSlider(val){
@@ -1179,34 +1194,41 @@ function setFontPreset(size){
 }
 function applyFontPreview(){
   const el = document.getElementById('fontPreview');
-  el.style.fontSize = Math.min(settings.fontSize, 2.5) + 'rem';
+  el.style.fontSize   = Math.min(settings.fontSize, 2.5) + 'rem';
   el.style.fontFamily = FONTS[settings.fontFamily] || FONTS.crimson;
 }
-function setFont(name){
+
+// FIX: all chip setters now receive `btn` (the element) instead of using global `event`
+function setFont(name, btn){
   settings.fontFamily = name;
   document.querySelectorAll('.font-chip').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if(btn) btn.classList.add('active');
   applyFontPreview();
   applyDisplaySettings();
   saveSettings();
 }
-function setLineHeight(val){
+function setLineHeight(val, btn){
   settings.lineHeight = val;
   document.querySelectorAll('.lh-chip').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if(btn) btn.classList.add('active');
   applyDisplaySettings();
   saveSettings();
 }
-function setWordLimit(val){
+
+// FIX: wordLimit change is also sent to the controller via peer so askGemini uses correct limit
+function setWordLimit(val, btn){
   settings.wordLimit = val;
+  controllerWordLimit = val; // update local copy too in case same device
   document.querySelectorAll('.wl-chip').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if(btn) btn.classList.add('active');
+  // Push the new word limit to controller
+  if(conn && conn.open) conn.send({type:'settings', val:{ wordLimit: val }});
   saveSettings();
 }
-function setScheme(name){
+function setScheme(name, btn){
   settings.scheme = name;
   document.querySelectorAll('.scheme-chip').forEach(b => b.classList.remove('selected'));
-  event.target.classList.add('selected');
+  if(btn) btn.classList.add('selected');
   applyDisplaySettings();
   saveSettings();
 }
@@ -1215,42 +1237,42 @@ function setContrast(val){
   applyDisplaySettings();
   saveSettings();
 }
-function setPadding(name){
+function setPadding(name, btn){
   settings.padding = name;
   document.querySelectorAll('.pad-chip').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if(btn) btn.classList.add('active');
   applyDisplaySettings();
   saveSettings();
 }
-function setScrollMult(val){
+function setScrollMult(val, btn){
   settings.scrollMult = val;
   scrollMultiplier = val;
   document.querySelectorAll('.speed-chip').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if(btn) btn.classList.add('active');
   saveSettings();
 }
 function toggleMarker(){
   settings.markerOn = !settings.markerOn;
-  document.getElementById('markerToggle').className = 'toggle' + (settings.markerOn?' on':'');
+  document.getElementById('markerToggle').className = 'toggle' + (settings.markerOn ? ' on' : '');
   applyDisplaySettings();
   saveSettings();
 }
 function toggleReadingMode(){
   settings.readingMode = !settings.readingMode;
-  document.getElementById('readingModeToggle').className = 'toggle' + (settings.readingMode?' on':'');
+  document.getElementById('readingModeToggle').className = 'toggle' + (settings.readingMode ? ' on' : '');
   applyDisplaySettings();
   saveSettings();
 }
 
 function applyDisplaySettings(){
-  const root = document.documentElement;
+  const root   = document.documentElement;
   const scheme = SCHEMES[settings.scheme] || SCHEMES.dark;
-  root.style.setProperty('--display-font-size', settings.fontSize + 'rem');
-  root.style.setProperty('--display-line-height', settings.lineHeight);
-  root.style.setProperty('--display-font-family', FONTS[settings.fontFamily] || FONTS.crimson);
-  root.style.setProperty('--display-bg', scheme.bg);
-  root.style.setProperty('--display-text-color', scheme.textColor);
-  root.style.setProperty('--display-contrast', settings.contrast);
+  root.style.setProperty('--display-font-size',   settings.fontSize + 'rem');
+  root.style.setProperty('--display-line-height',  settings.lineHeight);
+  root.style.setProperty('--display-font-family',  FONTS[settings.fontFamily] || FONTS.crimson);
+  root.style.setProperty('--display-bg',           scheme.bg);
+  root.style.setProperty('--display-text-color',   scheme.textColor);
+  root.style.setProperty('--display-contrast',     settings.contrast);
   const dc = document.getElementById('displayContent');
   if(dc) dc.style.padding = PADDINGS[settings.padding] || PADDINGS.normal;
   const dv = document.getElementById('displayView');
@@ -1260,9 +1282,9 @@ function applyDisplaySettings(){
     else dv.classList.remove('reading-mode');
   }
   const markerLine = document.getElementById('markerLine');
-  const markerTri = document.getElementById('markerTri');
+  const markerTri  = document.getElementById('markerTri');
   if(markerLine) markerLine.style.opacity = settings.markerOn ? '1' : '0';
-  if(markerTri) markerTri.style.opacity = settings.markerOn ? '1' : '0';
+  if(markerTri)  markerTri.style.opacity  = settings.markerOn ? '1' : '0';
   const wc = document.getElementById('waitingCode');
   if(wc) wc.style.background = scheme.bg;
   const qOverlay = document.getElementById('dQOverlay');
@@ -1278,7 +1300,7 @@ function startDisplay(){
   requestWakeLock();
   peer = new Peer(PEER_PREFIX + myRoomCode);
   peer.on('open', () => {
-    document.getElementById('dCodeBox').innerText = 'CODE: ' + myRoomCode;
+    document.getElementById('dCodeBox').innerText  = 'CODE: ' + myRoomCode;
     document.getElementById('wcBigCode').innerText = myRoomCode;
     showView('displayView');
     applyDisplaySettings();
@@ -1291,6 +1313,7 @@ function startDisplay(){
     setTimeout(() => { wc.style.display = 'none'; }, 400);
     c.on('data', handleDisplayData);
     c.on('close', () => {
+      conn = null;
       setDStatus('LOST', '');
       const wc2 = document.getElementById('waitingCode');
       wc2.style.display = 'flex';
@@ -1305,97 +1328,159 @@ function startDisplay(){
 
 function setDStatus(txt, cls){
   const el = document.getElementById('dStatus');
-  el.innerText = txt;
-  el.className = 'd-status ' + cls;
+  el.innerText   = txt;
+  el.className   = 'd-status ' + cls;
 }
 
 // ─────────────────────────────────────────────
-//  DISPLAY DATA HANDLER — no animation, just render
+//  DISPLAY DATA HANDLER
+//  FIX: every case wrapped in {} to allow block-scoped `const`
 // ─────────────────────────────────────────────
 function handleDisplayData(data){
   switch(data.type){
 
-    case 'question':
+    case 'question': {
       document.getElementById('displayContent').innerHTML = '';
       const ov = document.getElementById('dQOverlay');
-      ov.style.display = 'flex'; ov.style.opacity = '1'; ov.classList.remove('hidden');
+      ov.classList.remove('fading');
+      ov.classList.add('visible');
+      ov.style.background = (SCHEMES[settings.scheme] || SCHEMES.dark).bg;
       document.getElementById('dQText').innerText = data.val;
       document.getElementById('displayScroll').scrollTop = 0;
       setDStatus('THINKING', 'thinking');
       break;
+    }
 
-    case 'chunk':
+    case 'chunk': {
       // Hide question overlay on first chunk
-      const o = document.getElementById('dQOverlay');
-      if(o.style.display !== 'none'){
-        o.classList.add('hidden');
-        setTimeout(() => { o.style.display = 'none'; }, 500);
+      const ov = document.getElementById('dQOverlay');
+      if(ov.classList.contains('visible')){
+        ov.classList.add('fading');
+        setTimeout(() => {
+          ov.classList.remove('visible');
+          ov.classList.remove('fading');
+        }, 500);
       }
-      // Render the full accumulated text so far (with cursor)
       renderText(data.val, true);
       setDStatus('STREAMING', 'streaming');
       break;
+    }
 
-    case 'done':
-      // Render the complete final text — no cursor
+    case 'done': {
+      // Ensure overlay is hidden
+      const ov = document.getElementById('dQOverlay');
+      ov.classList.remove('visible');
+      ov.classList.remove('fading');
       renderText(data.val, false);
       setDStatus('READY', 'connected');
       break;
+    }
 
-    case 'error':
-      document.getElementById('dQOverlay').style.display = 'none';
+    case 'error': {
+      const ov = document.getElementById('dQOverlay');
+      ov.classList.remove('visible');
       document.getElementById('displayContent').innerHTML =
-        '<p style="color:var(--danger)">Error: ' + data.val + '</p>';
+        '<p style="color:var(--danger)">Error: ' + escapeHtml(data.val) + '</p>';
       setDStatus('ERROR', '');
       break;
+    }
 
-    case 'scroll':
+    case 'scroll': {
       smoothScrollBy(data.val);
       break;
+    }
 
-    case 'reset':
+    case 'scrolltop': {
+      document.getElementById('displayScroll').scrollTop = 0;
+      break;
+    }
+
+    case 'reset': {
       document.getElementById('displayContent').innerHTML = '';
-      document.getElementById('dQOverlay').style.display = 'none';
+      const ov = document.getElementById('dQOverlay');
+      ov.classList.remove('visible');
       const wc = document.getElementById('waitingCode');
+      wc.style.background = (SCHEMES[settings.scheme] || SCHEMES.dark).bg;
       wc.style.display = 'flex';
-      wc.style.background = SCHEMES[settings.scheme]?.bg || '#0d0d10';
       setTimeout(() => wc.classList.remove('hidden'), 10);
       setDStatus('CONNECTED', 'connected');
       break;
+    }
 
-    case 'hideUI':
+    case 'hideUI': {
       const els = [
-        document.getElementById('markerLine'), document.getElementById('markerTri'),
-        document.getElementById('dStatus'), document.getElementById('dCodeBox')
+        document.getElementById('markerLine'),
+        document.getElementById('markerTri'),
+        document.getElementById('dStatus'),
+        document.getElementById('dCodeBox')
       ];
-      const hide = els[0].style.opacity !== '0';
+      const hide = els[0] && els[0].style.opacity !== '0';
       els.forEach(e => { if(e) e.style.opacity = hide ? '0' : '1'; });
       break;
+    }
 
-    case 'settings':
-      if(data.val){ settings = {...settings, ...data.val}; applyDisplaySettings(); }
+    case 'settings': {
+      // FIX: controller can push wordLimit update back; display accepts other settings too
+      if(data.val){
+        settings = {...settings, ...data.val};
+        if(data.val.wordLimit !== undefined) controllerWordLimit = data.val.wordLimit;
+        applyDisplaySettings();
+        saveSettings();
+      }
       break;
+    }
+
+    default: break;
   }
 }
 
-// ── SIMPLE TEXT RENDERER — no animation complexity ──
+// ── HTML ESCAPE HELPER (prevents XSS in error messages) ──
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── TEXT RENDERER ──
+// FIX: handles single-newline lists (numbered + bullet) properly
 function renderText(raw, streaming){
-  // Basic markdown: **bold** and *italic*
-  let html = raw
+  // Escape HTML first so we control what tags are present
+  let safe = escapeHtml(raw);
+
+  // Re-apply markdown: **bold** and *italic*
+  safe = safe
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+    .replace(/\*(.*?)\*/g,     '<em>$1</em>');
 
-  // Split into paragraphs on double newlines
-  const paras = html.split(/\n{2,}/);
-  html = paras.map(p => {
-    const line = p.replace(/\n/g, ' ').trim();
-    if(!line) return '';
-    return '<p>' + line + '</p>';
-  }).filter(Boolean).join('');
+  // Split into blocks on blank lines
+  const blocks = safe.split(/\n{2,}/);
+  let html = '';
 
-  // Add blinking cursor during streaming
+  blocks.forEach(block => {
+    const trimmed = block.trim();
+    if(!trimmed) return;
+
+    const lines = trimmed.split('\n').map(l => l.trim()).filter(Boolean);
+
+    // Detect numbered list: lines starting with "1." "2." etc
+    const isNumbered = lines.every(l => /^\d+[\.\)]\s/.test(l));
+    // Detect bullet list: lines starting with - or *
+    const isBullet   = lines.every(l => /^[-*•]\s/.test(l));
+
+    if(isNumbered){
+      html += '<ol>' + lines.map(l => '<li>' + l.replace(/^\d+[\.\)]\s+/, '') + '</li>').join('') + '</ol>';
+    } else if(isBullet){
+      html += '<ul>' + lines.map(l => '<li>' + l.replace(/^[-*•]\s+/, '') + '</li>').join('') + '</ul>';
+    } else {
+      // Regular paragraph — join lines with space
+      html += '<p>' + lines.join(' ') + '</p>';
+    }
+  });
+
+  // Add blinking cursor at the very end during streaming
   if(streaming){
-    html = html.replace(/<\/p>$/, '<span class="cursor"></span></p>');
+    html = html.replace(/(<\/p>|<\/li>|<\/ol>|<\/ul>)$/, '<span class="cursor"></span>$1');
+    if(!html.includes('cursor')) html += '<span class="cursor"></span>';
   }
 
   document.getElementById('displayContent').innerHTML = html;
@@ -1409,18 +1494,18 @@ function renderText(raw, streaming){
 
 // ── SMOOTH SCROLL ──
 let scrollVelocity = 0;
-let scrollRafId = null;
+let scrollRafId    = null;
 
 function smoothScrollBy(speed){
-  scrollVelocity = speed * 2.5;
+  scrollVelocity = speed;
   if(!scrollRafId) scrollRaf();
 }
 function scrollRaf(){
   const scroll = document.getElementById('displayScroll');
-  if(!scroll){ scrollRafId=null; return; }
-  if(Math.abs(scrollVelocity) < 0.1){ scrollVelocity=0; scrollRafId=null; return; }
+  if(!scroll){ scrollRafId = null; return; }
+  if(Math.abs(scrollVelocity) < 0.1){ scrollVelocity = 0; scrollRafId = null; return; }
   scroll.scrollTop += scrollVelocity;
-  scrollVelocity *= 0.92;
+  scrollVelocity   *= 0.92;
   scrollRafId = requestAnimationFrame(scrollRaf);
 }
 
@@ -1433,15 +1518,17 @@ function toggleFS(){
 //  CONTROLLER DEVICE
 // ─────────────────────────────────────────────
 function showRemoteSetup(){
-  document.getElementById('modeBtns').style.display = 'none';
-  document.getElementById('apiSetup').style.display = 'flex';
+  document.getElementById('modeBtns').style.display    = 'none';
+  document.getElementById('apiSetup').style.display    = 'flex';
   document.getElementById('formDivider').style.display = 'block';
   document.getElementById('connectGroup').style.display = 'flex';
   setStatus('Enter screen code + API key');
 }
 function backToMain(){
-  document.getElementById('modeBtns').style.display = 'flex';
-  document.getElementById('apiSetup').style.display = 'none';
+  // FIX: destroy peer if exists when going back
+  if(peer){ try{ peer.destroy(); }catch(e){} peer = null; conn = null; }
+  document.getElementById('modeBtns').style.display    = 'flex';
+  document.getElementById('apiSetup').style.display    = 'none';
   document.getElementById('formDivider').style.display = 'none';
   document.getElementById('connectGroup').style.display = 'none';
   setStatus('Select your role');
@@ -1449,15 +1536,15 @@ function backToMain(){
 
 function connectToDisplay(){
   const code = document.getElementById('codeInput').value.trim();
-  const key = document.getElementById('apiKeyInput').value.trim();
+  const key  = document.getElementById('apiKeyInput').value.trim();
   if(!code || code.length < 4){ setStatus('Enter 4-digit code', true); return; }
   if(!key || !key.startsWith('AIza')){ setStatus('Enter valid Gemini API key', true); return; }
 
-  apiKey = key;
-  subject = document.getElementById('subjectInput').value.trim();
+  apiKey      = key;
+  subject     = document.getElementById('subjectInput').value.trim();
   answerStyle = document.getElementById('styleInput').value;
-  try { localStorage.setItem('exa_k', btoa(key)); } catch(e){}
-  try { localStorage.setItem('exa_s', subject); } catch(e){}
+  try { localStorage.setItem('exa_k',  btoa(key)); }   catch(e){}
+  try { localStorage.setItem('exa_s',  subject); }     catch(e){}
   try { localStorage.setItem('exa_st', answerStyle); } catch(e){}
 
   setStatus('Connecting to screen...');
@@ -1467,14 +1554,16 @@ function connectToDisplay(){
     conn = peer.connect(PEER_PREFIX + code, {reliable:true});
     conn.on('open', () => {
       showView('controllerView');
-      document.getElementById('cConn').innerText = 'SCREEN CONNECTED';
-      document.getElementById('cConn').className = 'c-conn ok';
+      document.getElementById('cConn').innerText  = 'SCREEN CONNECTED';
+      document.getElementById('cConn').className  = 'c-conn ok';
       initMic();
       setupScrollPad();
     });
+    conn.on('data', handleControllerData);
     conn.on('close', () => {
-      document.getElementById('cConn').innerText = 'DISCONNECTED';
-      document.getElementById('cConn').className = 'c-conn err';
+      conn = null;
+      document.getElementById('cConn').innerText  = 'DISCONNECTED';
+      document.getElementById('cConn').className  = 'c-conn err';
     });
   });
   peer.on('error', err => {
@@ -1483,82 +1572,81 @@ function connectToDisplay(){
   });
 }
 
-function sendCmd(type){ if(conn && conn.open) conn.send({type}); }
-function sendScrollCmd(val){
-  if(conn && conn.open) conn.send({type:'scroll', val: val * scrollMultiplier / 0.13});
+// FIX: controller now handles incoming data from display (e.g. wordLimit updates)
+function handleControllerData(data){
+  if(data.type === 'settings' && data.val){
+    if(data.val.wordLimit !== undefined){
+      controllerWordLimit = data.val.wordLimit;
+    }
+  }
+}
+
+function sendCmd(type){
+  if(conn && conn.open) conn.send({type});
+}
+
+// FIX: scroll stop and top are proper commands, no setTimeout race
+function sendScrollStop(){
+  if(conn && conn.open) conn.send({type:'scroll', val:0});
+}
+function sendScrollTop(){
+  if(conn && conn.open) conn.send({type:'scrolltop'});
 }
 
 // ── SCROLL PAD ──
+// FIX: removed double-multiplication of scrollMultiplier.
+// Speed is computed once here and sent raw to display.
 function setupScrollPad(){
-  const pad = document.getElementById('scrollPad');
+  const pad  = document.getElementById('scrollPad');
   const head = document.getElementById('stickHead');
   const base = document.getElementById('stickBase');
 
-  pad.addEventListener('touchstart', e => {
-    e.preventDefault();
-    padTouching = true;
-    padTouchStartY = e.touches[0].clientY;
+  let padActive = false;
+  let startY    = 0;
+
+  function onStart(clientY){
+    padActive = true;
+    startY    = clientY;
     const rect = pad.getBoundingClientRect();
-    const ry = e.touches[0].clientY - rect.top;
+    const ry   = clientY - rect.top;
     base.style.display = 'block'; base.style.top = ry + 'px';
     head.style.display = 'block'; head.style.top = ry + 'px';
-    head.style.left = (rect.width/2) + 'px';
+    head.style.left    = (rect.width / 2) + 'px';
     head.style.transform = 'translate(-50%,-50%)';
     head.classList.remove('fast');
-  }, {passive:false});
+  }
 
-  pad.addEventListener('touchmove', e => {
-    e.preventDefault();
-    if(!padTouching) return;
-    const dy = padTouchStartY - e.touches[0].clientY;
-    let spd = dy * scrollMultiplier;
-    if(spd > 18) spd = 18;
-    if(spd < -18) spd = -18;
+  function onMove(clientY){
+    if(!padActive) return;
+    const dy  = startY - clientY;
+    let spd   = dy * scrollMultiplier;
+    spd = Math.max(-18, Math.min(18, spd));
     if(conn && conn.open) conn.send({type:'scroll', val: spd});
-    let vis = -dy; if(vis>50)vis=50; if(vis<-50)vis=-50;
+    const vis = Math.max(-50, Math.min(50, -dy));
     head.style.transform = `translate(-50%, calc(-50% + ${vis}px))`;
     head.classList.toggle('fast', Math.abs(spd) > 10);
-    document.getElementById('padSpeedTxt').innerText = spd===0?'':(spd>0?'▲ scrolling up':'▼ scrolling down');
-  }, {passive:false});
+    document.getElementById('padSpeedTxt').innerText =
+      spd === 0 ? '' : (spd > 0 ? '▲ scrolling up' : '▼ scrolling down');
+  }
 
-  pad.addEventListener('touchend', e => {
-    e.preventDefault();
-    if(e.touches.length === 0){
-      padTouching = false;
-      if(conn && conn.open) conn.send({type:'scroll', val:0});
-      head.style.display='none'; base.style.display='none';
-      head.style.transform='translate(-50%,-50%)';
-      head.classList.remove('fast');
-      document.getElementById('padSpeedTxt').innerText='';
-    }
-  }, {passive:false});
-
-  let mouseDown = false;
-  pad.addEventListener('mousedown', e => {
-    mouseDown = true; padTouchStartY = e.clientY;
-    const rect = pad.getBoundingClientRect();
-    base.style.display='block'; base.style.top=(e.clientY-rect.top)+'px';
-    head.style.display='block'; head.style.top=(e.clientY-rect.top)+'px';
-    head.style.left=(rect.width/2)+'px';
-    head.style.transform='translate(-50%,-50%)';
-  });
-  pad.addEventListener('mousemove', e => {
-    if(!mouseDown) return;
-    const dy = padTouchStartY - e.clientY;
-    let spd = dy * scrollMultiplier;
-    if(spd>18)spd=18; if(spd<-18)spd=-18;
-    if(conn && conn.open) conn.send({type:'scroll', val:spd});
-    let vis=-dy; if(vis>50)vis=50; if(vis<-50)vis=-50;
-    head.style.transform=`translate(-50%, calc(-50% + ${vis}px))`;
-  });
-  pad.addEventListener('mouseup', () => {
-    mouseDown=false;
+  function onEnd(){
+    if(!padActive) return;
+    padActive = false;
     if(conn && conn.open) conn.send({type:'scroll', val:0});
-    head.style.display='none'; base.style.display='none';
-  });
-  pad.addEventListener('mouseleave', () => {
-    if(mouseDown){ mouseDown=false; if(conn&&conn.open) conn.send({type:'scroll',val:0}); head.style.display='none'; base.style.display='none'; }
-  });
+    head.style.display = 'none'; base.style.display = 'none';
+    head.style.transform = 'translate(-50%,-50%)';
+    head.classList.remove('fast');
+    document.getElementById('padSpeedTxt').innerText = '';
+  }
+
+  pad.addEventListener('touchstart', e => { e.preventDefault(); onStart(e.touches[0].clientY); }, {passive:false});
+  pad.addEventListener('touchmove',  e => { e.preventDefault(); onMove(e.touches[0].clientY);  }, {passive:false});
+  pad.addEventListener('touchend',   e => { e.preventDefault(); if(e.touches.length === 0) onEnd(); }, {passive:false});
+
+  pad.addEventListener('mousedown',  e => onStart(e.clientY));
+  pad.addEventListener('mousemove',  e => onMove(e.clientY));
+  pad.addEventListener('mouseup',    () => onEnd());
+  pad.addEventListener('mouseleave', () => onEnd());
 }
 
 // ── MICROPHONE ──
@@ -1578,45 +1666,61 @@ function initMic(){
 }
 function setMicNote(msg, cls){
   const el = document.getElementById('micNote');
-  el.innerText = msg;
-  el.className = 'mic-note ' + cls;
+  el.innerText  = msg;
+  el.className  = 'mic-note ' + cls;
 }
 
 function buildRecognition(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR) return null;
   const r = new SR();
-  r.continuous = false;
-  r.interimResults = true;
-  r.lang = 'en-IN';
+  r.continuous      = false;
+  r.interimResults  = true;
+  r.lang            = 'en-IN';
   r.maxAlternatives = 1;
+
   r.onstart = () => {
     document.getElementById('cTranscript').className = 'c-transcript recording';
     document.getElementById('cTranscript').innerHTML =
       '<span class="wb"></span><span class="wb"></span><span class="wb"></span>' +
       '<span class="wb"></span><span class="wb"></span>&nbsp;Listening…';
   };
+
   r.onresult = e => {
-    let interim='', fin='';
-    for(let i=e.resultIndex; i<e.results.length; i++){
-      if(e.results[i].isFinal) fin += e.results[i][0].transcript + ' ';
-      else interim += e.results[i][0].transcript;
+    let interim = '', fin = '';
+    for(let i = e.resultIndex; i < e.results.length; i++){
+      if(e.results[i].isFinal) fin    += e.results[i][0].transcript + ' ';
+      else                      interim += e.results[i][0].transcript;
     }
     finalTranscript += fin;
     const disp = (finalTranscript + interim).trim();
     const show = disp.length > 60 ? '…' + disp.slice(-60) : disp;
     document.getElementById('cTranscript').innerText = show || 'Listening…';
   };
+
   r.onerror = e => {
-    if(e.error==='aborted' || e.error==='no-speech') return;
+    if(e.error === 'aborted' || e.error === 'no-speech') return;
     setMicNote('Speech error: ' + e.error, 'err');
   };
+
+  // FIX: onend fires when recognition stops. We wait for it before processing,
+  // so we don't race between onend populating finalTranscript and stopRec timeout.
   r.onend = () => {
-    if(isRecording){
-      const t = finalTranscript.trim();
-      if(t) document.getElementById('cTranscript').innerText = t;
+    if(isRecording) return; // still holding — shouldn't happen with continuous:false but guard it
+    const t = finalTranscript.trim();
+    document.getElementById('cTranscript').className = 'c-transcript';
+    if(t.length > 1){
+      document.getElementById('cTranscript').innerText = 'Sent: ' + t.slice(0,55) + (t.length > 55 ? '…' : '');
+      setTimeout(() => {
+        if(!isRecording) document.getElementById('cTranscript').innerText = 'Hold Record and speak your question.';
+      }, 2500);
+      if(conn && conn.open) conn.send({type:'question', val:t});
+      askGemini(t);
+    } else {
+      document.getElementById('cTranscript').innerText = 'Nothing heard — try again.';
     }
   };
+
   return r;
 }
 
@@ -1630,17 +1734,21 @@ function startRec(e){
   }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){ document.getElementById('cTranscript').innerText = 'Use Chrome for speech support.'; return; }
-  isRecording = true;
+
+  isRecording     = true;
   finalTranscript = '';
-  recognition = buildRecognition();
+  recognition     = buildRecognition();
+
   document.getElementById('recordBtn').className = 'record-btn rec';
   document.getElementById('btnIcon').innerHTML =
     '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
-  document.getElementById('btnInner').innerHTML = 'Release to Send';
+  document.getElementById('btnInner').innerText = 'Release to Send';
+
   try { recognition.start(); }
   catch(ex){
     document.getElementById('cTranscript').innerText = 'Could not start: ' + ex.message;
-    isRecording = false; resetBtn();
+    isRecording = false;
+    resetBtn();
   }
 }
 
@@ -1649,29 +1757,18 @@ function cancelCurrent(){
   isProcessing = false;
   setProcessingBar(false);
   if(conn && conn.open) conn.send({type:'error', val:'Cancelled — new question incoming'});
-  document.getElementById('cTranscript').innerText = 'Cancelled. Now recording…';
 }
 
+// FIX: stopRec no longer does the processing itself.
+// It just stops recognition; onend callback handles sending + API call.
+// This eliminates the race condition where the 300ms timeout fired before onend.
 function stopRec(e){
   if(e) e.preventDefault();
   if(!isRecording) return;
   isRecording = false;
   resetBtn();
   try { if(recognition) recognition.stop(); } catch(ex){}
-  setTimeout(() => {
-    const q = finalTranscript.trim();
-    document.getElementById('cTranscript').className = 'c-transcript';
-    if(q.length > 1){
-      document.getElementById('cTranscript').innerText = 'Sent: ' + q.slice(0,55) + (q.length>55?'…':'');
-      setTimeout(() => {
-        if(!isRecording) document.getElementById('cTranscript').innerText = 'Hold Record and speak your question.';
-      }, 2500);
-      if(conn && conn.open) conn.send({type:'question', val:q});
-      askGemini(q);
-    } else {
-      document.getElementById('cTranscript').innerText = 'Nothing heard — try again.';
-    }
-  }, 300);
+  // Processing now happens in recognition.onend — no timeout needed
 }
 
 function ifRecStop(e){ if(isRecording) stopRec(e); }
@@ -1679,16 +1776,19 @@ function ifRecStop(e){ if(isRecording) stopRec(e); }
 function resetBtn(){
   document.getElementById('recordBtn').className = 'record-btn idle';
   document.getElementById('btnIcon').innerHTML =
-    '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>';
+    '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>' +
+    '<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>' +
+    '<line x1="12" y1="19" x2="12" y2="22"/>';
   document.getElementById('btnInner').innerText = 'Hold to Record';
 }
 
 function setProcessingBar(active){
-  document.getElementById('processingBar').className = 'processing-bar' + (active?' active':'');
+  document.getElementById('processingBar').className = 'processing-bar' + (active ? ' active' : '');
 }
 
 // ─────────────────────────────────────────────
 //  GEMINI API
+//  FIX: uses controllerWordLimit (synced from display settings panel)
 // ─────────────────────────────────────────────
 async function askGemini(question){
   const styleMap = {
@@ -1698,11 +1798,10 @@ async function askGemini(question){
     simple:   'Explain simply as if teaching a beginner. Short sentences, plain language.'
   };
 
-  const wl = settings.wordLimit;
+  const wl = controllerWordLimit; // FIX: use the synced word limit
 
-  // Word limit instruction — only added if a limit is set
   const wordLimitLine = wl > 0
-    ? `Your answer must be approximately ${wl} words. Do not exceed this limit.`
+    ? `Your answer must be approximately ${wl} words. Do not exceed ${Math.round(wl * 1.15)} words under any circumstances.`
     : 'Write a complete, thorough answer with no word limit.';
 
   const subjectLine = subject ? 'Subject: ' + subject + '.' : '';
@@ -1715,31 +1814,31 @@ async function askGemini(question){
     'Question: ' + question
   ].filter(Boolean).join('\n');
 
-  // Token budget: generous to avoid cutoff
+  // Token budget
   const maxTokens = wl === 0  ? 4096 :
-                    wl <= 15  ? 120  :
-                    wl <= 50  ? 300  :
-                    wl <= 100 ? 600  :
-                    wl <= 200 ? 1000 :
-                    wl <= 500 ? 2500 : 4096;
+                    wl <= 15  ? 150  :
+                    wl <= 50  ? 350  :
+                    wl <= 100 ? 700  :
+                    wl <= 200 ? 1200 :
+                    wl <= 500 ? 2800 : 4096;
 
   const body = {
-    contents: [{parts: [{text: prompt}]}],
+    contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.65, maxOutputTokens: maxTokens }
   };
 
   currentAbortController = new AbortController();
-  isProcessing = true;
+  isProcessing           = true;
   setProcessingBar(true);
 
   try {
     const res = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=' + apiKey,
       {
-        method: 'POST',
+        method:  'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(body),
-        signal: currentAbortController.signal
+        body:    JSON.stringify(body),
+        signal:  currentAbortController.signal
       }
     );
 
@@ -1747,32 +1846,34 @@ async function askGemini(question){
       let em = 'HTTP ' + res.status;
       try { const j = await res.json(); em = j?.error?.message || em; } catch(e){}
       if(conn && conn.open) conn.send({type:'error', val:em});
-      isProcessing = false; setProcessingBar(false);
+      isProcessing = false;
+      setProcessingBar(false);
       return;
     }
 
-    const reader = res.body.getReader();
-    const dec = new TextDecoder();
-    let buf = '', fullText = '';
+    const reader   = res.body.getReader();
+    const dec      = new TextDecoder();
+    let buf        = '';
+    let fullText   = '';
 
     while(true){
       const {done, value} = await reader.read();
       if(done) break;
       buf += dec.decode(value, {stream:true});
       const lines = buf.split('\n');
-      buf = lines.pop();
+      buf = lines.pop(); // keep incomplete line in buffer
       for(const line of lines){
         if(!line.startsWith('data: ')) continue;
         const raw = line.slice(6).trim();
-        if(!raw || raw==='[DONE]') continue;
+        if(!raw || raw === '[DONE]') continue;
         try {
-          const p = JSON.parse(raw);
+          const p     = JSON.parse(raw);
           const chunk = p?.candidates?.[0]?.content?.parts?.[0]?.text || '';
           if(chunk){
             fullText += chunk;
             if(conn && conn.open) conn.send({type:'chunk', val:fullText});
           }
-        } catch(ex){}
+        } catch(ex){ /* malformed JSON chunk — skip */ }
       }
     }
 
@@ -1785,7 +1886,7 @@ async function askGemini(question){
       if(conn && conn.open) conn.send({type:'error', val:err.message});
     }
   } finally {
-    isProcessing = false;
+    isProcessing           = false;
     currentAbortController = null;
     setProcessingBar(false);
   }
@@ -1796,13 +1897,14 @@ async function askGemini(question){
 // ─────────────────────────────────────────────
 let wakeLock = null;
 async function requestWakeLock(){
-  try { if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
+  try {
+    if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+  } catch(e){}
 }
 document.addEventListener('visibilitychange', async () => {
   if(wakeLock && document.visibilityState === 'visible') await requestWakeLock();
 });
 document.addEventListener('contextmenu', e => e.preventDefault());
-window.addEventListener('load', () => { applyDisplaySettings(); });
 </script>
 </body>
 </html>
