@@ -1503,9 +1503,14 @@ function smoothScrollBy(speed){
 function scrollRaf(){
   const scroll = document.getElementById('displayScroll');
   if(!scroll){ scrollRafId = null; return; }
-  if(Math.abs(scrollVelocity) < 0.1){ scrollVelocity = 0; scrollRafId = null; return; }
+
+  if(scrollVelocity === 0){
+    scrollRafId = null;
+    return;
+  }
+
   scroll.scrollTop += scrollVelocity;
-  scrollVelocity   *= 0.92;
+
   scrollRafId = requestAnimationFrame(scrollRaf);
 }
 
