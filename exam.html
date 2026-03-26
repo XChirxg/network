@@ -1624,8 +1624,8 @@ function setupScrollPad(){
   function onMove(clientY){
     if(!padActive) return;
     const dy  = startY - clientY;
-    let spd   = dy * scrollMultiplier;
-    spd = Math.max(-18, Math.min(18, spd));
+    let spd = dy * scrollMultiplier * 3;   // boost power
+    spd = Math.max(-80, Math.min(80, spd)); // increase cap
     if(conn && conn.open) conn.send({type:'scroll', val: spd});
     const vis = Math.max(-50, Math.min(50, -dy));
     head.style.transform = `translate(-50%, calc(-50% + ${vis}px))`;
