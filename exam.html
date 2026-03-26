@@ -1684,9 +1684,9 @@ function handleDisplayData(data){
     case 'done':
       displayFullText = data.val;
       prevText = data.val;
-      // Flush remaining queue immediately
-      wordAnimQueue = [];
-      animRunning = false;
+      // // Flush remaining queue immediately
+      // wordAnimQueue = [];
+      // animRunning = false;
       renderDisplayStatic(false);
       setDStatus('READY', 'connected');
       break;
