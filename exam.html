@@ -1681,22 +1681,30 @@ function handleDisplayData(data){
       setDStatus('STREAMING', 'streaming');
       break;
 
-    case 'done':
-      displayFullText = data.val;
-      prevText = data.val;
-      // // Flush remaining queue immediately
-      // wordAnimQueue = [];
-      // animRunning = false;
-      renderDisplayStatic(false);
-      setDStatus('READY', 'connected');
-      break;
-
+      case 'done':
+        displayFullText = data.val;
+        prevText = data.val;
+        if(!settings.animOn){
+          renderDisplayStatic(false);
+        } else {
+          // Let animation drain finish, then do a final clean render
+          setTimeout(() => {
+            wordAnimQueue = [];
+            animRunning = false;
+            renderDisplayStatic(false);
+          }, 1500);
+        }
+        setDStatus('READY', 'connected');
+        break;
     case 'error':
       document.getElementById('dQOverlay').style.display = 'none';
       document.getElementById('displayContent').innerHTML =
         '<p style="color:var(--danger)">Error: ' + data.val + '</p>';
       setDStatus('ERROR', '');
       break;
+
+
+      
 
     case 'scroll':
       smoothScrollBy(data.val);
