@@ -96,19 +96,15 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
-
 .big-btn:active { background: var(--border); transform: scale(.99); }
-
 .big-btn.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: #1a1209;
   font-weight: 600;
 }
-
 .big-btn.primary:active { background: #b08a5a; }
 .big-btn.sec { color: var(--text-muted); font-size: .82rem; }
-
 .btn-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: .85; }
 
 .connect-group { display:none; flex-direction:column; gap:12px; width:100%; max-width:360px; }
@@ -348,7 +344,7 @@ body {
   transition: opacity .3s;
 }
 
-/* ── DISPLAY SCROLL (touch-scrollable) ── */
+/* ── DISPLAY SCROLL ── */
 #displayScroll {
   flex: 1;
   overflow-y: auto;
@@ -379,17 +375,6 @@ body {
 #displayContent strong { font-weight: 600; color: var(--accent); }
 #displayContent em { color: var(--text-secondary); font-style: italic; }
 
-/* Word-by-word animation */
-.word-span {
-  display: inline;
-  opacity: 0;
-  animation: wordFadeIn .25s ease forwards;
-}
-@keyframes wordFadeIn {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 .cursor {
   display: inline-block;
   width: 2px;
@@ -413,10 +398,7 @@ body {
   pointer-events: none;
   transition: opacity .3s ease;
 }
-#settingsPanel.open {
-  opacity: 1;
-  pointer-events: all;
-}
+#settingsPanel.open { opacity: 1; pointer-events: all; }
 
 .settings-sheet {
   width: 100%;
@@ -432,8 +414,7 @@ body {
 #settingsPanel.open .settings-sheet { transform: translateY(0); }
 
 .sheet-handle {
-  width: 36px;
-  height: 4px;
+  width: 36px; height: 4px;
   background: var(--border-light);
   border-radius: 2px;
   margin: 14px auto 0;
@@ -452,22 +433,15 @@ body {
 }
 
 .sheet-close {
-  background: none;
-  border: none;
+  background: none; border: none;
   color: var(--text-muted);
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 4px 8px;
-  border-radius: 6px;
-  -webkit-user-select: none;
-  user-select: none;
+  cursor: pointer; font-size: 1.2rem;
+  padding: 4px 8px; border-radius: 6px;
+  -webkit-user-select: none; user-select: none;
 }
 .sheet-close:active { background: var(--border); }
 
-.setting-group {
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border);
-}
+.setting-group { padding: 18px 20px; border-bottom: 1px solid var(--border); }
 
 .sg-label {
   font-family: 'DM Mono', monospace;
@@ -478,383 +452,216 @@ body {
   margin-bottom: 12px;
 }
 
-/* Font size slider */
 .font-size-display {
   font-family: 'Crimson Pro', serif;
-  font-size: 2rem;
-  color: var(--accent);
-  text-align: center;
-  margin-bottom: 10px;
-  font-weight: 600;
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 2rem; color: var(--accent);
+  text-align: center; margin-bottom: 10px;
+  font-weight: 600; min-height: 52px;
+  display: flex; align-items: center; justify-content: center;
 }
 
 .font-preview-text {
   font-family: var(--display-font-family);
   font-size: var(--display-font-size);
   color: var(--display-text-color);
-  padding: 10px 0;
-  border-radius: 8px;
-  text-align: center;
-  margin-bottom: 10px;
+  padding: 10px 0; border-radius: 8px;
+  text-align: center; margin-bottom: 10px;
   transition: font-size .2s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .size-track {
-  position: relative;
-  width: 100%;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  gap: 0;
+  position: relative; width: 100%; height: 48px;
+  display: flex; align-items: center;
 }
 
 input[type=range] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 4px;
-  background: var(--border-light);
-  border-radius: 2px;
-  outline: none;
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 4px;
+  background: var(--border-light); border-radius: 2px; outline: none;
 }
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 28px;
-  height: 28px;
-  background: var(--accent);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 2px 12px rgba(197,155,109,.5);
+  width: 28px; height: 28px;
+  background: var(--accent); border-radius: 50%;
+  cursor: pointer; box-shadow: 0 2px 12px rgba(197,155,109,.5);
 }
 input[type=range]::-moz-range-thumb {
-  width: 28px;
-  height: 28px;
-  background: var(--accent);
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
+  width: 28px; height: 28px;
+  background: var(--accent); border: none;
+  border-radius: 50%; cursor: pointer;
 }
 
-/* Presets row */
-.preset-row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 
 .preset-btn {
-  padding: 7px 12px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-family: 'DM Mono', monospace;
-  font-size: .65rem;
-  cursor: pointer;
-  transition: .15s;
-  -webkit-user-select: none;
-  user-select: none;
-  letter-spacing: .5px;
+  padding: 7px 12px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-secondary); font-family: 'DM Mono', monospace;
+  font-size: .65rem; cursor: pointer; transition: .15s;
+  -webkit-user-select: none; user-select: none; letter-spacing: .5px;
 }
 .preset-btn:active, .preset-btn.active {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
 }
 
-/* Toggle switches */
 .toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 0;
+  display: flex; align-items: center;
+  justify-content: space-between; padding: 8px 0;
 }
-
-.toggle-label {
-  font-size: .82rem;
-  color: var(--text-secondary);
-}
+.toggle-label { font-size: .82rem; color: var(--text-secondary); }
 
 .toggle {
-  width: 44px;
-  height: 24px;
-  background: var(--border-light);
-  border-radius: 12px;
-  position: relative;
-  cursor: pointer;
+  width: 44px; height: 24px;
+  background: var(--border-light); border-radius: 12px;
+  position: relative; cursor: pointer;
   transition: background .2s;
-  -webkit-user-select: none;
-  user-select: none;
-  flex-shrink: 0;
+  -webkit-user-select: none; user-select: none; flex-shrink: 0;
 }
 .toggle.on { background: var(--accent); }
 .toggle::after {
-  content: '';
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  background: #fff;
-  border-radius: 50%;
-  top: 3px;
-  left: 3px;
-  transition: transform .2s;
-  box-shadow: 0 1px 4px rgba(0,0,0,.4);
+  content: ''; position: absolute;
+  width: 18px; height: 18px; background: #fff;
+  border-radius: 50%; top: 3px; left: 3px;
+  transition: transform .2s; box-shadow: 0 1px 4px rgba(0,0,0,.4);
 }
 .toggle.on::after { transform: translateX(20px); }
 
-/* Color scheme chips */
-.scheme-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
+.scheme-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .scheme-chip {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: .15s;
-  position: relative;
-  flex-shrink: 0;
-  -webkit-user-select: none;
-  user-select: none;
+  width: 44px; height: 44px; border-radius: 10px;
+  cursor: pointer; border: 2px solid transparent;
+  transition: .15s; position: relative; flex-shrink: 0;
+  -webkit-user-select: none; user-select: none;
 }
 .scheme-chip.selected { border-color: var(--accent); }
-.scheme-chip::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: 7px;
-}
+.scheme-chip::after { content: ''; position: absolute; inset: 3px; border-radius: 7px; }
 
-/* Font family chips */
 .font-chips { display: flex; gap: 8px; flex-wrap: wrap; }
-
 .font-chip {
-  padding: 8px 14px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-size: .82rem;
-  cursor: pointer;
-  transition: .15s;
-  -webkit-user-select: none;
-  user-select: none;
+  padding: 8px 14px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-secondary); font-size: .82rem;
+  cursor: pointer; transition: .15s;
+  -webkit-user-select: none; user-select: none;
 }
 .font-chip:active, .font-chip.active {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
 }
 
-/* Line height chips */
 .lh-chips { display: flex; gap: 6px; }
-
 .lh-chip {
-  flex: 1;
-  padding: 8px 4px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-family: 'DM Mono', monospace;
-  font-size: .62rem;
-  cursor: pointer;
-  transition: .15s;
-  text-align: center;
-  -webkit-user-select: none;
-  user-select: none;
-  letter-spacing: .5px;
+  flex: 1; padding: 8px 4px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-secondary); font-family: 'DM Mono', monospace;
+  font-size: .62rem; cursor: pointer; transition: .15s;
+  text-align: center; -webkit-user-select: none; user-select: none; letter-spacing: .5px;
 }
 .lh-chip:active, .lh-chip.active {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
 }
 
-/* Contrast slider */
 .contrast-labels {
-  display: flex;
-  justify-content: space-between;
-  font-family: 'DM Mono', monospace;
-  font-size: .58rem;
-  color: var(--text-muted);
-  margin-top: 6px;
-  letter-spacing: .5px;
+  display: flex; justify-content: space-between;
+  font-family: 'DM Mono', monospace; font-size: .58rem;
+  color: var(--text-muted); margin-top: 6px; letter-spacing: .5px;
 }
 
-/* Word limit chips */
 .wl-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .wl-chip {
-  padding: 7px 10px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-family: 'DM Mono', monospace;
-  font-size: .62rem;
-  cursor: pointer;
-  transition: .15s;
-  -webkit-user-select: none;
-  user-select: none;
-  letter-spacing: .5px;
+  padding: 7px 10px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-secondary); font-family: 'DM Mono', monospace;
+  font-size: .62rem; cursor: pointer; transition: .15s;
+  -webkit-user-select: none; user-select: none; letter-spacing: .5px;
 }
 .wl-chip:active, .wl-chip.active {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
 }
 
-/* Speed preset chips */
 .speed-chips { display: flex; gap: 6px; }
 .speed-chip {
-  flex: 1;
-  padding: 8px 4px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-family: 'DM Mono', monospace;
-  font-size: .6rem;
-  cursor: pointer;
-  transition: .15s;
-  text-align: center;
-  -webkit-user-select: none;
-  user-select: none;
-  letter-spacing: .5px;
+  flex: 1; padding: 8px 4px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-secondary); font-family: 'DM Mono', monospace;
+  font-size: .6rem; cursor: pointer; transition: .15s;
+  text-align: center; -webkit-user-select: none; user-select: none; letter-spacing: .5px;
 }
 .speed-chip:active, .speed-chip.active {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
 }
 
-/* Padding chips */
 .pad-chips { display: flex; gap: 6px; }
 .pad-chip {
-  flex: 1;
-  padding: 8px 4px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-family: 'DM Mono', monospace;
-  font-size: .6rem;
-  cursor: pointer;
-  transition: .15s;
-  text-align: center;
-  -webkit-user-select: none;
-  user-select: none;
+  flex: 1; padding: 8px 4px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text-secondary); font-family: 'DM Mono', monospace;
+  font-size: .6rem; cursor: pointer; transition: .15s;
+  text-align: center; -webkit-user-select: none; user-select: none;
 }
 .pad-chip:active, .pad-chip.active {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
 }
 
 /* ══ CONTROLLER VIEW ══ */
 #controllerView { background: var(--bg); }
 
 .c-topbar {
-  padding: 11px 16px;
-  background: var(--surface);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  padding: 11px 16px; background: var(--surface);
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 
 .c-logo {
   font-family: 'Crimson Pro', serif;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--accent);
-  letter-spacing: .5px;
+  font-size: 1rem; font-weight: 600;
+  color: var(--accent); letter-spacing: .5px;
 }
 
 .c-conn {
-  font-size: .6rem;
-  font-family: 'DM Mono', monospace;
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  letter-spacing: 1px;
+  font-size: .6rem; font-family: 'DM Mono', monospace;
+  padding: 4px 10px; border-radius: 20px;
+  border: 1px solid var(--border); color: var(--text-muted); letter-spacing: 1px;
 }
 .c-conn.ok { border-color: var(--success); color: var(--success); }
 .c-conn.err { border-color: var(--danger); color: var(--danger); }
 
 .c-transcript {
-  padding: 10px 16px;
-  background: var(--panel);
+  padding: 10px 16px; background: var(--panel);
   border-bottom: 1px solid var(--border);
-  font-size: .78rem;
-  font-family: 'DM Sans', sans-serif;
-  color: var(--text-secondary);
-  height: 42px;
-  line-height: 1.4;
-  flex-shrink: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  transition: .2s;
-  font-style: italic;
+  font-size: .78rem; font-family: 'DM Sans', sans-serif;
+  color: var(--text-secondary); height: 42px; line-height: 1.4;
+  flex-shrink: 0; overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis;
+  transition: .2s; font-style: italic;
 }
 .c-transcript.recording { color: var(--danger); border-bottom-color: var(--danger); font-style: normal; }
 
 .pad-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 14px;
-  gap: 11px;
-  background: var(--bg);
-  overflow: hidden;
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 14px; gap: 11px;
+  background: var(--bg); overflow: hidden;
 }
 
-/* RECORD BUTTON */
 .record-btn {
-  width: 100%;
-  max-width: 440px;
-  padding: 16px 20px;
-  border: none;
+  width: 100%; max-width: 440px;
+  padding: 16px 20px; border: none;
   border-radius: var(--radius);
   font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
-  font-size: .92rem;
-  letter-spacing: .5px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  transition: .15s;
+  font-weight: 500; font-size: .92rem; letter-spacing: .5px;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  gap: 10px; transition: .15s;
   touch-action: manipulation;
-  -webkit-user-select: none;
-  user-select: none;
+  -webkit-user-select: none; user-select: none;
 }
 .record-btn.idle {
-  background: var(--accent);
-  color: #1a1209;
+  background: var(--accent); color: #1a1209;
   box-shadow: 0 2px 20px rgba(197,155,109,.2);
 }
 .record-btn.rec {
-  background: var(--danger);
-  color: #fff;
+  background: var(--danger); color: #fff;
   box-shadow: 0 2px 24px var(--danger-glow);
   animation: recPulse 1.4s infinite;
 }
@@ -863,152 +670,89 @@ input[type=range]::-moz-range-thumb {
   50% { box-shadow: 0 2px 36px rgba(192,100,90,.6); }
 }
 
-/* Cancel badge */
-.cancel-badge {
-  display: inline-block;
-  background: rgba(255,255,255,.15);
-  color: #fff;
-  font-size: .62rem;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-family: 'DM Mono', monospace;
-  margin-left: 4px;
-  letter-spacing: 1px;
-}
-
-/* SCROLL PAD */
 .pad-container {
-  width: 100%;
-  max-width: 440px;
-  flex: 1;
-  max-height: 240px;
+  width: 100%; max-width: 440px;
+  flex: 1; max-height: 240px;
   background: var(--panel);
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  touch-action: none;
-  overflow: hidden;
+  position: relative; display: flex;
+  align-items: center; justify-content: center;
+  touch-action: none; overflow: hidden;
 }
 
 .pad-hint {
-  color: rgba(255,255,255,.12);
-  font-size: .72rem;
-  font-weight: 400;
-  text-align: center;
-  pointer-events: none;
-  line-height: 1.8;
-  letter-spacing: .5px;
+  color: rgba(255,255,255,.12); font-size: .72rem;
+  text-align: center; pointer-events: none;
+  line-height: 1.8; letter-spacing: .5px;
   font-family: 'DM Mono', monospace;
 }
 
 .pad-speed-indicator {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
+  position: absolute; bottom: 10px; left: 50%;
   transform: translateX(-50%);
-  font-family: 'DM Mono', monospace;
-  font-size: .6rem;
-  color: var(--text-muted);
-  pointer-events: none;
-  transition: .2s;
-  letter-spacing: 1px;
+  font-family: 'DM Mono', monospace; font-size: .6rem;
+  color: var(--text-muted); pointer-events: none;
+  transition: .2s; letter-spacing: 1px;
 }
 
 #stickBase { position:absolute; width:1px; height:100%; background:rgba(255,255,255,.05); display:none; }
 #stickHead {
-  position: absolute;
-  width: 64px;
-  height: 64px;
+  position: absolute; width: 64px; height: 64px;
   background: rgba(197,155,109,.12);
   border: 1px solid rgba(197,155,109,.4);
-  border-radius: 50%;
-  transform: translate(-50%,-50%);
-  display: none;
-  pointer-events: none;
-  transition: background .15s;
+  border-radius: 50%; transform: translate(-50%,-50%);
+  display: none; pointer-events: none; transition: background .15s;
 }
 #stickHead.fast { background: rgba(192,100,90,.2); border-color: var(--danger); }
 
-/* BOTTOM ROW */
 .bottom-row { display:flex; gap:8px; width:100%; max-width:440px; }
 
 .sm-btn {
-  flex: 1;
-  padding: 10px 6px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: .55rem;
+  flex: 1; padding: 10px 6px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-muted);
+  cursor: pointer; font-size: .55rem;
   font-family: 'DM Mono', monospace;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  transition: .15s;
-  letter-spacing: .5px;
-  -webkit-user-select: none;
-  user-select: none;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 5px; transition: .15s;
+  letter-spacing: .5px; -webkit-user-select: none; user-select: none;
 }
 .sm-btn:active { background: var(--border); transform: scale(.97); }
 .sm-btn svg { opacity: .6; }
 
 .q-counter {
-  font-family: 'DM Mono', monospace;
-  font-size: .6rem;
-  color: var(--text-muted);
-  letter-spacing: 1px;
+  font-family: 'DM Mono', monospace; font-size: .6rem;
+  color: var(--text-muted); letter-spacing: 1px;
 }
 .q-counter span { color: var(--accent); }
 
 .mic-note {
-  font-size: .65rem;
-  font-family: 'DM Mono', monospace;
-  color: var(--text-muted);
-  width: 100%;
-  max-width: 440px;
-  text-align: center;
-  letter-spacing: .5px;
+  font-size: .65rem; font-family: 'DM Mono', monospace;
+  color: var(--text-muted); width: 100%; max-width: 440px;
+  text-align: center; letter-spacing: .5px;
 }
 .mic-note.ok { color: var(--success); }
 .mic-note.err { color: var(--danger); }
 
-/* Wave bars */
 .wb { display:inline-block; width:2px; height:9px; background:currentColor; border-radius:2px; margin:0 1.5px; animation:wv .7s ease-in-out infinite; vertical-align:middle; }
 .wb:nth-child(2){animation-delay:.1s} .wb:nth-child(3){animation-delay:.2s;height:15px} .wb:nth-child(4){animation-delay:.1s} .wb:nth-child(5){animation-delay:0s}
 @keyframes wv{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1.4)}}
 
 .form-divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  width: 100%;
-  max-width: 360px;
-  margin: 2px 0;
+  border: none; border-top: 1px solid var(--border);
+  width: 100%; max-width: 360px; margin: 2px 0;
 }
 
-/* Processing indicator (controller) */
 .processing-bar {
-  width: 100%;
-  max-width: 440px;
-  height: 2px;
-  background: var(--border);
-  border-radius: 1px;
-  overflow: hidden;
-  opacity: 0;
-  transition: opacity .3s;
+  width: 100%; max-width: 440px; height: 2px;
+  background: var(--border); border-radius: 1px;
+  overflow: hidden; opacity: 0; transition: opacity .3s;
 }
 .processing-bar.active { opacity: 1; }
 .processing-bar::after {
-  content: '';
-  display: block;
-  height: 100%;
-  width: 40%;
-  background: var(--accent);
-  border-radius: 1px;
+  content: ''; display: block; height: 100%; width: 40%;
+  background: var(--accent); border-radius: 1px;
   animation: barSlide 1.2s ease-in-out infinite;
 }
 @keyframes barSlide {
@@ -1016,7 +760,6 @@ input[type=range]::-moz-range-thumb {
   100% { transform: translateX(400%); }
 }
 
-/* ══ READING MODE - hide topbar ══ */
 #displayView.reading-mode .d-topbar { display: none; }
 </style>
 </head>
@@ -1105,14 +848,12 @@ input[type=range]::-moz-range-thumb {
   <div class="marker-tri" id="markerTri"></div>
 
   <div id="displayScroll">
-    <!-- Waiting code (big) -->
     <div id="waitingCode">
       <div class="wc-label">Connect Remote · Code</div>
       <div class="wc-code" id="wcBigCode">----</div>
       <div class="wc-sub">Enter this on the remote device</div>
     </div>
 
-    <!-- Question overlay -->
     <div id="dQOverlay" style="display:none">
       <div class="dq-label">Question Received</div>
       <div class="dq-text" id="dQText"></div>
@@ -1135,7 +876,6 @@ input[type=range]::-moz-range-thumb {
       <button class="sheet-close" onclick="closeSettings()">✕</button>
     </div>
 
-    <!-- 1. TEXT SIZE -->
     <div class="setting-group">
       <div class="sg-label">1 · Text Size</div>
       <div class="font-size-display" id="fontSizeDisplay">2.0 rem</div>
@@ -1153,7 +893,6 @@ input[type=range]::-moz-range-thumb {
       </div>
     </div>
 
-    <!-- 2. FONT FAMILY -->
     <div class="setting-group">
       <div class="sg-label">2 · Font Family</div>
       <div class="font-chips">
@@ -1164,7 +903,6 @@ input[type=range]::-moz-range-thumb {
       </div>
     </div>
 
-    <!-- 3. LINE HEIGHT / SPACING -->
     <div class="setting-group">
       <div class="sg-label">3 · Line Spacing</div>
       <div class="lh-chips">
@@ -1175,24 +913,22 @@ input[type=range]::-moz-range-thumb {
       </div>
     </div>
 
-    <!-- 4. WORD LIMIT -->
     <div class="setting-group">
       <div class="sg-label">4 · Response Word Limit</div>
       <div class="wl-chips">
-        <button class="wl-chip" onclick="setWordLimit(15)">1 LINE<br>~15w</button>
-        <button class="wl-chip" onclick="setWordLimit(50)">50 w</button>
-        <button class="wl-chip active" onclick="setWordLimit(100)">100 w</button>
-        <button class="wl-chip" onclick="setWordLimit(200)">200 w</button>
-        <button class="wl-chip" onclick="setWordLimit(500)">500 w</button>
+        <button class="wl-chip" onclick="setWordLimit(15)">~15w</button>
+        <button class="wl-chip" onclick="setWordLimit(50)">50w</button>
+        <button class="wl-chip active" onclick="setWordLimit(100)">100w</button>
+        <button class="wl-chip" onclick="setWordLimit(200)">200w</button>
+        <button class="wl-chip" onclick="setWordLimit(500)">500w</button>
         <button class="wl-chip" onclick="setWordLimit(0)">FULL</button>
       </div>
     </div>
 
-    <!-- 5. COLOR SCHEME -->
     <div class="setting-group">
       <div class="sg-label">5 · Color Scheme</div>
       <div class="scheme-row">
-        <div class="scheme-chip selected" title="Dark (Default)" onclick="setScheme('dark')" style="background:#0d0d10; border-color:var(--accent)">
+        <div class="scheme-chip selected" title="Dark" onclick="setScheme('dark')" style="background:#0d0d10; border-color:var(--accent)">
           <div style="position:absolute;inset:5px;background:rgba(197,155,109,.8);border-radius:5px;width:14px;height:14px"></div>
         </div>
         <div class="scheme-chip" title="Sepia" onclick="setScheme('sepia')" style="background:#2b2318">
@@ -1213,36 +949,32 @@ input[type=range]::-moz-range-thumb {
       </div>
     </div>
 
-    <!-- 6. TEXT CONTRAST -->
     <div class="setting-group">
       <div class="sg-label">6 · Text Brightness</div>
       <input type="range" id="contrastSlider" min="0.6" max="1.4" step="0.05" value="1" oninput="setContrast(this.value)">
       <div class="contrast-labels"><span>DIM</span><span>NORMAL</span><span>BRIGHT</span></div>
     </div>
 
-    <!-- 7. CONTENT PADDING -->
     <div class="setting-group">
       <div class="sg-label">7 · Side Margins</div>
       <div class="pad-chips">
-        <button class="pad-chip" onclick="setPadding('none')">NONE<br>0px</button>
-        <button class="pad-chip" onclick="setPadding('narrow')">NARROW<br>20px</button>
-        <button class="pad-chip active" onclick="setPadding('normal')">NORMAL<br>48px</button>
-        <button class="pad-chip" onclick="setPadding('wide')">WIDE<br>80px</button>
+        <button class="pad-chip" onclick="setPadding('none')">NONE</button>
+        <button class="pad-chip" onclick="setPadding('narrow')">NARROW</button>
+        <button class="pad-chip active" onclick="setPadding('normal')">NORMAL</button>
+        <button class="pad-chip" onclick="setPadding('wide')">WIDE</button>
       </div>
     </div>
 
-    <!-- 8. AUTO SCROLL SPEED -->
     <div class="setting-group">
-      <div class="sg-label">8 · Auto-Scroll Speed (Remote pad)</div>
+      <div class="sg-label">8 · Auto-Scroll Speed</div>
       <div class="speed-chips">
-        <button class="speed-chip" onclick="setScrollMult(0.06)">SLOW<br>0.06×</button>
-        <button class="speed-chip active" onclick="setScrollMult(0.13)">NORMAL<br>0.13×</button>
-        <button class="speed-chip" onclick="setScrollMult(0.22)">FAST<br>0.22×</button>
-        <button class="speed-chip" onclick="setScrollMult(0.4)">TURBO<br>0.4×</button>
+        <button class="speed-chip" onclick="setScrollMult(0.06)">SLOW</button>
+        <button class="speed-chip active" onclick="setScrollMult(0.13)">NORMAL</button>
+        <button class="speed-chip" onclick="setScrollMult(0.22)">FAST</button>
+        <button class="speed-chip" onclick="setScrollMult(0.4)">TURBO</button>
       </div>
     </div>
 
-    <!-- 9. READING MARKER -->
     <div class="setting-group">
       <div class="sg-label">9 · Reading Marker Line</div>
       <div class="toggle-row">
@@ -1251,18 +983,8 @@ input[type=range]::-moz-range-thumb {
       </div>
     </div>
 
-    <!-- 10. WORD-BY-WORD ANIMATION -->
     <div class="setting-group">
-      <div class="sg-label">10 · Streaming Animation</div>
-      <div class="toggle-row">
-        <span class="toggle-label">Word-by-word appear animation</span>
-        <div class="toggle on" id="animToggle" onclick="toggleAnim()"></div>
-      </div>
-    </div>
-
-    <!-- 11. READING MODE -->
-    <div class="setting-group">
-      <div class="sg-label">11 · Reading Mode (Hide Controls)</div>
+      <div class="sg-label">10 · Reading Mode (Hide Controls)</div>
       <div class="toggle-row">
         <span class="toggle-label">Hide top bar for full immersion</span>
         <div class="toggle" id="readingModeToggle" onclick="toggleReadingMode()"></div>
@@ -1282,7 +1004,6 @@ input[type=range]::-moz-range-thumb {
   <div class="c-transcript" id="cTranscript">Hold Record and speak your question…</div>
 
   <div class="pad-wrap">
-    <!-- RECORD BUTTON -->
     <button class="record-btn idle" id="recordBtn"
       ontouchstart="startRec(event)" ontouchend="stopRec(event)"
       onmousedown="startRec(event)" onmouseup="stopRec(event)" onmouseleave="ifRecStop(event)">
@@ -1292,10 +1013,8 @@ input[type=range]::-moz-range-thumb {
       <span id="btnInner">Hold to Record</span>
     </button>
 
-    <!-- PROCESSING BAR -->
     <div class="processing-bar" id="processingBar"></div>
 
-    <!-- SCROLL PAD -->
     <div class="pad-container" id="scrollPad">
       <div class="pad-hint">TOUCH &amp; DRAG<br><span style="font-size:.88em;opacity:.7">up · scroll up &nbsp; down · scroll down</span></div>
       <div class="pad-speed-indicator" id="padSpeedTxt"></div>
@@ -1303,7 +1022,6 @@ input[type=range]::-moz-range-thumb {
       <div id="stickHead"></div>
     </div>
 
-    <!-- UTILITY BUTTONS -->
     <div class="bottom-row">
       <button class="sm-btn" onclick="sendCmd('reset')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1344,7 +1062,6 @@ const PEER_PREFIX = 'EXAMAI-V5-';
 let peer, conn;
 let apiKey = '', subject = '', answerStyle = 'detailed';
 let myRoomCode = '';
-
 let recognition = null;
 let isRecording = false;
 let micGranted = false;
@@ -1355,7 +1072,7 @@ let scrollMultiplier = 0.13;
 let currentAbortController = null;
 let isProcessing = false;
 
-// ── DISPLAY SETTINGS STATE ──
+// ── DISPLAY SETTINGS ──
 let settings = {
   fontSize: 2.0,
   fontFamily: 'crimson',
@@ -1366,18 +1083,9 @@ let settings = {
   padding: 'normal',
   scrollMult: 0.13,
   markerOn: true,
-  animOn: true,
   readingMode: false
 };
 
-// ── STREAMING STATE ──
-let displayFullText = '';
-let renderedWordCount = 0;
-let wordAnimQueue = [];
-let animRunning = false;
-let lastWordDelay = 0;
-
-// ── SCHEMES ──
 const SCHEMES = {
   dark:     { bg:'#0d0d10', textColor:'#dedad4' },
   sepia:    { bg:'#1e1810', textColor:'#e8d8c0' },
@@ -1387,7 +1095,6 @@ const SCHEMES = {
   forest:   { bg:'#0a1410', textColor:'#c5e8d5' }
 };
 
-// ── FONT FAMILIES ──
 const FONTS = {
   crimson: "'Crimson Pro', serif",
   sans:    "'DM Sans', sans-serif",
@@ -1395,7 +1102,6 @@ const FONTS = {
   serif:   "Georgia, serif"
 };
 
-// ── PADDING VALUES ──
 const PADDINGS = {
   none:   '40px 8px 120px',
   narrow: '40px 20px 120px',
@@ -1447,18 +1153,15 @@ function closeSettings(){
 function settingsBgClick(e){
   if(e.target === document.getElementById('settingsPanel')) closeSettings();
 }
-
 function applySettingsToUI(){
   document.getElementById('fontSizeSlider').value = settings.fontSize;
   document.getElementById('fontSizeDisplay').innerText = settings.fontSize.toFixed(1) + ' rem';
   applyFontPreview();
   document.getElementById('contrastSlider').value = settings.contrast;
   document.getElementById('markerToggle').className = 'toggle' + (settings.markerOn?' on':'');
-  document.getElementById('animToggle').className = 'toggle' + (settings.animOn?' on':'');
   document.getElementById('readingModeToggle').className = 'toggle' + (settings.readingMode?' on':'');
 }
 
-// ── 1. FONT SIZE ──
 function onFontSlider(val){
   settings.fontSize = parseFloat(val);
   document.getElementById('fontSizeDisplay').innerText = settings.fontSize.toFixed(1) + ' rem';
@@ -1466,7 +1169,6 @@ function onFontSlider(val){
   applyDisplaySettings();
   saveSettings();
 }
-
 function setFontPreset(size){
   settings.fontSize = size;
   document.getElementById('fontSizeSlider').value = size;
@@ -1475,14 +1177,11 @@ function setFontPreset(size){
   applyDisplaySettings();
   saveSettings();
 }
-
 function applyFontPreview(){
   const el = document.getElementById('fontPreview');
   el.style.fontSize = Math.min(settings.fontSize, 2.5) + 'rem';
   el.style.fontFamily = FONTS[settings.fontFamily] || FONTS.crimson;
 }
-
-// ── 2. FONT FAMILY ──
 function setFont(name){
   settings.fontFamily = name;
   document.querySelectorAll('.font-chip').forEach(b => b.classList.remove('active'));
@@ -1491,8 +1190,6 @@ function setFont(name){
   applyDisplaySettings();
   saveSettings();
 }
-
-// ── 3. LINE HEIGHT ──
 function setLineHeight(val){
   settings.lineHeight = val;
   document.querySelectorAll('.lh-chip').forEach(b => b.classList.remove('active'));
@@ -1500,16 +1197,12 @@ function setLineHeight(val){
   applyDisplaySettings();
   saveSettings();
 }
-
-// ── 4. WORD LIMIT ──
 function setWordLimit(val){
   settings.wordLimit = val;
   document.querySelectorAll('.wl-chip').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
   saveSettings();
 }
-
-// ── 5. COLOR SCHEME ──
 function setScheme(name){
   settings.scheme = name;
   document.querySelectorAll('.scheme-chip').forEach(b => b.classList.remove('selected'));
@@ -1517,15 +1210,11 @@ function setScheme(name){
   applyDisplaySettings();
   saveSettings();
 }
-
-// ── 6. CONTRAST ──
 function setContrast(val){
   settings.contrast = parseFloat(val);
   applyDisplaySettings();
   saveSettings();
 }
-
-// ── 7. PADDING ──
 function setPadding(name){
   settings.padding = name;
   document.querySelectorAll('.pad-chip').forEach(b => b.classList.remove('active'));
@@ -1533,8 +1222,6 @@ function setPadding(name){
   applyDisplaySettings();
   saveSettings();
 }
-
-// ── 8. SCROLL SPEED ──
 function setScrollMult(val){
   settings.scrollMult = val;
   scrollMultiplier = val;
@@ -1542,23 +1229,12 @@ function setScrollMult(val){
   event.target.classList.add('active');
   saveSettings();
 }
-
-// ── 9. MARKER ──
 function toggleMarker(){
   settings.markerOn = !settings.markerOn;
   document.getElementById('markerToggle').className = 'toggle' + (settings.markerOn?' on':'');
   applyDisplaySettings();
   saveSettings();
 }
-
-// ── 10. ANIMATION ──
-function toggleAnim(){
-  settings.animOn = !settings.animOn;
-  document.getElementById('animToggle').className = 'toggle' + (settings.animOn?' on':'');
-  saveSettings();
-}
-
-// ── 11. READING MODE ──
 function toggleReadingMode(){
   settings.readingMode = !settings.readingMode;
   document.getElementById('readingModeToggle').className = 'toggle' + (settings.readingMode?' on':'');
@@ -1575,22 +1251,18 @@ function applyDisplaySettings(){
   root.style.setProperty('--display-bg', scheme.bg);
   root.style.setProperty('--display-text-color', scheme.textColor);
   root.style.setProperty('--display-contrast', settings.contrast);
-
   const dc = document.getElementById('displayContent');
   if(dc) dc.style.padding = PADDINGS[settings.padding] || PADDINGS.normal;
-
   const dv = document.getElementById('displayView');
-  if(dv) {
+  if(dv){
     dv.style.background = scheme.bg;
     if(settings.readingMode) dv.classList.add('reading-mode');
     else dv.classList.remove('reading-mode');
   }
-
   const markerLine = document.getElementById('markerLine');
   const markerTri = document.getElementById('markerTri');
   if(markerLine) markerLine.style.opacity = settings.markerOn ? '1' : '0';
   if(markerTri) markerTri.style.opacity = settings.markerOn ? '1' : '0';
-
   const wc = document.getElementById('waitingCode');
   if(wc) wc.style.background = scheme.bg;
   const qOverlay = document.getElementById('dQOverlay');
@@ -1614,14 +1286,12 @@ function startDisplay(){
   peer.on('connection', c => {
     conn = c;
     setDStatus('CONNECTED', 'connected');
-    // Hide the big waiting code
     const wc = document.getElementById('waitingCode');
     wc.classList.add('hidden');
     setTimeout(() => { wc.style.display = 'none'; }, 400);
     c.on('data', handleDisplayData);
     c.on('close', () => {
       setDStatus('LOST', '');
-      // Show waiting code again
       const wc2 = document.getElementById('waitingCode');
       wc2.style.display = 'flex';
       setTimeout(() => wc2.classList.remove('hidden'), 10);
@@ -1639,63 +1309,39 @@ function setDStatus(txt, cls){
   el.className = 'd-status ' + cls;
 }
 
-// ── WORD-BY-WORD STREAMING ──
-let prevText = '';
-
+// ─────────────────────────────────────────────
+//  DISPLAY DATA HANDLER — no animation, just render
+// ─────────────────────────────────────────────
 function handleDisplayData(data){
   switch(data.type){
+
     case 'question':
-      prevText = '';
-      displayFullText = '';
-      renderedWordCount = 0;
-      wordAnimQueue = [];
-      animRunning = false;
       document.getElementById('displayContent').innerHTML = '';
       const ov = document.getElementById('dQOverlay');
       ov.style.display = 'flex'; ov.style.opacity = '1'; ov.classList.remove('hidden');
       document.getElementById('dQText').innerText = data.val;
-      // scroll to top
       document.getElementById('displayScroll').scrollTop = 0;
       setDStatus('THINKING', 'thinking');
       break;
 
     case 'chunk':
-      if(!prevText){
-        const o = document.getElementById('dQOverlay');
+      // Hide question overlay on first chunk
+      const o = document.getElementById('dQOverlay');
+      if(o.style.display !== 'none'){
         o.classList.add('hidden');
         setTimeout(() => { o.style.display = 'none'; }, 500);
       }
-      const newText = data.val;
-      const addedText = newText.slice(prevText.length);
-      prevText = newText;
-      displayFullText = newText;
-
-      if(settings.animOn){
-        // Queue new words for animation
-        const newWords = addedText.match(/\S+\s*/g) || [];
-        wordAnimQueue.push(...newWords);
-        if(!animRunning) drainWordQueue();
-      } else {
-        renderDisplayStatic(true);
-      }
+      // Render the full accumulated text so far (with cursor)
+      renderText(data.val, true);
       setDStatus('STREAMING', 'streaming');
       break;
 
-      case 'done':
-        displayFullText = data.val;
-        prevText = data.val;
-        if(!settings.animOn){
-          renderDisplayStatic(false);
-        } else {
-          // Let animation drain finish, then do a final clean render
-          setTimeout(() => {
-            wordAnimQueue = [];
-            animRunning = false;
-            renderDisplayStatic(false);
-          }, 1500);
-        }
-        setDStatus('READY', 'connected');
-        break;
+    case 'done':
+      // Render the complete final text — no cursor
+      renderText(data.val, false);
+      setDStatus('READY', 'connected');
+      break;
+
     case 'error':
       document.getElementById('dQOverlay').style.display = 'none';
       document.getElementById('displayContent').innerHTML =
@@ -1703,24 +1349,16 @@ function handleDisplayData(data){
       setDStatus('ERROR', '');
       break;
 
-
-      
-
     case 'scroll':
       smoothScrollBy(data.val);
       break;
 
-    case 'scrollTop':
-      document.getElementById('displayScroll').scrollTo({top:0,behavior:'smooth'});
-      break;
-
     case 'reset':
-      displayFullText = ''; prevText = '';
       document.getElementById('displayContent').innerHTML = '';
       document.getElementById('dQOverlay').style.display = 'none';
-      // Show waiting code
       const wc = document.getElementById('waitingCode');
-      wc.style.display = 'flex'; wc.style.background = SCHEMES[settings.scheme]?.bg || '#0d0d10';
+      wc.style.display = 'flex';
+      wc.style.background = SCHEMES[settings.scheme]?.bg || '#0d0d10';
       setTimeout(() => wc.classList.remove('hidden'), 10);
       setDStatus('CONNECTED', 'connected');
       break;
@@ -1735,92 +1373,41 @@ function handleDisplayData(data){
       break;
 
     case 'settings':
-      // Receive settings from remote
-      if(data.val) {
-        settings = {...settings, ...data.val};
-        applyDisplaySettings();
-      }
+      if(data.val){ settings = {...settings, ...data.val}; applyDisplaySettings(); }
       break;
   }
 }
 
-// Animated word drain
-function drainWordQueue(){
-  if(wordAnimQueue.length === 0){ animRunning = false; return; }
-  animRunning = true;
-  const word = wordAnimQueue.shift();
-  appendWordAnimated(word);
-  const delay = Math.max(18, Math.min(60, word.length * 8));
-  setTimeout(drainWordQueue, delay);
-}
+// ── SIMPLE TEXT RENDERER — no animation complexity ──
+function renderText(raw, streaming){
+  // Basic markdown: **bold** and *italic*
+  let html = raw
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>');
 
-function appendWordAnimated(wordStr){
-  const dc = document.getElementById('displayContent');
-  // Ensure there's a paragraph
-  let lastP = dc.querySelector('p:last-child');
-  if(!lastP){
-    lastP = document.createElement('p');
-    dc.appendChild(lastP);
-  }
-  // Remove old cursor
-  const oldCursor = dc.querySelector('.cursor');
-  if(oldCursor) oldCursor.remove();
-
-  const span = document.createElement('span');
-  span.className = 'word-span';
-  span.style.animationDelay = '0ms';
-  // Handle newlines in word
-  if(wordStr.includes('\n')){
-    const parts = wordStr.split('\n');
-    span.textContent = parts[0] + ' ';
-    lastP.appendChild(span);
-    for(let i=1;i<parts.length;i++){
-      if(parts[i] !== undefined){
-        lastP = document.createElement('p');
-        dc.appendChild(lastP);
-        if(parts[i].trim()){
-          const s2 = document.createElement('span');
-          s2.className = 'word-span';
-          s2.textContent = parts[i] + ' ';
-          lastP.appendChild(s2);
-        }
-      }
-    }
-  } else {
-    span.textContent = wordStr;
-    lastP.appendChild(span);
-  }
-
-  // Add cursor to end
-  const cursor = document.createElement('span');
-  cursor.className = 'cursor';
-  lastP.appendChild(cursor);
-
-  // Auto-scroll if near bottom
-  const scroll = document.getElementById('displayScroll');
-  const threshold = 200;
-  if(scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < threshold){
-    scroll.scrollTo({top: scroll.scrollHeight, behavior:'smooth'});
-  }
-}
-
-function renderDisplayStatic(streaming){
-  let raw = displayFullText;
-  raw = raw.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  raw = raw.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  const paras = raw.split(/\n{2,}/);
-  let html = paras.map(p => {
+  // Split into paragraphs on double newlines
+  const paras = html.split(/\n{2,}/);
+  html = paras.map(p => {
     const line = p.replace(/\n/g, ' ').trim();
     if(!line) return '';
     return '<p>' + line + '</p>';
   }).filter(Boolean).join('');
+
+  // Add blinking cursor during streaming
   if(streaming){
     html = html.replace(/<\/p>$/, '<span class="cursor"></span></p>');
   }
+
   document.getElementById('displayContent').innerHTML = html;
+
+  // Auto-scroll to bottom while streaming
+  if(streaming){
+    const scroll = document.getElementById('displayScroll');
+    scroll.scrollTop = scroll.scrollHeight;
+  }
 }
 
-// Smooth scroll via remote pad
+// ── SMOOTH SCROLL ──
 let scrollVelocity = 0;
 let scrollRafId = null;
 
@@ -1828,13 +1415,12 @@ function smoothScrollBy(speed){
   scrollVelocity = speed * 2.5;
   if(!scrollRafId) scrollRaf();
 }
-
 function scrollRaf(){
   const scroll = document.getElementById('displayScroll');
   if(!scroll){ scrollRafId=null; return; }
   if(Math.abs(scrollVelocity) < 0.1){ scrollVelocity=0; scrollRafId=null; return; }
   scroll.scrollTop += scrollVelocity;
-  scrollVelocity *= 0.92; // decelerate
+  scrollVelocity *= 0.92;
   scrollRafId = requestAnimationFrame(scrollRaf);
 }
 
@@ -1928,7 +1514,6 @@ function setupScrollPad(){
     let spd = dy * scrollMultiplier;
     if(spd > 18) spd = 18;
     if(spd < -18) spd = -18;
-    sendScrollCmd(spd / scrollMultiplier * scrollMultiplier);
     if(conn && conn.open) conn.send({type:'scroll', val: spd});
     let vis = -dy; if(vis>50)vis=50; if(vis<-50)vis=-50;
     head.style.transform = `translate(-50%, calc(-50% + ${vis}px))`;
@@ -1950,8 +1535,7 @@ function setupScrollPad(){
 
   let mouseDown = false;
   pad.addEventListener('mousedown', e => {
-    mouseDown = true;
-    padTouchStartY = e.clientY;
+    mouseDown = true; padTouchStartY = e.clientY;
     const rect = pad.getBoundingClientRect();
     base.style.display='block'; base.style.top=(e.clientY-rect.top)+'px';
     head.style.display='block'; head.style.top=(e.clientY-rect.top)+'px';
@@ -1992,7 +1576,6 @@ function initMic(){
       setMicNote('Mic denied — allow mic in browser settings', 'err');
     });
 }
-
 function setMicNote(msg, cls){
   const el = document.getElementById('micNote');
   el.innerText = msg;
@@ -2007,14 +1590,12 @@ function buildRecognition(){
   r.interimResults = true;
   r.lang = 'en-IN';
   r.maxAlternatives = 1;
-
   r.onstart = () => {
     document.getElementById('cTranscript').className = 'c-transcript recording';
     document.getElementById('cTranscript').innerHTML =
       '<span class="wb"></span><span class="wb"></span><span class="wb"></span>' +
       '<span class="wb"></span><span class="wb"></span>&nbsp;Listening…';
   };
-
   r.onresult = e => {
     let interim='', fin='';
     for(let i=e.resultIndex; i<e.results.length; i++){
@@ -2026,12 +1607,10 @@ function buildRecognition(){
     const show = disp.length > 60 ? '…' + disp.slice(-60) : disp;
     document.getElementById('cTranscript').innerText = show || 'Listening…';
   };
-
   r.onerror = e => {
     if(e.error==='aborted' || e.error==='no-speech') return;
     setMicNote('Speech error: ' + e.error, 'err');
   };
-
   r.onend = () => {
     if(isRecording){
       const t = finalTranscript.trim();
@@ -2043,48 +1622,32 @@ function buildRecognition(){
 
 function startRec(e){
   e.preventDefault();
-
-  // If already recording, do nothing (prevents double-fire)
   if(isRecording) return;
-
-  // If processing, CANCEL it and start fresh
-  if(isProcessing){
-    cancelCurrent();
-  }
-
+  if(isProcessing){ cancelCurrent(); }
   if(!micGranted){
     document.getElementById('cTranscript').innerText = 'Mic not ready. Grant permission first.';
     return;
   }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){ document.getElementById('cTranscript').innerText = 'Use Chrome for speech support.'; return; }
-
   isRecording = true;
   finalTranscript = '';
   recognition = buildRecognition();
-
   document.getElementById('recordBtn').className = 'record-btn rec';
   document.getElementById('btnIcon').innerHTML =
     '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
   document.getElementById('btnInner').innerHTML = 'Release to Send';
-
   try { recognition.start(); }
   catch(ex){
     document.getElementById('cTranscript').innerText = 'Could not start: ' + ex.message;
-    isRecording = false;
-    resetBtn();
+    isRecording = false; resetBtn();
   }
 }
 
 function cancelCurrent(){
-  // Abort any in-progress fetch
-  if(currentAbortController){
-    currentAbortController.abort();
-    currentAbortController = null;
-  }
+  if(currentAbortController){ currentAbortController.abort(); currentAbortController = null; }
   isProcessing = false;
   setProcessingBar(false);
-  // Notify screen to cancel
   if(conn && conn.open) conn.send({type:'error', val:'Cancelled — new question incoming'});
   document.getElementById('cTranscript').innerText = 'Cancelled. Now recording…';
 }
@@ -2095,11 +1658,9 @@ function stopRec(e){
   isRecording = false;
   resetBtn();
   try { if(recognition) recognition.stop(); } catch(ex){}
-
   setTimeout(() => {
     const q = finalTranscript.trim();
     document.getElementById('cTranscript').className = 'c-transcript';
-
     if(q.length > 1){
       document.getElementById('cTranscript').innerText = 'Sent: ' + q.slice(0,55) + (q.length>55?'…':'');
       setTimeout(() => {
@@ -2127,41 +1688,44 @@ function setProcessingBar(active){
 }
 
 // ─────────────────────────────────────────────
-//  GEMINI (gemini REST SSE) with word limit + cancel
+//  GEMINI API
 // ─────────────────────────────────────────────
 async function askGemini(question){
   const styleMap = {
-    detailed: 'Give a detailed, well-structured answer suitable for an exam. Write in clear, flowing paragraphs — avoid lists or bullet points. Be thorough and accurate.',
-    concise: 'Give a concise, direct answer in 2–3 sentences. No lists. Write in plain prose.',
-    bullets: 'Answer using 3–5 numbered points. Keep each point to one clear sentence.',
-    simple: 'Explain simply as if teaching a beginner. Use short sentences, plain language, and no jargon. Write in prose paragraphs.'
+    detailed: 'Give a detailed, well-structured answer suitable for an exam. Write in clear paragraphs. Be thorough and accurate.',
+    concise:  'Give a concise, direct answer in 2–3 sentences only.',
+    bullets:  'Answer using 3–5 numbered points. One sentence per point.',
+    simple:   'Explain simply as if teaching a beginner. Short sentences, plain language.'
   };
 
   const wl = settings.wordLimit;
-  const wordLimitLine = wl && wl > 0
-    ? `Keep your answer within approximately ${wl} words. Be concise but complete.`
-    : '';
 
-  const subjectLine = subject ? 'Subject context: ' + subject + '.' : '';
+  // Word limit instruction — only added if a limit is set
+  const wordLimitLine = wl > 0
+    ? `Your answer must be approximately ${wl} words. Do not exceed this limit.`
+    : 'Write a complete, thorough answer with no word limit.';
+
+  const subjectLine = subject ? 'Subject: ' + subject + '.' : '';
+
   const prompt = [
     subjectLine,
     styleMap[answerStyle] || styleMap.detailed,
     wordLimitLine,
-    'Do not start with phrases like "Sure!" or "Great question." Begin the answer directly and confidently.',
-    '',
+    'Do not start with "Sure", "Great question", or any filler. Begin the answer immediately.',
     'Question: ' + question
-  ].filter(Boolean).join(' ');
+  ].filter(Boolean).join('\n');
 
-  const maxTokens = wl === 0 ? 1400 :
-                    wl <= 15 ? 80 :
-                    wl <= 50 ? 200 :
-                    wl <= 100 ? 380 :
-                    wl <= 200 ? 700 :
-                    wl <= 500 ? 1400 : 1400;
+  // Token budget: generous to avoid cutoff
+  const maxTokens = wl === 0  ? 4096 :
+                    wl <= 15  ? 120  :
+                    wl <= 50  ? 300  :
+                    wl <= 100 ? 600  :
+                    wl <= 200 ? 1000 :
+                    wl <= 500 ? 2500 : 4096;
 
   const body = {
     contents: [{parts: [{text: prompt}]}],
-    generationConfig: {temperature:0.65, maxOutputTokens: maxTokens}
+    generationConfig: { temperature: 0.65, maxOutputTokens: maxTokens }
   };
 
   currentAbortController = new AbortController();
@@ -2178,12 +1742,12 @@ async function askGemini(question){
         signal: currentAbortController.signal
       }
     );
+
     if(!res.ok){
       let em = 'HTTP ' + res.status;
       try { const j = await res.json(); em = j?.error?.message || em; } catch(e){}
       if(conn && conn.open) conn.send({type:'error', val:em});
-      isProcessing = false;
-      setProcessingBar(false);
+      isProcessing = false; setProcessingBar(false);
       return;
     }
 
@@ -2211,14 +1775,13 @@ async function askGemini(question){
         } catch(ex){}
       }
     }
+
     if(conn && conn.open) conn.send({type:'done', val:fullText});
     qCount++;
     document.getElementById('qCountSpan').innerText = qCount;
 
   } catch(err){
-    if(err.name === 'AbortError'){
-      // Cancelled — already handled
-    } else {
+    if(err.name !== 'AbortError'){
       if(conn && conn.open) conn.send({type:'error', val:err.message});
     }
   } finally {
@@ -2239,11 +1802,7 @@ document.addEventListener('visibilitychange', async () => {
   if(wakeLock && document.visibilityState === 'visible') await requestWakeLock();
 });
 document.addEventListener('contextmenu', e => e.preventDefault());
-
-// Apply settings on load if already on display view
-window.addEventListener('load', () => {
-  applyDisplaySettings();
-});
+window.addEventListener('load', () => { applyDisplaySettings(); });
 </script>
 </body>
 </html>
