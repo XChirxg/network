@@ -7,11 +7,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg:#0a0a0f; --surface:#111118; --panel:#16161f; --border:#222230;
-            --accent:#7c6dfa; --accent2:#fa6d8f; --accent3:#6dfac2;
-            --text:#e8e8f0; --muted:#55556a; --danger:#fa4a4a;
-            --glow:rgba(124,109,250,0.3);
+        :root{
+            --bg:#0a0a0f;--surface:#111118;--panel:#16161f;--border:#222230;
+            --accent:#7c6dfa;--accent2:#fa6d8f;--accent3:#6dfac2;
+            --text:#e8e8f0;--muted:#55556a;--danger:#fa4a4a;--glow:rgba(124,109,250,.3);
         }
         *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
         body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;width:100vw}
@@ -19,32 +18,32 @@
         .view.show{display:flex}
 
         /* ══ SETUP ══ */
-        #setupView{justify-content:center;align-items:center;padding:24px;gap:0;background:var(--bg)}
-        .brand{font-family:'Space Mono',monospace;font-size:clamp(2rem,10vw,3.2rem);font-weight:700;letter-spacing:-2px;
+        #setupView{justify-content:center;align-items:center;padding:24px;background:var(--bg)}
+        .brand{font-family:'Space Mono',monospace;font-size:clamp(2rem,10vw,3rem);font-weight:700;letter-spacing:-2px;
             background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 60%,var(--accent3) 100%);
             -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
         .tagline{color:var(--muted);font-size:.7rem;letter-spacing:3px;text-transform:uppercase;
-            font-family:'Space Mono',monospace;margin-bottom:32px}
-        .mode-btns{display:flex;flex-direction:column;gap:14px;width:100%;max-width:360px;margin-bottom:20px}
+            font-family:'Space Mono',monospace;margin-bottom:28px}
+        .mode-btns{display:flex;flex-direction:column;gap:14px;width:100%;max-width:360px;margin-bottom:16px}
         .big-btn{padding:16px;font-size:1rem;font-family:'Syne',sans-serif;font-weight:800;letter-spacing:1px;
             border:2px solid var(--accent);background:transparent;color:var(--accent);border-radius:14px;cursor:pointer;transition:.15s}
         .big-btn:active{background:var(--accent);color:#fff;transform:scale(.98)}
-        .big-btn.secondary{border-color:var(--border);color:var(--muted);font-size:.85rem}
+        .big-btn.sec{border-color:var(--border);color:var(--muted);font-size:.85rem}
         .connect-group{display:none;flex-direction:column;gap:12px;width:100%;max-width:360px}
         .code-input{background:var(--panel);border:1px solid var(--border);color:#fff;padding:14px;
             font-size:2rem;text-align:center;border-radius:12px;letter-spacing:8px;outline:none;
             font-family:'Space Mono',monospace;width:100%;-webkit-user-select:text;user-select:text}
         .code-input:focus{border-color:var(--accent)}
-        .status-txt{color:var(--muted);font-size:.8rem;font-family:'Space Mono',monospace;
-            text-align:center;min-height:18px;letter-spacing:1px}
-        .status-txt.err{color:var(--danger)}
-        .api-setup{display:none;flex-direction:column;gap:10px;width:100%;max-width:360px;margin-top:8px}
-        .field-label{font-size:.65rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;
+        .api-setup{display:none;flex-direction:column;gap:10px;width:100%;max-width:360px;margin-top:4px}
+        .fl{font-size:.65rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;
             font-family:'Space Mono',monospace;margin-bottom:2px}
         .api-setup input,.api-setup select{background:var(--panel);border:1px solid var(--border);color:var(--text);
             padding:11px;border-radius:10px;font-family:'Space Mono',monospace;font-size:.8rem;
             outline:none;width:100%;-webkit-user-select:text;user-select:text}
         .api-setup input:focus{border-color:var(--accent)}
+        .stxt{color:var(--muted);font-size:.78rem;font-family:'Space Mono',monospace;
+            text-align:center;min-height:18px;letter-spacing:1px;margin-top:6px}
+        .stxt.err{color:var(--danger)}
 
         /* ══ DISPLAY VIEW ══ */
         #displayView{background:#000}
@@ -58,10 +57,22 @@
         .d-status.streaming{border-color:var(--accent3);color:var(--accent3)}
         .d-status.connected{border-color:var(--accent3);color:var(--accent3)}
         @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
-        .d-question{background:rgba(124,109,250,.08);border-bottom:1px solid rgba(124,109,250,.15);
-            padding:10px 18px;font-family:'Space Mono',monospace;font-size:.75rem;color:var(--accent2);
-            display:none;align-items:flex-start;gap:8px;flex-shrink:0}
-        .d-q-label{color:var(--muted);letter-spacing:1px;flex-shrink:0;margin-top:1px}
+
+        /* Question overlay — shown briefly, fades out when streaming starts */
+        #dQOverlay{
+            position:absolute;inset:0;z-index:20;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            padding:40px;text-align:center;background:#000;
+            transition:opacity .5s ease;
+        }
+        #dQOverlay.hidden{opacity:0;pointer-events:none}
+        .dq-label{font-family:'Space Mono',monospace;font-size:.65rem;letter-spacing:3px;
+            color:var(--muted);text-transform:uppercase;margin-bottom:16px}
+        .dq-text{font-size:clamp(1.1rem,3.5vw,2rem);font-weight:800;color:var(--accent2);
+            line-height:1.5;font-family:'Syne',sans-serif}
+        .dq-thinking{margin-top:24px;font-family:'Space Mono',monospace;font-size:.75rem;
+            color:var(--accent);animation:blink 1s infinite;letter-spacing:2px}
+
         .marker-line{position:fixed;top:42%;left:0;width:100%;height:0;
             border-top:2px dashed rgba(255,0,0,.4);z-index:50;pointer-events:none}
         .marker-tri{position:fixed;top:42%;left:16px;width:0;height:0;
@@ -74,10 +85,10 @@
         #displayContent strong{font-weight:800;color:var(--accent3)}
         #displayContent em{color:var(--accent2);font-style:normal}
         .d-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;
-            align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center}
-        .d-placeholder-icon{font-size:2.5rem}
-        .d-placeholder-title{font-size:1.1rem;font-weight:800}
-        .d-placeholder-sub{font-size:.8rem;color:var(--muted);font-family:'Space Mono',monospace;line-height:1.6}
+            align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center;z-index:5}
+        .d-ph-icon{font-size:2.5rem}
+        .d-ph-title{font-size:1.1rem;font-weight:800}
+        .d-ph-sub{font-size:.8rem;color:var(--muted);font-family:'Space Mono',monospace;line-height:1.6}
         .d-fs-btn{font-size:.65rem;font-family:'Space Mono',monospace;padding:5px 10px;
             background:transparent;border:1px solid #333;border-radius:6px;color:#666;cursor:pointer}
         .cursor{display:inline-block;width:2px;height:1em;background:var(--accent);
@@ -94,43 +105,74 @@
             border-radius:20px;border:1px solid var(--border);color:var(--muted)}
         .c-conn.ok{border-color:var(--accent3);color:var(--accent3)}
         .c-conn.err{border-color:var(--danger);color:var(--danger)}
-        .c-qstrip{padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--border);
-            font-size:.75rem;font-family:'Space Mono',monospace;color:var(--muted);min-height:40px;
-            line-height:1.5;flex-shrink:0}
-        .c-qstrip.active{color:var(--accent2)}
-        .pad-area{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-            padding:16px;gap:14px;background:var(--bg);overflow:hidden}
-        .transcript-box{width:100%;max-width:440px;background:var(--panel);border:1px solid var(--border);
-            border-radius:12px;padding:14px 16px;min-height:64px;font-size:.8rem;
-            font-family:'Space Mono',monospace;color:var(--muted);line-height:1.6;transition:.2s}
-        .transcript-box.recording{border-color:var(--danger);color:var(--text)}
-        .record-btn{width:100%;max-width:440px;padding:18px;border:none;border-radius:16px;
-            font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:1px;
+
+        /* transcript strip — single line, compact */
+        .c-transcript{
+            padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--border);
+            font-size:.78rem;font-family:'Space Mono',monospace;color:var(--muted);
+            height:42px;line-height:1.4;flex-shrink:0;overflow:hidden;
+            white-space:nowrap;text-overflow:ellipsis;transition:.2s;
+        }
+        .c-transcript.recording{color:var(--danger);border-bottom-color:var(--danger)}
+
+        /* pad area — fills remaining space */
+        .pad-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+            padding:14px;gap:12px;background:var(--bg);overflow:hidden}
+
+        /* ── RECORD BUTTON ── */
+        .record-btn{
+            width:100%;max-width:440px;padding:17px;border:none;border-radius:16px;
+            font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:1px;
             cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
-            transition:.15s;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+            transition:.15s;touch-action:manipulation;
+        }
         .record-btn.idle{background:var(--accent);color:#fff;box-shadow:0 4px 24px var(--glow)}
-        .record-btn.recording{background:var(--danger);color:#fff;
+        .record-btn.rec{background:var(--danger);color:#fff;
             box-shadow:0 4px 24px rgba(250,74,74,.5);animation:recPulse 1.4s infinite}
         @keyframes recPulse{0%,100%{box-shadow:0 4px 24px rgba(250,74,74,.4)}50%{box-shadow:0 4px 40px rgba(250,74,74,.8)}}
-        .wave-bar{display:inline-block;width:3px;height:12px;background:currentColor;
-            border-radius:2px;margin:0 1px;animation:wave .7s ease-in-out infinite;vertical-align:middle}
-        .wave-bar:nth-child(2){animation-delay:.1s}
-        .wave-bar:nth-child(3){animation-delay:.2s;height:20px}
-        .wave-bar:nth-child(4){animation-delay:.1s}
-        .wave-bar:nth-child(5){animation-delay:0s}
-        @keyframes wave{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1.4)}}
-        .action-row{display:flex;gap:8px;width:100%;max-width:440px}
-        .act-btn{flex:1;padding:11px 6px;background:var(--panel);border:1px solid var(--border);
+
+        /* ── SCROLL PAD ── (same concept as original prompter) */
+        .pad-container{
+            width:100%;max-width:440px;flex:1;max-height:280px;
+            background:var(--panel);border:2px solid var(--border);border-radius:16px;
+            position:relative;display:flex;align-items:center;justify-content:center;
+            touch-action:none;overflow:hidden;
+        }
+        .pad-hint{color:rgba(255,255,255,.18);font-size:.78rem;font-weight:700;
+            text-align:center;pointer-events:none;line-height:1.7;letter-spacing:.5px}
+        .pad-speed-indicator{
+            position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+            font-family:'Space Mono',monospace;font-size:.65rem;color:var(--muted);
+            pointer-events:none;transition:.2s;
+        }
+        /* stick visuals */
+        #stickBase{position:absolute;width:1px;height:100%;background:rgba(255,255,255,.06);display:none}
+        #stickHead{position:absolute;width:72px;height:72px;
+            background:rgba(124,109,250,.18);border:2px solid var(--accent);
+            border-radius:50%;transform:translate(-50%,-50%);display:none;pointer-events:none;
+            transition:background .15s}
+        #stickHead.fast{background:rgba(250,74,74,.25);border-color:var(--danger)}
+
+        /* bottom row */
+        .bottom-row{display:flex;gap:8px;width:100%;max-width:440px}
+        .sm-btn{flex:1;padding:11px 6px;background:var(--panel);border:1px solid var(--border);
             border-radius:12px;color:var(--muted);cursor:pointer;font-size:.65rem;
             font-family:'Space Mono',monospace;display:flex;flex-direction:column;align-items:center;gap:4px;transition:.15s}
-        .act-btn:active{background:var(--border);transform:scale(.97)}
-        .act-btn-icon{font-size:1.1rem}
-        .q-counter{font-family:'Space Mono',monospace;font-size:.65rem;color:var(--muted)}
+        .sm-btn:active{background:var(--border);transform:scale(.97)}
+        .sm-btn-icon{font-size:1rem}
+        .q-counter{font-family:'Space Mono',monospace;font-size:.62rem;color:var(--muted)}
         .q-counter span{color:var(--accent)}
-        .mic-status{font-size:.7rem;font-family:'Space Mono',monospace;color:var(--muted);
+        .mic-note{font-size:.68rem;font-family:'Space Mono',monospace;color:var(--muted);
             width:100%;max-width:440px;text-align:center}
-        .mic-status.ok{color:var(--accent3)}
-        .mic-status.err{color:var(--danger)}
+        .mic-note.ok{color:var(--accent3)}
+        .mic-note.err{color:var(--danger)}
+
+        /* wave bars */
+        .wb{display:inline-block;width:3px;height:11px;background:currentColor;
+            border-radius:2px;margin:0 1px;animation:wv .7s ease-in-out infinite;vertical-align:middle}
+        .wb:nth-child(2){animation-delay:.1s}.wb:nth-child(3){animation-delay:.2s;height:18px}
+        .wb:nth-child(4){animation-delay:.1s}.wb:nth-child(5){animation-delay:0s}
+        @keyframes wv{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1.4)}}
     </style>
 </head>
 <body>
@@ -144,16 +186,11 @@
         <button class="big-btn" onclick="showRemoteSetup()">🎙  I AM THE REMOTE</button>
     </div>
     <div class="api-setup" id="apiSetup">
-        <div>
-            <div class="field-label">Gemini API Key</div>
-            <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off">
-        </div>
-        <div>
-            <div class="field-label">Subject (optional)</div>
-            <input type="text" id="subjectInput" placeholder="e.g. Physics, History, Biology">
-        </div>
-        <div>
-            <div class="field-label">Answer Style</div>
+        <div><div class="fl">Gemini API Key</div>
+            <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off"></div>
+        <div><div class="fl">Subject (optional)</div>
+            <input type="text" id="subjectInput" placeholder="e.g. Physics, History, Biology"></div>
+        <div><div class="fl">Answer Style</div>
             <select id="styleInput">
                 <option value="detailed">Detailed &amp; Exam-Friendly</option>
                 <option value="concise">Concise (2–3 sentences)</option>
@@ -165,9 +202,9 @@
     <div class="connect-group" id="connectGroup">
         <input type="number" id="codeInput" class="code-input" placeholder="0000" maxlength="4">
         <button class="big-btn" onclick="connectToDisplay()">CONNECT →</button>
-        <button class="big-btn secondary" onclick="backToMain()">← BACK</button>
+        <button class="big-btn sec" onclick="backToMain()">← BACK</button>
     </div>
-    <div class="status-txt" id="setupStatus">Select your role</div>
+    <div class="stxt" id="setupStatus">Select your role</div>
 </div>
 
 <!-- ══ DISPLAY VIEW ══ -->
@@ -177,19 +214,23 @@
         <div class="d-status" id="dStatus">WAITING</div>
         <button class="d-fs-btn" onclick="toggleFS()">⛶ FULLSCREEN</button>
     </div>
-    <div class="d-question" id="dQuestion">
-        <span class="d-q-label">Q:</span>
-        <span id="dQText"></span>
-    </div>
     <div class="marker-line" id="markerLine"></div>
     <div class="marker-tri" id="markerTri"></div>
     <div id="displayScroll">
+        <!-- placeholder shown when idle -->
         <div class="d-placeholder" id="dPlaceholder">
-            <div class="d-placeholder-icon">📡</div>
-            <div class="d-placeholder-title">Waiting for Remote</div>
-            <div class="d-placeholder-sub">Open this page on the remote device<br>choose "I AM THE REMOTE"<br>enter the code above</div>
+            <div class="d-ph-icon">📡</div>
+            <div class="d-ph-title">Waiting for Remote</div>
+            <div class="d-ph-sub">Connect the remote device using the code above</div>
         </div>
+        <!-- answer text -->
         <div id="displayContent"></div>
+        <!-- question overlay: visible while thinking, fades once answer starts -->
+        <div id="dQOverlay" style="display:none">
+            <div class="dq-label">QUESTION RECEIVED</div>
+            <div class="dq-text" id="dQText"></div>
+            <div class="dq-thinking">⬤ generating answer...</div>
+        </div>
     </div>
 </div>
 
@@ -199,47 +240,51 @@
         <div class="c-logo">EXAMAI REMOTE</div>
         <div class="c-conn" id="cConn">CONNECTING...</div>
     </div>
-    <div class="c-qstrip" id="cQStrip">Last question will appear here...</div>
-    <div class="pad-area">
-        <div class="transcript-box" id="transcriptBox">Initialising microphone...</div>
+    <!-- compact single-line transcript — no question shown after send -->
+    <div class="c-transcript" id="cTranscript">Hold RECORD &amp; speak your question...</div>
+
+    <div class="pad-wrap">
+        <!-- RECORD BUTTON -->
         <button class="record-btn idle" id="recordBtn"
             ontouchstart="startRec(event)" ontouchend="stopRec(event)"
             onmousedown="startRec(event)" onmouseup="stopRec(event)" onmouseleave="ifRecStop(event)">
             <span id="btnInner">🎙  HOLD TO RECORD</span>
         </button>
-        <div class="action-row">
-            <button class="act-btn" onclick="sendScrollCmd(-2.5)">
-                <span class="act-btn-icon">⏫</span><span>UP</span>
-            </button>
-            <button class="act-btn" onclick="sendScrollCmd(0)">
-                <span class="act-btn-icon">⏸</span><span>STOP</span>
-            </button>
-            <button class="act-btn" onclick="sendScrollCmd(2.5)">
-                <span class="act-btn-icon">⏬</span><span>DOWN</span>
-            </button>
-            <button class="act-btn" onclick="sendCmd('reset')">
-                <span class="act-btn-icon">↺</span><span>RESET</span>
-            </button>
-            <button class="act-btn" onclick="sendCmd('hideUI')">
-                <span class="act-btn-icon">👁</span><span>HIDE UI</span>
-            </button>
+
+        <!-- SCROLL PAD -->
+        <div class="pad-container" id="scrollPad">
+            <div class="pad-hint">TOUCH &amp; DRAG<br><span style="font-size:.75em;font-weight:400;opacity:.7">up = scroll up · down = scroll down</span></div>
+            <div class="pad-speed-indicator" id="padSpeedTxt"></div>
+            <div id="stickBase"></div>
+            <div id="stickHead"></div>
         </div>
-        <div class="mic-status" id="micStatus"></div>
+
+        <!-- UTILITY BUTTONS -->
+        <div class="bottom-row">
+            <button class="sm-btn" onclick="sendCmd('reset')">
+                <span class="sm-btn-icon">↺</span><span>RESET</span></button>
+            <button class="sm-btn" onclick="sendScrollCmd(0)">
+                <span class="sm-btn-icon">⏸</span><span>STOP</span></button>
+            <button class="sm-btn" onclick="sendCmd('hideUI')">
+                <span class="sm-btn-icon">👁</span><span>HIDE UI</span></button>
+        </div>
+
+        <div class="mic-note" id="micNote"></div>
         <div class="q-counter">Questions answered: <span id="qCountSpan">0</span></div>
     </div>
 </div>
 
 <script>
-// ──────────────────────────────────────────────
+// ─────────────────────────────────────────────
 //  GLOBALS
-// ──────────────────────────────────────────────
-const PEER_PREFIX = 'EXAMAI-V3-';
+// ─────────────────────────────────────────────
+const PEER_PREFIX = 'EXAMAI-V4-';
 let peer, conn;
 let apiKey = '', subject = '', answerStyle = 'detailed';
 let myRoomCode = '';
 
-// Display scroll state
-let scrollY = 0;
+// Display
+let scrollY = 0, scrollSpeed = 0;
 
 // Controller / speech
 let recognition = null;
@@ -248,419 +293,511 @@ let micGranted = false;
 let finalTranscript = '';
 let qCount = 0;
 
+// Pad touch
+let padTouching = false, padTouchStartY = 0;
+let pinching = false, pinchDist0 = 0;
+
 // ── Restore saved prefs ──
-(function () {
-    try {
-        const k = localStorage.getItem('exa_k');
-        const s = localStorage.getItem('exa_s');
-        const st = localStorage.getItem('exa_st');
-        if (k) document.getElementById('apiKeyInput').value = atob(k);
-        if (s) document.getElementById('subjectInput').value = s;
-        if (st) document.getElementById('styleInput').value = st;
-    } catch (e) {}
+(function(){
+    try{
+        const k=localStorage.getItem('exa_k');
+        const s=localStorage.getItem('exa_s');
+        const st=localStorage.getItem('exa_st');
+        if(k) document.getElementById('apiKeyInput').value=atob(k);
+        if(s) document.getElementById('subjectInput').value=s;
+        if(st) document.getElementById('styleInput').value=st;
+    }catch(e){}
 })();
 
-// ──────────────────────────────────────────────
+// ─────────────────────────────────────────────
 //  SETUP HELPERS
-// ──────────────────────────────────────────────
-function showView(id) {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('show'));
+// ─────────────────────────────────────────────
+function showView(id){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('show'));
     document.getElementById(id).classList.add('show');
 }
-function setSetupStatus(msg, isErr) {
-    const el = document.getElementById('setupStatus');
-    el.innerText = msg;
-    el.className = isErr ? 'status-txt err' : 'status-txt';
+function setStatus(msg,isErr){
+    const el=document.getElementById('setupStatus');
+    el.innerText=msg; el.className=isErr?'stxt err':'stxt';
 }
 
-// ──────────────────────────────────────────────
+// ─────────────────────────────────────────────
 //  DISPLAY DEVICE
-// ──────────────────────────────────────────────
-function startDisplay() {
-    myRoomCode = String(Math.floor(1000 + Math.random() * 9000));
-    setSetupStatus('Starting peer...');
+// ─────────────────────────────────────────────
+function startDisplay(){
+    myRoomCode=String(Math.floor(1000+Math.random()*9000));
+    setStatus('Starting...');
     requestWakeLock();
-
-    peer = new Peer(PEER_PREFIX + myRoomCode);
-    peer.on('open', () => {
-        document.getElementById('dCodeBox').innerText = 'CODE: ' + myRoomCode;
+    peer=new Peer(PEER_PREFIX+myRoomCode);
+    peer.on('open',()=>{
+        document.getElementById('dCodeBox').innerText='CODE: '+myRoomCode;
         showView('displayView');
         requestAnimationFrame(displayLoop);
     });
-    peer.on('connection', c => {
-        conn = c;
-        setDisplayStatus('CONNECTED', 'connected');
-        c.on('data', handleDisplayData);
-        c.on('close', () => setDisplayStatus('LOST', ''));
+    peer.on('connection',c=>{
+        conn=c;
+        setDStatus('CONNECTED','connected');
+        c.on('data',handleDisplayData);
+        c.on('close',()=>setDStatus('LOST',''));
     });
-    peer.on('error', err => {
-        if (err.type === 'unavailable-id') { peer.destroy(); startDisplay(); }
-        else setSetupStatus('Peer error: ' + err.type, true);
+    peer.on('error',err=>{
+        if(err.type==='unavailable-id'){peer.destroy();startDisplay();}
+        else setStatus('Peer error: '+err.type,true);
     });
 }
 
-function setDisplayStatus(txt, cls) {
-    const el = document.getElementById('dStatus');
-    el.innerText = txt;
-    el.className = 'd-status ' + cls;
+function setDStatus(txt,cls){
+    const el=document.getElementById('dStatus');
+    el.innerText=txt; el.className='d-status '+cls;
 }
 
-let displayFullText = '';
-function handleDisplayData(data) {
-    switch (data.type) {
+let displayFullText='';
+
+function handleDisplayData(data){
+    switch(data.type){
         case 'question':
-            document.getElementById('dQText').innerText = data.val;
-            document.getElementById('dQuestion').style.display = 'flex';
-            displayFullText = '';
-            document.getElementById('displayContent').innerHTML = '<span style="color:var(--muted);font-size:.85em">Generating answer…</span>';
-            document.getElementById('dPlaceholder').style.display = 'none';
-            scrollY = 0;
-            setDisplayStatus('THINKING', 'thinking');
+            // Show question overlay, hide answer content
+            displayFullText='';
+            document.getElementById('displayContent').innerHTML='';
+            document.getElementById('dPlaceholder').style.display='none';
+            // Show overlay
+            const ov=document.getElementById('dQOverlay');
+            ov.style.display='flex'; ov.style.opacity='1'; ov.classList.remove('hidden');
+            document.getElementById('dQText').innerText=data.val;
+            scrollY=0; scrollSpeed=0;
+            setDStatus('THINKING','thinking');
             break;
+
         case 'chunk':
-            displayFullText = data.val;
+            // First chunk — fade out the question overlay
+            if(!displayFullText){
+                const o=document.getElementById('dQOverlay');
+                o.classList.add('hidden');
+                setTimeout(()=>{ o.style.display='none'; },500);
+            }
+            displayFullText=data.val;
             renderDisplay(true);
-            setDisplayStatus('STREAMING', 'streaming');
+            setDStatus('STREAMING','streaming');
             break;
+
         case 'done':
-            displayFullText = data.val;
+            displayFullText=data.val;
             renderDisplay(false);
-            setDisplayStatus('READY', 'connected');
+            setDStatus('READY','connected');
             break;
+
         case 'error':
-            document.getElementById('displayContent').innerHTML =
-                '<span style="color:var(--danger)">⚠ ' + data.val + '</span>';
-            setDisplayStatus('ERROR', '');
+            document.getElementById('dQOverlay').style.display='none';
+            document.getElementById('displayContent').innerHTML=
+                '<span style="color:var(--danger)">⚠ '+data.val+'</span>';
+            setDStatus('ERROR','');
             break;
+
         case 'scroll':
-            // continuous scroll speed (pixels/frame)
-            scrollSpeed = data.val;
+            scrollSpeed=data.val;
             break;
+
         case 'reset':
-            scrollY = 0; scrollSpeed = 0; displayFullText = '';
-            document.getElementById('displayContent').innerHTML = '';
-            document.getElementById('dQuestion').style.display = 'none';
-            document.getElementById('dPlaceholder').style.display = 'flex';
-            setDisplayStatus('CONNECTED', 'connected');
+            scrollY=0; scrollSpeed=0; displayFullText='';
+            document.getElementById('displayContent').innerHTML='';
+            document.getElementById('dQOverlay').style.display='none';
+            document.getElementById('dPlaceholder').style.display='flex';
+            setDStatus('CONNECTED','connected');
             break;
+
         case 'hideUI':
-            const uiEls = [
-                document.getElementById('markerLine'),
-                document.getElementById('markerTri'),
-                document.getElementById('dStatus'),
-                document.getElementById('dCodeBox')
-            ];
-            const hide = uiEls[0].style.opacity !== '0';
-            uiEls.forEach(e => { if(e) e.style.opacity = hide ? '0' : '1'; });
+            const els=[document.getElementById('markerLine'),document.getElementById('markerTri'),
+                        document.getElementById('dStatus'),document.getElementById('dCodeBox')];
+            const hide=els[0].style.opacity!=='0';
+            els.forEach(e=>{if(e)e.style.opacity=hide?'0':'1';});
             break;
     }
 }
 
-function renderDisplay(streaming) {
-    const html = displayFullText
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br>');
-    document.getElementById('displayContent').innerHTML =
-        html + (streaming ? '<span class="cursor"></span>' : '');
+function renderDisplay(streaming){
+    const html=displayFullText
+        .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g,'<em>$1</em>')
+        .replace(/\n/g,'<br>');
+    document.getElementById('displayContent').innerHTML=html+(streaming?'<span class="cursor"></span>':'');
 }
 
-// Scroll speed variable (used by loop)
-let scrollSpeed = 0;
-
-function displayLoop() {
-    if (scrollSpeed !== 0) {
-        const content = document.getElementById('displayContent');
-        const scroller = document.getElementById('displayScroll');
-        const maxUp = -(content.scrollHeight - scroller.clientHeight + 40);
-        scrollY -= scrollSpeed;
-        if (scrollY > 0) scrollY = 0;
-        if (scrollY < maxUp) scrollY = maxUp;
-        content.style.transform = 'translateY(' + scrollY + 'px)';
+function displayLoop(){
+    if(scrollSpeed!==0){
+        const content=document.getElementById('displayContent');
+        const scroller=document.getElementById('displayScroll');
+        const maxUp=-(content.scrollHeight-scroller.clientHeight+40);
+        scrollY-=scrollSpeed;
+        if(scrollY>0) scrollY=0;
+        if(scrollY<maxUp) scrollY=maxUp;
+        content.style.transform='translateY('+scrollY+'px)';
     }
     requestAnimationFrame(displayLoop);
 }
 
-function toggleFS() {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+function toggleFS(){
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
     else document.exitFullscreen();
 }
 
-// ──────────────────────────────────────────────
+// ─────────────────────────────────────────────
 //  CONTROLLER DEVICE
-// ──────────────────────────────────────────────
-function showRemoteSetup() {
-    document.getElementById('modeBtns').style.display = 'none';
-    document.getElementById('apiSetup').style.display = 'flex';
-    document.getElementById('connectGroup').style.display = 'flex';
-    setSetupStatus('Enter screen code + API key then connect');
+// ─────────────────────────────────────────────
+function showRemoteSetup(){
+    document.getElementById('modeBtns').style.display='none';
+    document.getElementById('apiSetup').style.display='flex';
+    document.getElementById('connectGroup').style.display='flex';
+    setStatus('Enter screen code + API key');
+}
+function backToMain(){
+    document.getElementById('modeBtns').style.display='flex';
+    document.getElementById('apiSetup').style.display='none';
+    document.getElementById('connectGroup').style.display='none';
+    setStatus('Select your role');
 }
 
-function backToMain() {
-    document.getElementById('modeBtns').style.display = 'flex';
-    document.getElementById('apiSetup').style.display = 'none';
-    document.getElementById('connectGroup').style.display = 'none';
-    setSetupStatus('Select your role');
-}
+function connectToDisplay(){
+    const code=document.getElementById('codeInput').value.trim();
+    const key=document.getElementById('apiKeyInput').value.trim();
+    if(!code||code.length<4){setStatus('Enter 4-digit code',true);return;}
+    if(!key||!key.startsWith('AIza')){setStatus('Enter valid Gemini API key',true);return;}
 
-function connectToDisplay() {
-    const code = document.getElementById('codeInput').value.trim();
-    const key  = document.getElementById('apiKeyInput').value.trim();
-    if (!code || code.length < 4) { setSetupStatus('Enter 4-digit code', true); return; }
-    if (!key || !key.startsWith('AIza')) { setSetupStatus('Enter valid Gemini API key (starts with AIza)', true); return; }
+    apiKey=key; subject=document.getElementById('subjectInput').value.trim();
+    answerStyle=document.getElementById('styleInput').value;
+    try{localStorage.setItem('exa_k',btoa(key));}catch(e){}
+    try{localStorage.setItem('exa_s',subject);}catch(e){}
+    try{localStorage.setItem('exa_st',answerStyle);}catch(e){}
 
-    apiKey      = key;
-    subject     = document.getElementById('subjectInput').value.trim();
-    answerStyle = document.getElementById('styleInput').value;
-
-    try { localStorage.setItem('exa_k', btoa(key)); } catch(e) {}
-    try { localStorage.setItem('exa_s', subject); } catch(e) {}
-    try { localStorage.setItem('exa_st', answerStyle); } catch(e) {}
-
-    setSetupStatus('Connecting to screen...');
+    setStatus('Connecting to screen...');
     requestWakeLock();
-
-    peer = new Peer();
-    peer.on('open', () => {
-        conn = peer.connect(PEER_PREFIX + code, { reliable: true });
-        conn.on('open', () => {
+    peer=new Peer();
+    peer.on('open',()=>{
+        conn=peer.connect(PEER_PREFIX+code,{reliable:true});
+        conn.on('open',()=>{
             showView('controllerView');
-            document.getElementById('cConn').innerText = 'SCREEN CONNECTED';
-            document.getElementById('cConn').className = 'c-conn ok';
+            document.getElementById('cConn').innerText='SCREEN CONNECTED';
+            document.getElementById('cConn').className='c-conn ok';
             initMic();
+            setupScrollPad();
         });
-        conn.on('close', () => {
-            document.getElementById('cConn').innerText = 'DISCONNECTED';
-            document.getElementById('cConn').className = 'c-conn err';
+        conn.on('close',()=>{
+            document.getElementById('cConn').innerText='DISCONNECTED';
+            document.getElementById('cConn').className='c-conn err';
         });
     });
-    peer.on('error', err => {
-        if (err.type === 'peer-unavailable')
-            setSetupStatus('Screen not found. Check code & that screen page is open.', true);
-        else setSetupStatus('Error: ' + err.type, true);
+    peer.on('error',err=>{
+        if(err.type==='peer-unavailable') setStatus('Screen not found. Check code.',true);
+        else setStatus('Error: '+err.type,true);
     });
 }
 
-function sendCmd(type) {
-    if (conn && conn.open) conn.send({ type });
-}
-function sendScrollCmd(val) {
-    if (conn && conn.open) conn.send({ type: 'scroll', val });
-}
+function sendCmd(type){ if(conn&&conn.open) conn.send({type}); }
+function sendScrollCmd(val){ if(conn&&conn.open) conn.send({type:'scroll',val}); }
 
-// ── Microphone ──
-function initMic() {
-    setMicStatus('Requesting microphone...', '');
-    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-        .then(stream => {
-            // Permission granted — release stream immediately
-            stream.getTracks().forEach(t => t.stop());
-            micGranted = true;
-            setMicStatus('Mic ready ✓', 'ok');
-            document.getElementById('transcriptBox').innerText = 'Mic ready. Hold RECORD and speak your question.';
-        })
-        .catch(err => {
-            micGranted = false;
-            setMicStatus('Mic denied: ' + err.message, 'err');
-            document.getElementById('transcriptBox').innerText = '⚠ Microphone permission denied. Please allow mic access in browser settings and reload.';
-        });
-}
+// ── SCROLL PAD (joystick-style, same as original prompter) ──
+function setupScrollPad(){
+    const pad=document.getElementById('scrollPad');
+    const head=document.getElementById('stickHead');
+    const base=document.getElementById('stickBase');
 
-function setMicStatus(msg, cls) {
-    const el = document.getElementById('micStatus');
-    el.innerText = msg;
-    el.className = 'mic-status ' + cls;
-}
-
-function buildRecognition() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return null;
-    const r = new SR();
-    r.continuous = true;
-    r.interimResults = true;
-    r.lang = 'en-IN';
-    r.maxAlternatives = 1;
-
-    r.onstart = () => {
-        document.getElementById('transcriptBox').className = 'transcript-box recording';
-        document.getElementById('transcriptBox').innerHTML =
-            '<span class="wave-bar"></span><span class="wave-bar"></span>' +
-            '<span class="wave-bar"></span><span class="wave-bar"></span>' +
-            '<span class="wave-bar"></span>&nbsp;Listening…';
-    };
-    r.onresult = e => {
-        let interim = '', fin = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-            if (e.results[i].isFinal) fin += e.results[i][0].transcript + ' ';
-            else interim += e.results[i][0].transcript;
+    pad.addEventListener('touchstart',e=>{
+        e.preventDefault();
+        if(e.touches.length===2){
+            padTouching=false;
+            pinching=true;
+            pinchDist0=Math.hypot(
+                e.touches[0].pageX-e.touches[1].pageX,
+                e.touches[0].pageY-e.touches[1].pageY);
+            return;
         }
-        finalTranscript += fin;
-        const disp = (finalTranscript + interim).trim();
-        document.getElementById('transcriptBox').innerText = disp || 'Listening…';
+        padTouching=true; pinching=false;
+        padTouchStartY=e.touches[0].clientY;
+        const rect=pad.getBoundingClientRect();
+        const ry=e.touches[0].clientY-rect.top;
+        base.style.display='block'; base.style.top=ry+'px';
+        head.style.display='block'; head.style.top=ry+'px';
+        head.style.left=(rect.width/2)+'px';
+        head.style.transform='translate(-50%,-50%)';
+        head.classList.remove('fast');
+    },{passive:false});
+
+    pad.addEventListener('touchmove',e=>{
+        e.preventDefault();
+        if(e.touches.length===2&&pinching){
+            // pinch = font resize
+            const d=Math.hypot(e.touches[0].pageX-e.touches[1].pageX,e.touches[0].pageY-e.touches[1].pageY);
+            const delta=d-pinchDist0;
+            if(Math.abs(delta)>8){
+                sendCmd(delta>0?'fontUp':'fontDown');
+                pinchDist0=d;
+            }
+            return;
+        }
+        if(!padTouching) return;
+        const dy=padTouchStartY-e.touches[0].clientY;
+        // Map drag distance to speed: max ±20 px = max speed ±18
+        let spd=dy*0.13;
+        if(spd>18) spd=18;
+        if(spd<-18) spd=-18;
+        sendScrollCmd(spd);
+
+        // Visual feedback
+        let vis=-dy; if(vis>50) vis=50; if(vis<-50) vis=-50;
+        head.style.transform=`translate(-50%, calc(-50% + ${vis}px))`;
+        head.classList.toggle('fast',Math.abs(spd)>10);
+        document.getElementById('padSpeedTxt').innerText=
+            spd===0?'':(spd>0?'▲ scrolling up':'▼ scrolling down');
+    },{passive:false});
+
+    pad.addEventListener('touchend',e=>{
+        e.preventDefault();
+        if(e.touches.length===0){
+            padTouching=false; pinching=false;
+            sendScrollCmd(0);
+            head.style.display='none'; base.style.display='none';
+            head.style.transform='translate(-50%,-50%)';
+            head.classList.remove('fast');
+            document.getElementById('padSpeedTxt').innerText='';
+        }
+    },{passive:false});
+
+    // Mouse support for desktop testing
+    let mouseDown=false;
+    pad.addEventListener('mousedown',e=>{
+        mouseDown=true; padTouchStartY=e.clientY;
+        const rect=pad.getBoundingClientRect();
+        base.style.display='block'; base.style.top=(e.clientY-rect.top)+'px';
+        head.style.display='block'; head.style.top=(e.clientY-rect.top)+'px';
+        head.style.left=(rect.width/2)+'px';
+        head.style.transform='translate(-50%,-50%)';
+    });
+    pad.addEventListener('mousemove',e=>{
+        if(!mouseDown) return;
+        const dy=padTouchStartY-e.clientY;
+        let spd=dy*0.13; if(spd>18)spd=18; if(spd<-18)spd=-18;
+        sendScrollCmd(spd);
+        let vis=-dy; if(vis>50)vis=50; if(vis<-50)vis=-50;
+        head.style.transform=`translate(-50%, calc(-50% + ${vis}px))`;
+    });
+    pad.addEventListener('mouseup',()=>{
+        mouseDown=false; sendScrollCmd(0);
+        head.style.display='none'; base.style.display='none';
+    });
+    pad.addEventListener('mouseleave',()=>{
+        if(mouseDown){ mouseDown=false; sendScrollCmd(0); head.style.display='none'; base.style.display='none'; }
+    });
+}
+
+// ── MICROPHONE ──
+function initMic(){
+    setMicNote('Requesting microphone permission...','');
+    navigator.mediaDevices.getUserMedia({audio:true,video:false})
+        .then(stream=>{
+            stream.getTracks().forEach(t=>t.stop()); // release — we only needed the permission
+            micGranted=true;
+            setMicNote('Mic ready ✓','ok');
+            document.getElementById('cTranscript').innerText='Hold RECORD and speak your question.';
+        })
+        .catch(err=>{
+            micGranted=false;
+            setMicNote('Mic denied — allow mic in browser settings','err');
+        });
+}
+
+function setMicNote(msg,cls){
+    const el=document.getElementById('micNote');
+    el.innerText=msg; el.className='mic-note '+cls;
+}
+
+// Build a fresh SpeechRecognition each press
+function buildRecognition(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR) return null;
+    const r=new SR();
+    // continuous:false = one natural utterance, stops on silence
+    // This prevents the repeated/looping transcript issue
+    r.continuous=false;
+    r.interimResults=true;
+    r.lang='en-IN';
+    r.maxAlternatives=1;
+
+    r.onstart=()=>{
+        document.getElementById('cTranscript').className='c-transcript recording';
+        document.getElementById('cTranscript').innerHTML=
+            '<span class="wb"></span><span class="wb"></span><span class="wb"></span>'+
+            '<span class="wb"></span><span class="wb"></span>&nbsp;Listening…';
     };
-    r.onerror = e => {
-        if (e.error === 'aborted' || e.error === 'no-speech') return;
-        setMicStatus('Speech error: ' + e.error, 'err');
+
+    r.onresult=e=>{
+        let interim='',fin='';
+        for(let i=e.resultIndex;i<e.results.length;i++){
+            if(e.results[i].isFinal) fin+=e.results[i][0].transcript+' ';
+            else interim+=e.results[i][0].transcript;
+        }
+        finalTranscript+=fin;
+        const disp=(finalTranscript+interim).trim();
+        // Show only live interim on the strip (truncated)
+        const show=disp.length>60?'…'+disp.slice(-60):disp;
+        document.getElementById('cTranscript').innerText=show||'Listening…';
     };
-    r.onend = () => {
-        // If user is still holding, restart automatically
-        if (isRecording) {
-            try { r.start(); } catch(ex) {}
+
+    r.onerror=e=>{
+        if(e.error==='aborted'||e.error==='no-speech') return;
+        setMicNote('Speech error: '+e.error,'err');
+    };
+
+    // When it ends naturally (silence detected) AND user is still holding:
+    // DON'T restart — just wait for release. This stops the repetition problem.
+    r.onend=()=>{
+        if(isRecording){
+            // Silent — show what we have so far
+            const t=finalTranscript.trim();
+            if(t) document.getElementById('cTranscript').innerText=t;
+            // Recognition ended by itself (silence). Mark done so stopRec sends it.
+            // User can release now.
         }
     };
     return r;
 }
 
-function startRec(e) {
+function startRec(e){
     e.preventDefault();
-    if (isRecording) return;
-    if (!micGranted) {
-        document.getElementById('transcriptBox').innerText = '⚠ Mic not ready yet. Grant permission first.';
+    if(isRecording) return;
+    if(!micGranted){
+        document.getElementById('cTranscript').innerText='⚠ Mic not ready. Grant permission first.';
         return;
     }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-        document.getElementById('transcriptBox').innerText = '⚠ Speech API not supported. Use Chrome.';
-        return;
-    }
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){ document.getElementById('cTranscript').innerText='⚠ Use Chrome for speech support.'; return; }
 
-    isRecording = true;
-    finalTranscript = '';
-    recognition = buildRecognition();
+    isRecording=true;
+    finalTranscript='';
+    recognition=buildRecognition();
 
-    document.getElementById('recordBtn').className = 'record-btn recording';
-    document.getElementById('btnInner').innerHTML =
-        '<span class="wave-bar"></span><span class="wave-bar"></span>' +
-        '<span class="wave-bar"></span>&nbsp;RELEASE TO SEND';
+    document.getElementById('recordBtn').className='record-btn rec';
+    document.getElementById('btnInner').innerHTML=
+        '<span class="wb"></span><span class="wb"></span><span class="wb"></span>&nbsp;RELEASE TO SEND';
 
-    try { recognition.start(); }
-    catch (ex) {
-        document.getElementById('transcriptBox').innerText = 'Could not start: ' + ex.message;
-        isRecording = false;
-        resetBtn();
+    try{ recognition.start(); }
+    catch(ex){
+        document.getElementById('cTranscript').innerText='Could not start: '+ex.message;
+        isRecording=false; resetBtn();
     }
 }
 
-function stopRec(e) {
-    if (e) e.preventDefault();
-    if (!isRecording) return;
-    isRecording = false;
+function stopRec(e){
+    if(e) e.preventDefault();
+    if(!isRecording) return;
+    isRecording=false;
     resetBtn();
+    try{ if(recognition) recognition.stop(); }catch(ex){}
 
-    try { if (recognition) recognition.stop(); } catch (ex) {}
+    setTimeout(()=>{
+        const q=finalTranscript.trim();
+        document.getElementById('cTranscript').className='c-transcript';
 
-    // Wait briefly for final results to arrive
-    setTimeout(() => {
-        const q = finalTranscript.trim();
-        document.getElementById('transcriptBox').className = 'transcript-box';
-        if (q.length > 1) {
-            document.getElementById('transcriptBox').innerText = q;
-            document.getElementById('cQStrip').innerText = q;
-            document.getElementById('cQStrip').className = 'c-qstrip active';
-            // Tell screen about the question
-            if (conn && conn.open) conn.send({ type: 'question', val: q });
-            // Fetch answer and stream to screen
+        if(q.length>1){
+            // Show briefly then clear
+            document.getElementById('cTranscript').innerText='✓ Sent: '+q.slice(0,50)+(q.length>50?'…':'');
+            setTimeout(()=>{
+                document.getElementById('cTranscript').innerText='Hold RECORD and speak your question.';
+            },2500);
+
+            // Send to screen & AI
+            if(conn&&conn.open) conn.send({type:'question',val:q});
             askGemini(q);
         } else {
-            document.getElementById('transcriptBox').innerText = 'Nothing heard — try again.';
+            document.getElementById('cTranscript').innerText='Nothing heard — try again.';
         }
-    }, 350);
+    },300);
 }
 
-function ifRecStop(e) {
-    // Only stop on mouse-leave if actually recording (desktop only)
-    if (isRecording) stopRec(e);
+function ifRecStop(e){ if(isRecording) stopRec(e); }
+
+function resetBtn(){
+    document.getElementById('recordBtn').className='record-btn idle';
+    document.getElementById('btnInner').innerText='🎙  HOLD TO RECORD';
 }
 
-function resetBtn() {
-    document.getElementById('recordBtn').className = 'record-btn idle';
-    document.getElementById('btnInner').innerText = '🎙  HOLD TO RECORD';
-}
-
-// ──────────────────────────────────────────────
-//  GEMINI API  (gemini-2.5-flash-preview via REST SSE)
-// ──────────────────────────────────────────────
-async function askGemini(question) {
-    const styleMap = {
-        detailed: 'Give a detailed, well-structured answer suitable for an exam. Use clear paragraphs. Be thorough.',
-        concise:  'Give a concise, direct answer in 2–3 sentences only.',
-        bullets:  'Answer using clear numbered bullet points. Keep each point brief.',
-        simple:   'Explain simply as if teaching a beginner. Use short sentences and everyday language.'
+// ─────────────────────────────────────────────
+//  GEMINI  (gemini-2.5-flash-preview REST SSE)
+// ─────────────────────────────────────────────
+async function askGemini(question){
+    const styleMap={
+        detailed:'Give a detailed, well-structured answer suitable for an exam. Use clear paragraphs. Be thorough.',
+        concise:'Give a concise, direct answer in 2–3 sentences only.',
+        bullets:'Answer using clear numbered bullet points. Keep each point brief.',
+        simple:'Explain simply as if teaching a beginner. Use short sentences and everyday language.'
     };
-    const prompt = [
-        subject ? 'Subject: ' + subject + '.' : '',
-        styleMap[answerStyle] || styleMap.detailed,
-        'Do not begin with filler phrases like "Certainly!" or "Great question!". Start the answer immediately.',
+    const prompt=[
+        subject?'Subject: '+subject+'.':'',
+        styleMap[answerStyle]||styleMap.detailed,
+        'Do not start with filler phrases. Start the answer directly.',
         '',
-        'Question: ' + question
+        'Question: '+question
     ].filter(Boolean).join(' ');
 
-    const body = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.65, maxOutputTokens: 1400 }
+    const body={
+        contents:[{parts:[{text:prompt}]}],
+        generationConfig:{temperature:0.65,maxOutputTokens:1400}
     };
 
-    try {
-        const res = await fetch(
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=' + apiKey,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+    try{
+        const res=await fetch(
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-14:streamGenerateContent?alt=sse&key='+apiKey,
+            {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}
         );
-
-        if (!res.ok) {
-            let errMsg = 'HTTP ' + res.status;
-            try { const j = await res.json(); errMsg = j?.error?.message || errMsg; } catch(e) {}
-            if (conn && conn.open) conn.send({ type: 'error', val: errMsg });
+        if(!res.ok){
+            let em='HTTP '+res.status;
+            try{const j=await res.json();em=j?.error?.message||em;}catch(e){}
+            if(conn&&conn.open) conn.send({type:'error',val:em});
             return;
         }
 
-        const reader = res.body.getReader();
-        const dec = new TextDecoder();
-        let buf = '', fullText = '';
+        const reader=res.body.getReader();
+        const dec=new TextDecoder();
+        let buf='',fullText='';
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buf += dec.decode(value, { stream: true });
-            const lines = buf.split('\n');
-            buf = lines.pop(); // keep incomplete last line
-
-            for (const line of lines) {
-                if (!line.startsWith('data: ')) continue;
-                const raw = line.slice(6).trim();
-                if (!raw || raw === '[DONE]') continue;
-                try {
-                    const parsed = JSON.parse(raw);
-                    const chunk = parsed?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                    if (chunk) {
-                        fullText += chunk;
-                        if (conn && conn.open) conn.send({ type: 'chunk', val: fullText });
+        while(true){
+            const{done,value}=await reader.read();
+            if(done) break;
+            buf+=dec.decode(value,{stream:true});
+            const lines=buf.split('\n');
+            buf=lines.pop();
+            for(const line of lines){
+                if(!line.startsWith('data: ')) continue;
+                const raw=line.slice(6).trim();
+                if(!raw||raw==='[DONE]') continue;
+                try{
+                    const p=JSON.parse(raw);
+                    const chunk=p?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+                    if(chunk){
+                        fullText+=chunk;
+                        if(conn&&conn.open) conn.send({type:'chunk',val:fullText});
                     }
-                } catch (ex) {}
+                }catch(ex){}
             }
         }
-        // Final send without streaming cursor
-        if (conn && conn.open) conn.send({ type: 'done', val: fullText });
+        if(conn&&conn.open) conn.send({type:'done',val:fullText});
         qCount++;
-        document.getElementById('qCountSpan').innerText = qCount;
+        document.getElementById('qCountSpan').innerText=qCount;
 
-    } catch (err) {
-        if (conn && conn.open) conn.send({ type: 'error', val: err.message });
+    }catch(err){
+        if(conn&&conn.open) conn.send({type:'error',val:err.message});
     }
 }
 
-// ──────────────────────────────────────────────
+// ─────────────────────────────────────────────
 //  MISC
-// ──────────────────────────────────────────────
-let wakeLock = null;
-async function requestWakeLock() {
-    try {
-        if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-    } catch (e) {}
+// ─────────────────────────────────────────────
+let wakeLock=null;
+async function requestWakeLock(){
+    try{ if('wakeLock'in navigator) wakeLock=await navigator.wakeLock.request('screen'); }catch(e){}
 }
-document.addEventListener('visibilitychange', async () => {
-    if (wakeLock && document.visibilityState === 'visible') await requestWakeLock();
+document.addEventListener('visibilitychange',async()=>{
+    if(wakeLock&&document.visibilityState==='visible') await requestWakeLock();
 });
-document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('contextmenu',e=>e.preventDefault());
 </script>
 </body>
 </html>
